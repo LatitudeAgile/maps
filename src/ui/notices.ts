@@ -75,6 +75,21 @@ export function showMapError(message: string): HTMLElement {
   });
 }
 
+/** Some configured layers failed to load. Closable; the rest of the viewer keeps working. */
+export function showLayerErrors(ids: string[]): HTMLElement {
+  return showNotice({
+    id: "layer-errors",
+    kind: "warning",
+    closable: true,
+    title: ids.length === 1 ? "A layer could not be loaded" : "Some layers could not be loaded",
+    message:
+      ids.length === 1
+        ? "The map works without it. Check the layer's URL or portal item in the config."
+        : "The map works without them. Check each layer's URL or portal item in the config.",
+    items: ids,
+  });
+}
+
 /** The configured basemap needs a key that isn't configured. Closable. */
 export function showFallbackNotice(configured: string, fallback: string): HTMLElement {
   return showNotice({

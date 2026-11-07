@@ -1,4 +1,7 @@
 import "@arcgis/map-components/components/arcgis-map";
+// The map creates <arcgis-popup> when popupComponentEnabled is set; with per-component
+// imports, the element must be defined here or it never upgrades.
+import "@arcgis/map-components/components/arcgis-popup";
 import "@arcgis/map-components/components/arcgis-zoom";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import type { ViewerConfig } from "../config/types.ts";
@@ -22,6 +25,9 @@ export interface CreateMapOptions {
  */
 export function createMap({ config, basemap, container, onFailure }: CreateMapOptions): HTMLArcgisMapElement {
   const mapEl = document.createElement("arcgis-map");
+  // Use the Popup component, not the Popup widget (deprecated since 5.2; the component becomes
+  // the default at 6.0). Beta in 5.x.
+  mapEl.popupComponentEnabled = true;
   mapEl.basemap = basemap;
   mapEl.center = [...config.map.center];
   // Exactly one is set (validateConfig). Scale is basemap-independent; zoom is not (D10).

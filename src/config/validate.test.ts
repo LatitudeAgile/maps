@@ -21,7 +21,7 @@ describe("defaults", () => {
     expect(config?.map).toMatchObject(minimal().map);
     expect(config?.services).toEqual({});
     expect(config?.layers).toEqual([]);
-    expect(config?.widgets).toEqual([]);
+    expect(config?.components).toEqual([]);
   });
 
   test("configured values override defaults", () => {
@@ -168,12 +168,12 @@ describe("credentials", () => {
       ...minimal(),
       token: secret,
       services: { clientSecret: secret },
-      layers: [{ url: "https://x", options: { token: secret } }],
-      widgets: [{ apikey: secret }],
+      layers: [{ id: "a", type: "feature", url: "https://x.example.com/fs/0", options: { token: secret } }],
+      components: [{ id: "h", type: "home", placement: "top-left", apikey: secret }],
     };
     const { errors, warnings } = validateConfig(raw);
     expect(paths(errors).sort()).toEqual(
-      ["layers[0].options.token", "services.clientSecret", "token", "widgets[0].apikey"].sort(),
+      ["layers[0].options.token", "services.clientSecret", "token", "components[0].apikey"].sort(),
     );
     expect(JSON.stringify({ errors, warnings })).not.toContain(secret);
     // A top-level credential key is reported as an error, not also as an unknown setting.
@@ -182,16 +182,36 @@ describe("credentials", () => {
 });
 
 describe("tolerated and unknown settings", () => {
-  test("reserved layers and widgets arrays are accepted without warnings", () => {
-    const { config, errors, warnings } = validateConfig({ ...minimal(), layers: [], widgets: [] });
+  test("All recognized settings present: no warnings", () => {
+    const { config, errors, warnings } = validateConfig({
+      ...minimal(),
+      app: { title: "T" },
+      portal: { url: "https://www.arcgis.com" },
+      services: {},
+      layers: [],
+      components: [],
+      debug: false,
+      request: { proxyRules: [] },
+    });
     expect(errors).toEqual([]);
     expect(warnings).toEqual([]);
     expect(config).toBeDefined();
   });
 
-  test("reserved sections must be arrays", () => {
+  test("layers and components must be arrays", () => {
     const { errors } = validateConfig({ ...minimal(), layers: {} });
     expect(paths(errors)).toEqual(["layers"]);
+  });
+
+  test("debug defaults to false and accepts true", () => {
+    expect(validateConfig(minimal()).config?.debug).toBe(false);
+    expect(validateConfig({ ...minimal(), debug: true }).config?.debug).toBe(true);
+  });
+
+  test("Wrong type: debug must be true or false", () => {
+    const { config, errors } = validateConfig({ ...minimal(), debug: "yes" });
+    expect(config).toBeUndefined();
+    expect(errors).toEqual([{ path: "debug", message: "Expected true or false." }]);
   });
 
   test("Unknown top-level setting produces one warning naming it", () => {
@@ -233,5 +253,6 @@ describe("shipped default config", () => {
       center: [-98.579404, 39.828127],
       scale: 18489298,
     });
+    expect(config?.components).toEqual([{ id: "home", type: "home", placement: "top-left", options: {} }]);
   });
 });

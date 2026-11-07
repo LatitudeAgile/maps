@@ -1,6 +1,11 @@
 import { LEGACY_BASEMAP_IDS, isBasemapStyleId } from "../map/basemapIds.ts";
+import { hooks } from "../extensions/hooks.ts";
+import { validateLayers } from "./layers.ts";
+import { validateRequest } from "./request.ts";
+import { validateComponents } from "./components.ts";
+import { COMPONENT_TYPES, type ComponentTypeSchema } from "../components/registry.ts";
 import {
-  CREDENTIAL_KEYS,
+  isCredentialKey,
   DEFAULTS,
   KNOWN_SECTIONS,
   type ConfigProblem,
@@ -12,6 +17,16 @@ export interface ValidationResult {
   config: ViewerConfig | undefined;
   errors: ConfigProblem[];
   warnings: ConfigProblem[];
+}
+
+/** What validation needs to know beyond the config itself. */
+export interface ValidationContext {
+  /** URL of the loaded config file; relative GeoJSON URLs resolve against it. */
+  configUrl?: string;
+  /** Available layer hook names; defaults to the built-in hook registry. */
+  hookNames?: string[];
+  /** Registered component types; defaults to the built-in component registry. */
+  componentTypes?: Readonly<Record<string, ComponentTypeSchema>>;
 }
 
 type Obj = Record<string, unknown>;
@@ -29,8 +44,6 @@ function isHttpsUrl(v: unknown): v is string {
   }
 }
 
-const credentialKeys = new Set<string>(CREDENTIAL_KEYS.map((k) => k.toLowerCase()));
-const isCredentialKey = (key: string): boolean => credentialKeys.has(key.toLowerCase());
 
 const CREDENTIAL_MESSAGE =
   "Credentials must not be stored in the config. Supply the API key through the build environment (VITE_ARCGIS_API_KEY in .env.local) instead.";
@@ -64,7 +77,7 @@ function section(raw: Obj, name: string, errors: ConfigProblem[]): Obj {
  * Validate a parsed config and apply defaults. Every problem is collected, so a deployer
  * sees all of them at once. Messages name what was expected and never echo values.
  */
-export function validateConfig(raw: unknown): ValidationResult {
+export function validateConfig(raw: unknown, context: ValidationContext = {}): ValidationResult {
   const errors: ConfigProblem[] = [];
   const warnings: ConfigProblem[] = [];
 
@@ -182,16 +195,28 @@ export function validateConfig(raw: unknown): ValidationResult {
     else errors.push({ path: `services.${name}`, message: "Expected an absolute https URL." });
   }
 
-  // reserved for port-config-engine
-  const reserved = (name: "layers" | "widgets"): unknown[] => {
-    const value = raw[name];
-    if (value === undefined) return [];
-    if (Array.isArray(value)) return value;
-    errors.push({ path: name, message: "Expected an array (reserved for a later version)." });
-    return [];
-  };
-  const layers = reserved("layers");
-  const widgets = reserved("widgets");
+  const layers = validateLayers(
+    raw.layers,
+    { hookNames: context.hookNames ?? Object.keys(hooks), configUrl: context.configUrl },
+    errors,
+    warnings,
+  );
+
+  const components = validateComponents(
+    raw.components,
+    { types: context.componentTypes ?? COMPONENT_TYPES, layerIds: layers.map((l) => l.id) },
+    errors,
+    warnings,
+  );
+
+  // debug: boolean, default false
+  let debug = false;
+  if (raw.debug !== undefined) {
+    if (typeof raw.debug === "boolean") debug = raw.debug;
+    else errors.push({ path: "debug", message: "Expected true or false." });
+  }
+
+  const request = validateRequest(raw.request, errors, warnings);
 
   if (errors.length > 0 || !view) return { config: undefined, errors, warnings };
 
@@ -202,7 +227,9 @@ export function validateConfig(raw: unknown): ValidationResult {
       map: { basemap, fallbackBasemap, center, ...view },
       services,
       layers,
-      widgets,
+      components,
+      debug,
+      request,
     },
     errors,
     warnings,

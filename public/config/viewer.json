@@ -9,5 +9,5 @@
   },
   "services": {},
   "layers": [],
-  "widgets": []
+  "components": [{ "id": "home", "type": "home", "placement": "top-left" }]
 }

@@ -4,25 +4,34 @@ import "./style.css";
 import "@esri/calcite-components/components/calcite-shell";
 
 import esriConfig from "@arcgis/core/config.js";
+import { AppModel } from "./app/AppModel.ts";
+import { ErrorChannel } from "./app/errors.ts";
+import { applyRequest } from "./config/applyRequest.ts";
 import { loadConfig } from "./config/load.ts";
 import { validateConfig } from "./config/validate.ts";
 import { applyApiKey, readApiKey } from "./credentials/apiKey.ts";
 import { chooseBasemap } from "./map/chooseBasemap.ts";
 import { createMap } from "./map/createMap.ts";
-import { showConfigError, showFallbackNotice, showMapError } from "./ui/notices.ts";
+import { addLayers } from "./layers/addLayers.ts";
+import { createComponents, type CreateComponentsOptions } from "./components/createComponents.ts";
+import { showConfigError, showFallbackNotice, showLayerErrors, showMapError } from "./ui/notices.ts";
 
 // Kept for add-location-services-auth (optional OAuth sign-in):
 // import { configureOAuth } from "./auth/configureOAuth.ts";
 
-/** Startup: load config → validate → credentials → create map. */
+/** Startup: load config → validate → credentials and proxy → map → layers → components. */
 async function start(): Promise<void> {
+  const apiKey = readApiKey(import.meta.env.VITE_ARCGIS_API_KEY);
+  // Created first so every later stage can report errors; the key is redacted from reports.
+  const app = new AppModel(new ErrorChannel([apiKey]));
+
   const loaded = await loadConfig();
   if (!loaded.ok) {
     showConfigError("The viewer could not load its configuration", [loaded.message]);
     return;
   }
 
-  const { config, errors, warnings } = validateConfig(loaded.raw);
+  const { config, errors, warnings } = validateConfig(loaded.raw, { configUrl: loaded.url });
   for (const w of warnings) console.warn(`Viewer config: ${w.path}: ${w.message}`);
   if (!config) {
     showConfigError(
@@ -33,11 +42,14 @@ async function start(): Promise<void> {
     return;
   }
 
+  if (config.debug) enableDebug(app);
+
   document.title = config.app.title;
   esriConfig.portalUrl = config.portal.url;
 
-  const apiKey = readApiKey(import.meta.env.VITE_ARCGIS_API_KEY);
   applyApiKey(esriConfig, apiKey);
+  // Proxy settings must be in place before the first map request (design D9).
+  applyRequest(esriConfig, config.request, new URL(import.meta.env.BASE_URL, location.href).href);
 
   const choice = chooseBasemap(config, apiKey !== undefined);
   if (choice.fellBack) showFallbackNotice(config.map.basemap, choice.basemap);
@@ -45,12 +57,51 @@ async function start(): Promise<void> {
   const shell = document.querySelector("calcite-shell");
   if (!shell) throw new Error("index.html is missing calcite-shell");
 
-  createMap({
+  const mapEl = createMap({
     config,
     basemap: choice.basemap,
     container: shell,
-    onFailure: (reason) => showMapError(reason),
+    onFailure: (reason) => {
+      app.errors.report({ source: "map", message: reason });
+      showMapError(reason);
+    },
   });
+
+  // The view becomes ready on its own schedule; layers don't wait for it.
+  mapEl.viewOnReady().then(
+    () => (app.view = mapEl.view),
+    () => undefined, // reported by createMap's failure detection
+  );
+
+  // Layers start as soon as the map object exists, so the 15 s settle limit (design D5) is
+  // measured from close to page load. Then, once they settle, components (design D1).
+  await mapEl.componentOnReady();
+  const map = mapEl.map;
+  if (!map) {
+    app.errors.report({ source: "map", message: "The map component did not create a map." });
+    return;
+  }
+  const { failed } = await addLayers({ entries: config.layers, map, app });
+  if (failed.length > 0) showLayerErrors(failed);
+
+  await createComponents({ entries: config.components, mapElement: mapEl as unknown as CreateComponentsOptions["mapElement"], app });
+}
+
+/**
+ * Debug mode (app-model, P-17): expose the model as `window.app` and log every error-channel
+ * report. Reports are already redacted, so the API key never reaches the console this way.
+ */
+function enableDebug(app: AppModel): void {
+  window.app = app;
+  app.errors.subscribe((r) => console.error("[viewer]", r.source, r.message, ...(r.detail ? [r.detail] : [])));
+  console.info("[viewer] debug mode: the app model is available as window.app");
+}
+
+declare global {
+  interface Window {
+    /** The app model, in debug mode only. */
+    app?: AppModel;
+  }
 }
 
 void start();

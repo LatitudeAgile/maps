@@ -9,7 +9,7 @@ which was built on the retired ArcGIS API for JavaScript 3.x and Dojo. It is a r
 not an in-place upgrade. dojo-sidebar is kept unchanged as a reference.
 
 > **Status:** early migration. The viewer shows a config-driven map with zoom buttons; the
-> sidebar, layers, and widgets are still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
+> sidebar, layers, and components are still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
 > [`openspec/`](openspec/).
 
 ## Requirements

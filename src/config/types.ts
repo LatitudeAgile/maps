@@ -25,10 +25,68 @@ export interface ViewerConfig {
   };
   /** Named service URLs (absolute https). */
   services: Record<string, string>;
-  /** Reserved for port-config-engine; accepted but not acted on. */
-  layers: unknown[];
-  /** Reserved for port-config-engine; accepted but not acted on. */
-  widgets: unknown[];
+  /** Operational layers, first entry drawn on top (map-layers). */
+  layers: LayerConfig[];
+  /** Components, created in config order after layers settle (map-components). */
+  components: ComponentConfig[];
+  /** Exposes the app model as `window.app` and logs error-channel reports. Default false. */
+  debug: boolean;
+  /** SDK request settings (proxy). */
+  request: RequestConfig;
+}
+
+/** One proxy rule: requests whose URL starts with `urlPrefix` go through `proxyUrl`. */
+export interface ProxyRule {
+  urlPrefix: string;
+  /** Absolute https URL, or a path on the viewer's own site (resolved when applied). */
+  proxyUrl: string;
+}
+
+export interface RequestConfig {
+  proxyUrl?: string;
+  proxyRules: ProxyRule[];
+}
+
+/** Supported layer types (map-layers). */
+export const LAYER_TYPES = ["feature", "map-image", "vector-tile", "tile", "geojson", "imagery"] as const;
+export type LayerType = (typeof LAYER_TYPES)[number];
+
+/** One validated `layers` entry. */
+export interface LayerConfig {
+  id: string;
+  type: LayerType;
+  /** Absolute URL (relative GeoJSON URLs are already resolved). Exactly one of url/portalItem. */
+  url?: string;
+  portalItem?: { id: string };
+  title?: string;
+  visible?: boolean;
+  opacity?: number;
+  popupEnabled?: boolean;
+  options: Record<string, unknown>;
+  hooks: { preLoad?: string; onLoad?: string };
+}
+
+/** Map corners a component can be slotted into. */
+export const CORNER_PLACEMENTS = [
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+  "top-start",
+  "top-end",
+  "bottom-start",
+  "bottom-end",
+] as const;
+export const COMPONENT_PLACEMENTS = [...CORNER_PLACEMENTS, "panel", "none"] as const;
+export type ComponentPlacement = (typeof COMPONENT_PLACEMENTS)[number];
+
+/** One validated `components` entry. */
+export interface ComponentConfig {
+  id: string;
+  type: string;
+  placement: ComponentPlacement;
+  /** Supported options only; unsupported ones were dropped with a warning. */
+  options: Record<string, unknown>;
 }
 
 /** One validation problem, located by a path such as `map.center[1]`. */
@@ -45,7 +103,11 @@ export const DEFAULTS = {
 } as const;
 
 /** Top-level sections the viewer recognizes. */
-export const KNOWN_SECTIONS = ["app", "portal", "map", "services", "layers", "widgets"] as const;
+export const KNOWN_SECTIONS = ["app", "portal", "map", "services", "layers", "components", "debug", "request"] as const;
 
 /** Keys that look like credentials and are never allowed in the config, at any depth. */
 export const CREDENTIAL_KEYS = ["apiKey", "token", "clientSecret"] as const;
+
+const credentialKeys = new Set<string>(CREDENTIAL_KEYS.map((k) => k.toLowerCase()));
+/** True for a key that names a credential (any letter case). Reported as an error, never as unknown. */
+export const isCredentialKey = (key: string): boolean => credentialKeys.has(key.toLowerCase());

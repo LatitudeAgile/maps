@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { configUrl, loadConfig } from "./load.ts";
+import { configName, configUrl, loadConfig } from "./load.ts";
 
 const doc = "https://viewer.example.org/apps/viewer/index.html";
 
@@ -15,6 +15,49 @@ describe("configUrl", () => {
       "https://viewer.example.org/apps/viewer/config/viewer.json",
     );
   });
+});
+
+describe("configName (?config=)", () => {
+  test("absent parameter means the default config", () => {
+    expect(configName("")).toBe("viewer");
+    expect(configName("?other=1")).toBe("viewer");
+  });
+
+  test("a plain name is accepted", () => {
+    expect(configName("?config=county")).toBe("county");
+    expect(configName("?config=North_County-2")).toBe("North_County-2");
+  });
+
+  test.each([
+    ["path traversal", "?config=../secrets"],
+    ["absolute URL", `?config=${encodeURIComponent("https://example.com/viewer.json")}`],
+    ["sub-path", "?config=configs/county"],
+    ["empty", "?config="],
+    ["over 64 characters", `?config=${"a".repeat(65)}`],
+  ])("%s is rejected", (_label, search) => {
+    expect(configName(search)).toBeUndefined();
+  });
+});
+
+describe("loadConfig with ?config=", () => {
+  test("a valid name loads config/<name>.json", async () => {
+    const fetch = fakeFetch('{"map":{}}');
+    const result = await loadConfig({ fetch, baseUrl: "/", documentUrl: doc, search: "?config=county" });
+    expect(result).toMatchObject({ ok: true, url: "https://viewer.example.org/config/county.json" });
+  });
+
+  test.each(["?config=../secrets", "?config=https%3A%2F%2Fexample.com%2Fviewer.json", `?config=${"a".repeat(65)}`])(
+    "a rejected value (%s) names the parameter and makes no request",
+    async (search) => {
+      const fetch = fakeFetch("{}");
+      const result = await loadConfig({ fetch, baseUrl: "/", documentUrl: doc, search });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.message).toContain('"config" URL parameter');
+      expect(result.url).toBeUndefined();
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("loadConfig", () => {

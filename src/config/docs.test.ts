@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
+import { COMPONENT_TYPES } from "../components/registry.ts";
 import { CREDENTIAL_KEYS, KNOWN_SECTIONS } from "./types.ts";
 
 const doc = readFileSync(new URL("../../docs/configuration.md", import.meta.url), "utf8");
@@ -17,6 +18,25 @@ const SETTINGS = [
   "map.zoom",
   "map.scale",
   "services.<name>",
+  "layers[].id",
+  "layers[].type",
+  "layers[].url",
+  "layers[].portalItem.id",
+  "layers[].title",
+  "layers[].visible",
+  "layers[].opacity",
+  "layers[].popupEnabled",
+  "layers[].options",
+  "layers[].hooks.preLoad",
+  "layers[].hooks.onLoad",
+  "components[].id",
+  "components[].type",
+  "components[].placement",
+  "components[].options",
+  "request.proxyUrl",
+  "request.proxyRules",
+  "request.proxyRules[].urlPrefix",
+  "request.proxyRules[].proxyUrl",
 ];
 
 test.each(SETTINGS)("docs/configuration.md documents %s", (setting) => {
@@ -26,3 +46,11 @@ test.each(SETTINGS)("docs/configuration.md documents %s", (setting) => {
 test.each(CREDENTIAL_KEYS)("docs/configuration.md names the forbidden key %s", (key) => {
   expect(doc).toContain(`\`${key}\``);
 });
+
+// Every registered component type and each of its options is documented.
+test.each(Object.entries(COMPONENT_TYPES).flatMap(([type, t]) => [type, ...Object.keys(t.options)]))(
+  "docs/configuration.md documents component type or option %s",
+  (name) => {
+    expect(doc).toContain(`\`${name}\``);
+  },
+);

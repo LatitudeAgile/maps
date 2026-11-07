@@ -21,7 +21,12 @@ export default defineConfig({
     baseURL: `http://localhost:${port}/`,
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, grepInvert: /@timing/ },
+    // Tests that assert a wall-clock bound (tagged @timing) run after everything else, so
+    // parallel workers competing for CPU don't eat into the bound being tested.
+    { name: "chromium-timing", use: { ...devices["Desktop Chrome"] }, grep: /@timing/, dependencies: ["chromium"] },
+  ],
   // Test the production build so "edit the deployed config" scenarios are real.
   webServer: {
     command: `npm run build && npx vite preview --port ${port} --strictPort`,

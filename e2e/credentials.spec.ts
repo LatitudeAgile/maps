@@ -1,6 +1,6 @@
 import type { Request } from "@playwright/test";
 import { test, expect, hasApiKey, buildApiKey } from "./fixtures.ts";
-import { hostOf, isBasemapStyleRequest, mapReady, serveModifiedConfig, settled } from "./helpers.ts";
+import { drawnFeatureCount, geojsonLayer, hostOf, isBasemapStyleRequest, mapReady, serveGeoJSON, serveModifiedConfig, settled } from "./helpers.ts";
 
 test.skip(!hasApiKey(), "No VITE_ARCGIS_API_KEY configured");
 
@@ -21,11 +21,19 @@ test("API key present: ArcGIS Streets is shown with no fallback notice", async (
   await expect(page.locator("#map-error")).toHaveCount(0);
 });
 
-test("Requests to other hosts carry no key", async ({ page, log }) => {
+test("Requests to other hosts carry no key (with an external layer and the Home component)", async ({ page, log }) => {
+  // An operational layer on another https host must not receive the basemap key.
+  await serveGeoJSON(page, "https://data.example.com/sites.geojson");
+  await serveModifiedConfig(page, (c) => {
+    c.layers = [{ id: "sites", type: "geojson", url: "https://data.example.com/sites.geojson" }];
+  });
   await page.goto("./");
   await mapReady(page);
+  await expect(page.locator('[data-component-id="home"]')).toBeVisible();
+  expect(await drawnFeatureCount(page, "sites")).toBe(3);
   await settled(page);
   await page.waitForLoadState("networkidle");
+  expect(log.requests.some((r) => r.url().startsWith("https://data.example.com/"))).toBe(true);
 
   const keyed = log.requests.filter((r) => carriesKey(r, key()));
   // The key must actually be in use, or this test proves nothing.
@@ -78,4 +86,19 @@ test.describe("Key not echoed", () => {
     await expect(page.locator("#config-error")).toBeVisible();
     await expectNoKey(page, log.console.map((m) => m.text()));
   });
+});
+
+test("Debug output carries no key: debug on, with a failing layer", async ({ page, log }) => {
+  await serveGeoJSON(page, "**/config/data/broken.geojson", "points.geojson", { status: 404 });
+  await serveModifiedConfig(page, (c) => {
+    c.debug = true;
+    c.layers = [geojsonLayer("broken")];
+  });
+  await page.goto("./");
+  await mapReady(page);
+  await expect(page.locator("#layer-errors")).toBeVisible({ timeout: 20_000 });
+  // The failure was logged through the error channel...
+  await expect.poll(() => log.console.filter((m) => m.text().includes("layer:broken")).length).toBeGreaterThan(0);
+  // ...and nothing in the console carries the key.
+  expect(log.console.map((m) => m.text()).join(" | ")).not.toContain(key());
 });

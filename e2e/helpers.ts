@@ -105,3 +105,77 @@ export const hostOf =(url: string): string => {
     return "";
   }
 };
+
+/** Read a fixture file from e2e/fixtures. */
+export function fixture(name: string): string {
+  return readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
+}
+
+export interface FixtureRouteOptions {
+  /** Respond after this many milliseconds. */
+  delayMs?: number;
+  /** HTTP status; non-2xx responses get a plain-text body. */
+  status?: number;
+  /** Never respond (the request stays pending). */
+  hang?: boolean;
+}
+
+/**
+ * Serve a GeoJSON fixture for every request matching `pattern`. Config layers use relative
+ * URLs such as `data/points.geojson`, which resolve to `<base>/config/data/points.geojson`.
+ */
+export async function serveGeoJSON(page: Page, pattern: string, file = "points.geojson", options: FixtureRouteOptions = {}): Promise<void> {
+  await page.context().route(pattern, async (route) => {
+    if (options.hang) return; // leave pending
+    if (options.delayMs) await new Promise((r) => setTimeout(r, options.delayMs));
+    const status = options.status ?? 200;
+    if (status >= 300) return route.fulfill({ status, body: "Not found" });
+    return route.fulfill({ status, contentType: "application/geo+json", body: fixture(file) });
+  });
+}
+
+/** A geojson layer entry pointing at `data/<id>.geojson` next to the config. */
+export const geojsonLayer = (id: string, extra: Record<string, unknown> = {}) => ({
+  id,
+  type: "geojson",
+  url: `data/${id}.geojson`,
+  ...extra,
+});
+
+/** Ids of the map's operational layers, bottom to top. */
+export async function mapLayerIds(page: Page): Promise<string[]> {
+  return page.locator("arcgis-map").evaluate((el: HTMLArcgisMapElement) => el.map?.layers.toArray().map((l) => l.id) ?? []);
+}
+
+/** Wait until the layer's view has finished drawing, then count its drawn features. */
+export async function drawnFeatureCount(page: Page, layerId: string, timeout = 15_000): Promise<number> {
+  return page.locator("arcgis-map").evaluate(
+    async (el: HTMLArcgisMapElement, { layerId, timeout }) => {
+      const layer = el.map?.findLayerById(layerId);
+      if (!layer) throw new Error(`no layer ${layerId}`);
+      const lv = (await el.view.whenLayerView(layer)) as unknown as { updating: boolean; queryFeatureCount(): Promise<number> };
+      const deadline = Date.now() + timeout;
+      while (lv.updating && Date.now() < deadline) await new Promise((r) => setTimeout(r, 100));
+      return lv.queryFeatureCount();
+    },
+    { layerId, timeout },
+  );
+}
+
+/** Click the map at a longitude/latitude, once the view is ready and settled. */
+export async function clickMapAt(page: Page, lon: number, lat: number): Promise<void> {
+  await settled(page);
+  const pt = await page.locator("arcgis-map").evaluate((el: HTMLArcgisMapElement, [lon, lat]) => {
+    // The view is Web Mercator with no rotation: project, then scale into the view's extent.
+    const R = 20037508.342789244;
+    const x = (lon * R) / 180;
+    const y = (Math.log(Math.tan(((90 + lat) * Math.PI) / 360)) / (Math.PI / 180)) * (R / 180);
+    const e = el.view.extent;
+    const box = el.getBoundingClientRect();
+    return {
+      x: box.left + ((x - e.xmin) / (e.xmax - e.xmin)) * el.view.width,
+      y: box.top + ((e.ymax - y) / (e.ymax - e.ymin)) * el.view.height,
+    };
+  }, [lon, lat] as const);
+  await page.mouse.click(pt.x, pt.y);
+}

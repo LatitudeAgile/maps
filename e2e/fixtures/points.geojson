@@ -1,0 +1,8 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [-98.5794, 39.8281] }, "properties": { "name": "Lebanon", "state": "KS", "category": "center" } },
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [-97.3375, 37.6872] }, "properties": { "name": "Wichita", "state": "KS", "category": "city" } },
+    { "type": "Feature", "geometry": { "type": "Point", "coordinates": [-94.5786, 39.0997] }, "properties": { "name": "Kansas City", "state": "MO", "category": "city" } }
+  ]
+}

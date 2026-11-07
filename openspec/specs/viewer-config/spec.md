@@ -91,22 +91,63 @@ that credentials must be supplied through the build environment instead.
 - **WHEN** the config contains `"portal": { "apiKey": "abc" }`
 - **THEN** validation fails with an error naming `portal.apiKey` and pointing to the build-environment setting, and the key's value does not appear in the error
 
-### Requirement: Sections reserved for later capabilities are tolerated
-The viewer SHALL accept `layers` and `widgets` arrays without error even though this version
-does not act on them. It SHALL log a console warning for any other unrecognized top-level
-setting and continue starting.
-
-#### Scenario: Reserved sections present
-- **WHEN** the config includes `"layers": []` and `"widgets": []`
-- **THEN** the viewer starts normally and logs no warning about them
-
-#### Scenario: Unknown setting
-- **WHEN** the config includes `"colour": "blue"` at the top level
-- **THEN** the viewer starts normally and logs one warning naming `colour`
-
 ### Requirement: App title comes from config
 The viewer SHALL set the browser document title to `app.title`.
 
 #### Scenario: Custom title
 - **WHEN** `app.title` is "County Viewer"
 - **THEN** the browser tab title is "County Viewer"
+
+### Requirement: Unrecognized top-level settings are ignored with a warning
+The viewer SHALL recognize the top-level settings `app`, `portal`, `map`, `services`, `layers`,
+`components`, `debug`, and `request`. For any other top-level setting, it SHALL log one console
+warning that names the setting, and SHALL continue starting.
+
+#### Scenario: All recognized settings present
+- **WHEN** the config sets every recognized top-level setting with valid values
+- **THEN** the viewer starts normally and logs no config warning (Playwright)
+
+#### Scenario: Unknown setting
+- **WHEN** the config includes `"colour": "blue"` at the top level
+- **THEN** the viewer starts normally and logs one warning naming `colour` (Playwright)
+
+### Requirement: Debug setting is a boolean
+The `debug` setting SHALL be `true` or `false` and SHALL default to `false`. Any other value
+SHALL fail validation.
+
+#### Scenario: Wrong type
+- **WHEN** the config has `"debug": "yes"`
+- **THEN** validation fails with an error at `debug` saying it must be `true` or `false` (Vitest)
+
+### Requirement: An alternate config can be chosen by URL
+When the page URL has a `config` query parameter, the viewer SHALL load `config/<name>.json`,
+resolved against the app's base URL, instead of `config/viewer.json` (P-18). The name SHALL be
+1 to 64 letters, digits, hyphens, or underscores. For any other value, the viewer SHALL show an
+error naming the parameter, SHALL NOT request any config, and SHALL NOT create the map.
+
+#### Scenario: Named config
+- **WHEN** the page is opened with `?config=county`
+- **THEN** the viewer requests `config/county.json` and opens the map it describes (Playwright, route interception)
+
+#### Scenario: Path or URL rejected
+- **WHEN** the page is opened with `?config=../secrets` or `?config=https://example.com/viewer.json`
+- **THEN** the page shows an error naming the `config` parameter, no config request is made, and no map is created (Playwright)
+
+#### Scenario: Named config missing
+- **WHEN** the page is opened with `?config=nothere` and that file returns HTTP 404
+- **THEN** the page shows an error that includes the `config/nothere.json` URL and the 404 status (Playwright)
+
+### Requirement: Requests can be routed through a proxy
+The `request` setting SHALL accept a `proxyUrl` and a `proxyRules` list of `urlPrefix` and
+`proxyUrl` pairs (P-40). The viewer SHALL apply them to the map's requests: a request whose URL
+starts with a rule's `urlPrefix` SHALL go through that rule's proxy. Each proxy URL SHALL be an
+absolute https URL or a path on the viewer's own site.
+
+#### Scenario: Proxy rule applied
+- **GIVEN** a proxy rule with `urlPrefix` `https://services.example.com/` and `proxyUrl` `proxy/forward`
+- **WHEN** a configured layer's URL starts with `https://services.example.com/`
+- **THEN** the layer's requests go to `proxy/forward` on the viewer's site, carrying the original URL (Playwright, route interception)
+
+#### Scenario: Invalid proxy URL
+- **WHEN** `request.proxyRules[0].proxyUrl` is `ftp://proxy.example.com`
+- **THEN** validation fails with an error at `request.proxyRules[0].proxyUrl` (Vitest)

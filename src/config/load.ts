@@ -1,9 +1,18 @@
-/** Path of the runtime config, relative to the app's base URL. */
-export const CONFIG_PATH = "config/viewer.json";
+/** Default config name; the file is `config/<name>.json` relative to the app's base URL. */
+export const DEFAULT_CONFIG_NAME = "viewer";
+/** Path of the default runtime config, relative to the app's base URL. */
+export const CONFIG_PATH = `config/${DEFAULT_CONFIG_NAME}.json`;
+
+/** `?config=` values: plain names only, so a link can't point at another site or path (D8). */
+const CONFIG_NAME = /^[A-Za-z0-9_-]{1,64}$/;
+
+export const CONFIG_PARAM_MESSAGE =
+  'The "config" URL parameter must be a config name of 1 to 64 letters, digits, hyphens, or underscores, such as ?config=county. Paths and URLs are not allowed.';
 
 export type LoadResult =
   | { ok: true; url: string; raw: unknown }
-  | { ok: false; url: string; message: string };
+  /** `url` is absent when no request was made (a rejected `?config=` value). */
+  | { ok: false; url?: string; message: string };
 
 export interface LoadOptions {
   fetch?: typeof fetch;
@@ -11,11 +20,23 @@ export interface LoadOptions {
   baseUrl?: string;
   /** Document URL the base is resolved against; defaults to `location.href`. */
   documentUrl?: string;
+  /** Page query string holding `?config=`; defaults to `location.search`. */
+  search?: string;
 }
 
-/** Resolve the config URL against the app's base URL. */
-export function configUrl(baseUrl: string, documentUrl: string): string {
-  return new URL(CONFIG_PATH, new URL(baseUrl, documentUrl)).href;
+/** Resolve a config name to its URL against the app's base URL. */
+export function configUrl(baseUrl: string, documentUrl: string, name = DEFAULT_CONFIG_NAME): string {
+  return new URL(`config/${name}.json`, new URL(baseUrl, documentUrl)).href;
+}
+
+/**
+ * The config name chosen by `?config=`: the default when the parameter is absent, or
+ * undefined when its value is not a plain name.
+ */
+export function configName(search: string): string | undefined {
+  const value = new URLSearchParams(search).get("config");
+  if (value === null) return DEFAULT_CONFIG_NAME;
+  return CONFIG_NAME.test(value) ? value : undefined;
 }
 
 /**
@@ -24,9 +45,13 @@ export function configUrl(baseUrl: string, documentUrl: string): string {
  */
 export async function loadConfig(options: LoadOptions = {}): Promise<LoadResult> {
   const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
+  const name = configName(options.search ?? globalThis.location?.search ?? "");
+  if (name === undefined) return { ok: false, message: CONFIG_PARAM_MESSAGE };
+
   const url = configUrl(
     options.baseUrl ?? import.meta.env.BASE_URL,
     options.documentUrl ?? globalThis.location.href,
+    name,
   );
 
   let response: Response;

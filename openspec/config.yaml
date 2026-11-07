@@ -16,8 +16,12 @@ context: |
   UI uses Calcite components, Calcite design tokens and Calcite icons only. No Font
   Awesome, no other component libraries.
 
-  The viewer is config-driven: map, layers, and widgets/sidebar tabs come from config,
-  not hard-coded markup. It must work against ArcGIS Location Platform, ArcGIS Online and
+  Terminology: call UI pieces "components" (the 5.x term), not "widgets" (the 3.x term),
+  in code, config, specs and docs. Keep "widget" only when naming SDK widget classes or
+  describing dojo-sidebar's 3.x behavior.
+
+  The viewer is config-driven: map, layers, and components (including sidebar panels)
+  come from config, not hard-coded markup. It must work against ArcGIS Location Platform, ArcGIS Online and
   ArcGIS Enterprise; portal and service URLs are configuration, never hard-coded to
   arcgis.com. Note that ArcGIS location services cannot be accessed with ArcGIS
   Enterprise API keys or Enterprise logins.
