@@ -1,32 +1,41 @@
 schema: spec-driven
 
-# Project context (optional)
-# Add only constraints that should guide OpenSpec artifacts and workflows.
-# Include constraints an agent cannot infer by reading the code.
-# Keep general project documentation and discoverable codebase facts out.
-# Example:
-#   context: |
-#     Designs and tasks must cover Windows, macOS, and Linux
-#     Write all artifacts in Spanish
+context: |
+  This project is a rewrite of dojo-sidebar (ArcGIS API for JavaScript 3.12 + Dojo 1.10),
+  github.com/DavidSpriggs/dojo-sidebar, local copy D:\git\dojo-sidebar. Treat that repo as
+  read-only reference: never modify it. Behavior to preserve is listed with stable IDs
+  (P-xx) in docs/migration/dojo-sidebar-parity.md; a change that delivers a parity item
+  cites its ID in the proposal and covers it with a spec scenario.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always state what is out of scope
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Target: ArcGIS Maps SDK for JavaScript 5.x via npm + Vite, vanilla TypeScript (no UI
+  framework). Use map components (arcgis-*) for all map UI. Never import
+  @arcgis/core/widgets/* and never use view.ui.add/remove/move: widgets are deprecated
+  at 5.0 and may be removed as early as Q1 2027. Core API modules are fine for maps,
+  layers, config, identity and reactiveUtils.
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+  UI uses Calcite components, Calcite design tokens and Calcite icons only. No Font
+  Awesome, no other component libraries.
+
+  The viewer is config-driven: map, layers, and widgets/sidebar tabs come from config,
+  not hard-coded markup. It must work against ArcGIS Location Platform, ArcGIS Online and
+  ArcGIS Enterprise; portal and service URLs are configuration, never hard-coded to
+  arcgis.com. Note that ArcGIS location services cannot be accessed with ArcGIS
+  Enterprise API keys or Enterprise logins.
+
+  Access model: anonymous use is the baseline, using an API key scoped only to the
+  location services that need it (basemap styles, geocoding, routing) through
+  esriConfig.apiKeys.basemapStyles or component-level api-key; do not set the global
+  esriConfig.apiKey. Optional OAuth 2.0 user sign-in lets organizations load private
+  content. Credentials are never committed. The demo uses an ArcGIS Location Platform
+  free-tier key; deployers supply their own.
+
+  Verify SDK behavior against version-matched docs at developers.arcgis.com and label
+  anything unverified. Development is on Windows; npm scripts must be cross-platform.
+
+rules:
+  specs:
+    - Every scenario must be checkable by a Vitest unit test, a Playwright test, or a
+      named manual check; say which when it is not obvious.
+  tasks:
+    - Each task group lands the tests for its own behavior; no trailing "write tests" group.
+    - Tests that need a live ArcGIS credential must skip cleanly when none is configured.
