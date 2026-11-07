@@ -14,6 +14,13 @@ class FakeElement implements ComponentElement {
   setAttribute(name: string, value: string) {
     this.attributes[name] = value;
   }
+  listeners: Record<string, ((event: Event) => void)[]> = {};
+  addEventListener(type: string, listener: (event: Event) => void) {
+    (this.listeners[type] ??= []).push(listener);
+  }
+  emit(type: string, detail: unknown) {
+    for (const l of this.listeners[type] ?? []) l({ detail } as unknown as Event);
+  }
 }
 
 const TYPES: Record<string, ComponentType> = {
@@ -24,6 +31,19 @@ const TYPES: Record<string, ComponentType> = {
     options: { layers: "layer[]", focus: "layer", layerInfos: "layer-info[]" },
     panel: { heading: "Test", icon: "list" },
   },
+  locate: {
+    tag: "arcgis-locate",
+    load: async () => undefined,
+    options: {},
+    panel: { heading: "Locate", icon: "gps-off" },
+    reportsLocationErrors: true,
+  },
+  toggle: {
+    tag: "arcgis-basemap-toggle",
+    load: async () => undefined,
+    options: { nextBasemap: "basemap" },
+    panel: { heading: "Basemap", icon: "layer-basemap" },
+  },
   broken: { tag: "x-broken", load: () => Promise.reject(new Error("chunk failed")), options: {}, panel: { heading: "B", icon: "x" } },
 };
 
@@ -31,6 +51,7 @@ function setup(entries: ComponentConfig[]) {
   const app = new AppModel();
   const appended: FakeElement[] = [];
   const reports: string[] = [];
+  const locationErrors: number[] = [];
   app.errors.subscribe((r) => reports.push(`${r.source}: ${r.message}`));
   const mapElement = { append: (...nodes: unknown[]) => appended.push(...(nodes as FakeElement[])) };
   const run = () =>
@@ -40,8 +61,9 @@ function setup(entries: ComponentConfig[]) {
       types: TYPES,
       mapElement,
       createElement: (tag) => new FakeElement(tag),
+      onLocationError: (code) => locationErrors.push(code),
     });
-  return { app, appended, reports, run, mapElement };
+  return { app, appended, reports, locationErrors, run, mapElement };
 }
 
 const component = (id: string, extra: Partial<ComponentConfig> = {}): ComponentConfig => ({
@@ -146,5 +168,42 @@ describe("createComponents", () => {
     await s.run();
     expect(s.appended.map((e) => e.attributes["data-component-id"])).toEqual(["home"]);
     expect(s.reports).toEqual(['component-type:broken: The "broken" component could not be loaded.']);
+  });
+});
+
+describe("location errors (design D3)", () => {
+  test("a location component's arcgisError is reported and passed on with its code", async () => {
+    const s = setup([component("loc", { type: "locate" })]);
+    await s.run();
+    s.appended[0].emit("arcgisError", { error: { code: 1, message: "User denied Geolocation" } });
+    expect(s.locationErrors).toEqual([1]);
+    expect(s.reports).toEqual(["component:loc: The device's location isn't available."]);
+  });
+
+  test("an error without a code counts as position unavailable", async () => {
+    const s = setup([component("loc", { type: "locate" })]);
+    await s.run();
+    s.appended[0].emit("arcgisError", {});
+    expect(s.locationErrors).toEqual([2]);
+  });
+
+  test("other component types get no location listener", async () => {
+    const s = setup([component("home")]);
+    await s.run();
+    expect(s.appended[0].listeners.arcgisError).toBeUndefined();
+  });
+});
+
+describe("basemap options (design D4)", () => {
+  test("a built-in free basemap ID becomes that basemap; other IDs pass through", async () => {
+    const s = setup([
+      component("free", { type: "toggle", options: { nextBasemap: "hybrid" } }),
+      component("styled", { type: "toggle", options: { nextBasemap: "arcgis/imagery/standard" } }),
+    ]);
+    await s.run();
+    const [free, styled] = s.appended;
+    expect((free.nextBasemap as { id?: string }).id).toBe("hybrid");
+    expect(typeof free.nextBasemap).toBe("object");
+    expect(styled.nextBasemap).toBe("arcgis/imagery/standard");
   });
 });

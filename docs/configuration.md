@@ -50,6 +50,8 @@ The shipped default (`public/config/viewer.json`):
   ],
   "components": [
     { "id": "home", "type": "home", "placement": "top-left" },
+    { "id": "locate", "type": "locate", "placement": "top-left" },
+    { "id": "basemap-toggle", "type": "basemap-toggle", "placement": "top-right", "options": { "nextBasemap": "hybrid" } },
     { "id": "legend", "type": "legend" }
   ]
 }
@@ -71,8 +73,8 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `portal` | object | `{}` | Optional section. |
 | `portal.url` | string | `"https://www.arcgis.com"` | Absolute `https` URL of your ArcGIS Online organization, ArcGIS Enterprise portal (for example `https://gis.example.org/portal`), or Location Platform portal. A trailing `/` is removed. |
 | `map` | object | none | **Required.** |
-| `map.basemap` | string | none | **Required**, non-empty. A basemap styles ID in `provider/style` form (for example `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`), which needs an API key, or a basemap that needs none, such as `osm`. Legacy IDs such as `streets-vector` are accepted with a warning that suggests the `provider/style` equivalent. |
-| `map.fallbackBasemap` | string | `"osm"` | Non-empty, and must not be a `provider/style` ID. Used instead of `map.basemap` when that basemap needs an API key and none is configured. |
+| `map.basemap` | string | none | **Required**, non-empty. A basemap styles ID in `provider/style` form (for example `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`), which needs an API key, or a basemap that needs none: `osm` (OpenStreetMap) or `hybrid` (Esri imagery with roads and place names, from Esri's public tile services). Legacy IDs such as `streets-vector` are accepted with a warning that suggests the `provider/style` equivalent. |
+| `map.fallbackBasemap` | string | `"osm"` | Non-empty, and must not be a `provider/style` ID, for example `osm` or `hybrid`. Used instead of `map.basemap` when that basemap needs an API key and none is configured. |
 | `map.center` | `[number, number]` | none | **Required.** `[longitude, latitude]` in degrees. `map.center[0]` (longitude) must be between -180 and 180; `map.center[1]` (latitude) must be between -90 and 90. |
 | `map.zoom` | number | none | 0 or greater. A zoom level of the basemap's tiling scheme. Set exactly one of `map.zoom` or `map.scale`. |
 | `map.scale` | number | none | Greater than 0. The map scale denominator, for example `18489298` for 1:18,489,298. Set exactly one of `map.zoom` or `map.scale`. |
@@ -151,8 +153,20 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 |---|---|---|
 | `home` | A button that returns the map to its configured initial view. Panel default: "Home", `home` icon. | `icon` (string): a [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/) name. |
 | `legend` | The symbols of the map's operational layers. Panel default: "Legend", `legend` icon. | `layerInfos`: which layers to show and their titles, as `[{ "layer": "<layer id>", "title": "<text>" }]` (`title` optional); all layers when omitted. `basemapLegendVisible` (boolean, default `false`): include the basemap. `hideLayersNotInCurrentView` (boolean): hide layers with nothing in view. |
+| `locate` | A button that finds the device's location, marks it on the map, and zooms to it. Panel default: "Locate", `gps-off` icon. | `scale` (number greater than 0): the scale to zoom to; the SDK chooses one when omitted. The map snaps to the basemap's nearest zoom level outward, so `10000` shows at about 1:18,056 on ArcGIS and OpenStreetMap basemaps. `icon` (string): a Calcite icon name. `popupDisabled` (boolean, default `false`): don't open a popup on the location. |
+| `track` | A toggle button that keeps the map centered on the device as it moves. Press it again to stop. Panel default: "Track", `compass-north-circle` icon. | `scale` (number greater than 0): the scale to zoom to. `icon` (string): a Calcite icon name. `rotationDisabled` (boolean, default `false`): don't rotate the map to the direction of travel. |
+| `basemap-toggle` | A button that switches between the map's basemap and a second one; pressing it again switches back. Panel default: "Basemap", `layer-basemap` icon. | `nextBasemap` (basemap ID, default `hybrid`): the basemap to switch to, in the same forms as `map.basemap`. A legacy ID such as `satellite` works, with a warning suggesting its basemap styles ID. `showTitle` (boolean, default `false`): show the next basemap's name. |
 
-Later versions add more types, such as locate and basemap toggle.
+**Location components need HTTPS.** Browsers only share the device's location with pages
+served over HTTPS (or from `localhost` during development). If the user denies access, or
+the location times out or can't be found, a closable notice explains why. Use either
+`locate` or `track`, not both: the SDK advises one location component per map.
+
+**Basemap toggle without an API key.** The default toggle switches to `hybrid`, which needs
+no key, so it works in every deployment: OpenStreetMap and hybrid without a key, ArcGIS Streets
+and hybrid with one. If `nextBasemap` is a `provider/style` ID and no key is configured, the
+toggle is left out and the browser console says why; otherwise the SDK would ask visitors to
+sign in.
 
 **Placements**
 

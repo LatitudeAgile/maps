@@ -3,12 +3,14 @@ import type { AppModel } from "../app/AppModel.ts";
 import { errorText } from "../app/errors.ts";
 import type { ComponentConfig } from "../config/types.ts";
 import { COMPONENT_TYPES, type ComponentType } from "./registry.ts";
+import { resolveBasemap } from "../map/freeBasemaps.ts";
 
 /** The parts of an element the stage touches. Real DOM elements satisfy it. */
 export interface ComponentElement {
   slot: string;
   hidden: boolean;
   setAttribute(name: string, value: string): void;
+  addEventListener(type: string, listener: (event: Event) => void): void;
 }
 
 /** A component for the sidebar, with its heading and icon resolved (config, else type default). */
@@ -32,6 +34,11 @@ export interface CreateComponentsOptions {
   types?: Readonly<Record<string, ComponentType>>;
   /** Defaults to `document.createElement`. */
   createElement?: (tag: string) => ComponentElement;
+  /**
+   * Called with the GeolocationPositionError code when a location component can't get the
+   * device's position (design D3), after the error is reported to the error channel.
+   */
+  onLocationError?: (code: number) => void;
 }
 
 /**
@@ -69,6 +76,18 @@ export async function createComponents(options: CreateComponentsOptions): Promis
       (element as unknown as Record<string, unknown>)[name] = resolveOption(type.options[name], value, app);
     }
     app.addComponent({ entry, element: element as unknown as HTMLElement });
+    if (type.reportsLocationErrors) {
+      element.addEventListener("arcgisError", (event) => {
+        const error = (event as CustomEvent<{ error?: { code?: number; message?: string } }>).detail?.error;
+        const code = typeof error?.code === "number" ? error.code : 2;
+        app.errors.report({
+          source: `component:${entry.id}`,
+          message: "The device's location isn't available.",
+          detail: `GeolocationPositionError ${code}${error?.message ? `: ${error.message}` : ""}`,
+        });
+        options.onLocationError?.(code);
+      });
+    }
 
     if (entry.placement === "panel") {
       // Outside arcgis-map, a map component finds its view through referenceElement (design D6).
@@ -89,7 +108,10 @@ export async function createComponents(options: CreateComponentsOptions): Promis
   return { panels };
 }
 
-/** Layer-reference options become the created layers; everything else passes as is. */
+/**
+ * Layer-reference options become the created layers, and basemap IDs become the built-in free
+ * basemap where there is one (design D4); everything else passes as is.
+ */
 function resolveOption(kind: string | undefined, value: unknown, app: AppModel): unknown {
   const layer = (id: string): Layer | undefined => app.getLayer(id)?.layer;
   if (kind === "layer") return layer(value as string);
@@ -100,5 +122,6 @@ function resolveOption(kind: string | undefined, value: unknown, app: AppModel):
       return resolved ? [{ layer: resolved, ...(info.title !== undefined ? { title: info.title } : {}) }] : [];
     });
   }
+  if (kind === "basemap") return resolveBasemap(value as string);
   return value;
 }

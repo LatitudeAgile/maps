@@ -10,13 +10,13 @@ export function isBasemapStyleId(id: string): boolean {
 
 /**
  * Legacy well-known basemap IDs and their basemap styles equivalents.
- * `osm` is deliberately absent: it is the credential-free fallback.
+ * `osm` and `hybrid` are deliberately absent: they need no credential (`hybrid` is a
+ * built-in free basemap, see freeBasemaps.ts).
  */
 export const LEGACY_BASEMAP_IDS: Readonly<Record<string, string>> = {
   streets: "arcgis/streets",
   "streets-vector": "arcgis/streets",
   satellite: "arcgis/imagery/standard",
-  hybrid: "arcgis/imagery",
   topo: "arcgis/topographic",
   "topo-vector": "arcgis/topographic",
   gray: "arcgis/light-gray",

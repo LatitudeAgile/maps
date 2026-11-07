@@ -10,13 +10,13 @@ import { applyRequest } from "./config/applyRequest.ts";
 import { loadConfig } from "./config/load.ts";
 import { validateConfig } from "./config/validate.ts";
 import { applyApiKey, readApiKey } from "./credentials/apiKey.ts";
-import { chooseBasemap } from "./map/chooseBasemap.ts";
+import { chooseBasemap, leaveOutKeyedToggles } from "./map/chooseBasemap.ts";
 import { createMap } from "./map/createMap.ts";
 import { addLayers } from "./layers/addLayers.ts";
 import { createComponents, type CreateComponentsOptions } from "./components/createComponents.ts";
 import { createSidebar } from "./sidebar/createSidebar.ts";
 import { trackSidebarInsets } from "./sidebar/insets.ts";
-import { showConfigError, showFallbackNotice, showLayerErrors, showMapError } from "./ui/notices.ts";
+import { showConfigError, showLayerErrors, showLocationError, showMapError } from "./ui/notices.ts";
 
 // Kept for add-location-services-auth (optional OAuth sign-in):
 // import { configureOAuth } from "./auth/configureOAuth.ts";
@@ -53,8 +53,16 @@ async function start(): Promise<void> {
   // Proxy settings must be in place before the first map request (design D9).
   applyRequest(esriConfig, config.request, new URL(import.meta.env.BASE_URL, location.href).href);
 
-  const choice = chooseBasemap(config, apiKey !== undefined);
-  if (choice.fellBack) showFallbackNotice(config.map.basemap, choice.basemap);
+  const hasKey = apiKey !== undefined;
+  const choice = chooseBasemap(config, hasKey);
+  // Running without a key is supported: no notice, just a hint for whoever deploys the app.
+  if (choice.fellBack) {
+    console.info(`[viewer] No API key is configured, so "${choice.basemap}" is shown instead of "${config.map.basemap}". Set VITE_ARCGIS_API_KEY to use ArcGIS basemaps.`);
+  }
+  const { kept: components, leftOut } = leaveOutKeyedToggles(config.components, hasKey);
+  for (const c of leftOut) {
+    console.warn(`[viewer] components "${c.id}": the basemap toggle is left out because its next basemap "${String(c.options.nextBasemap)}" needs an API key. Set VITE_ARCGIS_API_KEY, or use a basemap that needs no key, such as "hybrid".`);
+  }
 
   const shell = document.querySelector("calcite-shell");
   if (!shell) throw new Error("index.html is missing calcite-shell");
@@ -87,9 +95,10 @@ async function start(): Promise<void> {
   if (failed.length > 0) showLayerErrors(failed);
 
   const { panels } = await createComponents({
-    entries: config.components,
+    entries: components,
     mapElement: mapEl as unknown as CreateComponentsOptions["mapElement"],
     app,
+    onLocationError: showLocationError,
   });
   const sidebar = createSidebar({ shell, panels });
   // The sidebar floats over the map: pad the view, and inset corner UI and notices (design D4).

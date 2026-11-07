@@ -198,3 +198,59 @@ describe("legend and layer-info[] (P-33)", () => {
     }
   });
 });
+
+describe("map controls: locate, track, basemap-toggle (P-31, P-32)", () => {
+  const entry = (type: string, options?: Record<string, unknown>) => ({ id: "c", type, placement: "top-left", ...(options ? { options } : {}) });
+
+  test("Unknown component type lists all five registered types", () => {
+    const { errors } = run([entry("compass")]);
+    for (const t of ["home", "legend", "locate", "track", "basemap-toggle"]) expect(errors[0].message).toContain(t);
+  });
+
+  test("locate and track accept their options", () => {
+    const locate = run([entry("locate", { scale: 10000, icon: "gps-on", popupDisabled: true })]);
+    expect(locate.errors).toEqual([]);
+    expect(locate.warnings).toEqual([]);
+    expect(locate.components[0].options).toEqual({ scale: 10000, icon: "gps-on", popupDisabled: true });
+    const track = run([entry("track", { scale: 5000, rotationDisabled: true })]);
+    expect(track.errors).toEqual([]);
+    expect(track.components[0].options).toEqual({ scale: 5000, rotationDisabled: true });
+  });
+
+  test.each([0, -5, "big", Number.NaN])("Invalid scale %s: locate and track need a number greater than 0", (scale) => {
+    for (const type of ["locate", "track"]) {
+      const { paths, errors } = run([entry(type, { scale })]);
+      expect(paths).toEqual(["components[0].options.scale"]);
+      expect(errors[0].message).toBe("Expected a number greater than 0.");
+    }
+  });
+
+  test("Default next basemap: hybrid when nextBasemap is omitted", () => {
+    const { errors, warnings, components } = run([entry("basemap-toggle")]);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+    expect(components[0].options).toEqual({ nextBasemap: "hybrid" });
+  });
+
+  test("an explicit nextBasemap overrides the default", () => {
+    const { components } = run([entry("basemap-toggle", { nextBasemap: "osm", showTitle: true })]);
+    expect(components[0].options).toEqual({ nextBasemap: "osm", showTitle: true });
+  });
+
+  test("Legacy next basemap: one warning suggesting the basemap styles ID", () => {
+    const { errors, warnings, components } = run([entry("basemap-toggle", { nextBasemap: "satellite" })]);
+    expect(errors).toEqual([]);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].path).toBe("components[0].options.nextBasemap");
+    expect(warnings[0].message).toContain("arcgis/imagery/standard");
+    expect(components[0].options.nextBasemap).toBe("satellite");
+  });
+
+  test.each(["", "   ", 7])("Empty next basemap %j: error at the option", (nextBasemap) => {
+    expect(run([entry("basemap-toggle", { nextBasemap })]).paths).toEqual(["components[0].options.nextBasemap"]);
+  });
+
+  test("showTitle must be true or false", () => {
+    expect(run([entry("basemap-toggle", { showTitle: "yes" })]).paths).toEqual(["components[0].options.showTitle"]);
+  });
+});

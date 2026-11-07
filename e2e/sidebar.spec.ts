@@ -1,5 +1,6 @@
-import { test, expect as baseExpect, hasApiKey } from "./fixtures.ts";
+import { test, expect as baseExpect } from "./fixtures.ts";
 import {
+  geojsonLayer,
   mapReady,
   mapToScreen,
   openPanels,
@@ -205,16 +206,17 @@ test.describe("controls and notices stay clear (P-24)", () => {
     }
   });
 
-  test("Notice beside an open panel: the fallback notice doesn't overlap the sidebar", async ({ page }) => {
-    test.skip(hasApiKey(), "The fallback notice only appears without an API key");
+  test("Notice beside an open panel: the layer-error notice doesn't overlap the sidebar", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
-    await serveSidebarConfig(page, [{ id: "legend", type: "legend" }]);
+    // A third layer that fails to load, so the layer-error notice shows.
+    await serveSidebarConfig(page, [{ id: "legend", type: "legend" }], (c) => c.layers.push(geojsonLayer("broken")));
+    await page.route("**/data/broken.geojson", (route) => route.fulfill({ status: 404, body: "Not found" }));
     await page.goto("./");
     await mapReady(page);
-    await expect(page.locator("#fallback-notice")).toBeVisible();
+    await expect(page.locator("#layer-errors")).toBeVisible({ timeout: 20_000 });
     await sidebarAction(page, "legend").click();
     await expect.poll(() => openPanels(page)).toEqual(["legend"]);
-    await expect.poll(async () => (await boxOf(page, "#fallback-notice")).left).toBeGreaterThanOrEqual(await sidebarRightEdge(page));
+    await expect.poll(async () => (await boxOf(page, "#layer-errors")).left).toBeGreaterThanOrEqual(await sidebarRightEdge(page));
   });
 });
 

@@ -1,4 +1,5 @@
 import type { OptionKind, ComponentTypeSchema } from "../components/registry.ts";
+import { LEGACY_BASEMAP_IDS } from "../map/basemapIds.ts";
 import { ID_PATTERN } from "./layers.ts";
 import {
   COMPONENT_PLACEMENTS,
@@ -83,7 +84,13 @@ export function validateComponents(
           warnings.push({ path, message: `Not supported by the "${type}" component; it is ignored.` });
           continue;
         }
-        if (checkOption(kind, value, path, context.layerIds, errors)) options[name] = value;
+        if (checkOption(kind, value, path, context.layerIds, errors, warnings)) options[name] = value;
+      }
+    }
+    // Fill options the entry leaves out from the type's defaults (design D1).
+    if (schema?.defaults) {
+      for (const [name, value] of Object.entries(schema.defaults)) {
+        if (!Object.hasOwn(options, name)) options[name] = value;
       }
     }
 
@@ -138,7 +145,14 @@ function validatePanel(
 }
 
 /** Check one option value against its kind. Returns true when it is valid. */
-function checkOption(kind: OptionKind, value: unknown, path: string, layerIds: string[], errors: ConfigProblem[]): boolean {
+function checkOption(
+  kind: OptionKind,
+  value: unknown,
+  path: string,
+  layerIds: string[],
+  errors: ConfigProblem[],
+  warnings: ConfigProblem[],
+): boolean {
   const unknownLayer = (id: unknown) => `"${String(id)}" is not a configured layer. Use an id from layers.`;
   switch (kind) {
     case "string":
@@ -149,6 +163,19 @@ function checkOption(kind: OptionKind, value: unknown, path: string, layerIds: s
       if (typeof value === "number" && Number.isFinite(value)) return true;
       errors.push({ path, message: "Expected a number." });
       return false;
+    case "scale":
+      if (typeof value === "number" && Number.isFinite(value) && value > 0) return true;
+      errors.push({ path, message: "Expected a number greater than 0." });
+      return false;
+    case "basemap": {
+      if (typeof value !== "string" || value.trim() === "") {
+        errors.push({ path, message: 'Expected a non-empty basemap ID, such as "hybrid", "osm", or "arcgis/imagery/standard".' });
+        return false;
+      }
+      const modern = Object.hasOwn(LEGACY_BASEMAP_IDS, value) ? LEGACY_BASEMAP_IDS[value] : undefined;
+      if (modern) warnings.push({ path, message: `"${value}" is a legacy basemap ID. Use the basemap styles ID "${modern}" instead.` });
+      return true;
+    }
     case "boolean":
       if (typeof value === "boolean") return true;
       errors.push({ path, message: "Expected true or false." });

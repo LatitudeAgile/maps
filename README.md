@@ -8,16 +8,16 @@ This project replaces [dojo-sidebar](https://github.com/DavidSpriggs/dojo-sideba
 which was built on the retired ArcGIS API for JavaScript 3.x and Dojo. It is a rewrite,
 not an in-place upgrade. dojo-sidebar is kept unchanged as a reference.
 
-> **Status:** early migration. The viewer shows a config-driven map with layers, a Home
-> button, and a collapsible sidebar with a legend. More components (locate, basemap toggle,
-> search, directions) are still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
+> **Status:** early migration. The viewer shows a config-driven map with layers, Home and
+> Locate buttons, a basemap toggle, and a collapsible sidebar with a legend. More components
+> (search, directions) are still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
 > [`openspec/`](openspec/).
 
 ## Requirements
 
 - Node.js 20 or later
-- Optional: an ArcGIS API key for ArcGIS basemaps (see [API key](#api-key)). Without one
-  the viewer runs on an OpenStreetMap fallback basemap.
+- Optional: an ArcGIS API key for ArcGIS basemaps (see [API key](#api-key)). The viewer works
+  fully without one, on OpenStreetMap and Esri's free imagery hybrid.
 
 ## Develop
 
@@ -82,12 +82,16 @@ in it.
 
 ### Without a key
 
-If `map.basemap` is a `provider/style` ID and no key is configured, the viewer uses
-`map.fallbackBasemap` (OpenStreetMap by default), shows a notice saying so, and sends no
-request to the basemap styles service. OpenStreetMap's public tile servers have a
+Running without a key is supported. If `map.basemap` is a `provider/style` ID and no key is
+configured, the viewer uses `map.fallbackBasemap` (OpenStreetMap by default) without a notice,
+writes one line to the browser console, and sends no request to the basemap styles service.
+The default basemap toggle switches between that basemap and `hybrid`, Esri's imagery with
+roads and place names from its public tile services, which need no key.
+
+OpenStreetMap's public tile servers have a
 [usage policy](https://operations.osmfoundation.org/policies/tiles/) that does not allow
-heavy use: the fallback is for demos and local development only. Configure a key for any
-real deployment.
+heavy use. For a busy keyless deployment, set `map.fallbackBasemap` to `hybrid`, or configure
+a key.
 
 ## Spec-driven workflow
 

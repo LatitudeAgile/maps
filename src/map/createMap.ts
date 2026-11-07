@@ -5,6 +5,7 @@ import "@arcgis/map-components/components/arcgis-popup";
 import "@arcgis/map-components/components/arcgis-zoom";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import type { ViewerConfig } from "../config/types.ts";
+import { resolveBasemap } from "./freeBasemaps.ts";
 
 /** How long the view may take to become ready before it counts as a failure (design D6). */
 export const READY_TIMEOUT_MS = 15_000;
@@ -28,7 +29,7 @@ export function createMap({ config, basemap, container, onFailure }: CreateMapOp
   // Use the Popup component, not the Popup widget (deprecated since 5.2; the component becomes
   // the default at 6.0). Beta in 5.x.
   mapEl.popupComponentEnabled = true;
-  mapEl.basemap = basemap;
+  mapEl.basemap = resolveBasemap(basemap);
   mapEl.center = [...config.map.center];
   // Exactly one is set (validateConfig). Scale is basemap-independent; zoom is not (D10).
   if (config.map.scale !== undefined) mapEl.scale = config.map.scale;

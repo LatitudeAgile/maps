@@ -19,6 +19,8 @@
   ],
   "components": [
     { "id": "home", "type": "home", "placement": "top-left" },
+    { "id": "locate", "type": "locate", "placement": "top-left" },
+    { "id": "basemap-toggle", "type": "basemap-toggle", "placement": "top-right", "options": { "nextBasemap": "hybrid" } },
     { "id": "legend", "type": "legend" }
   ]
 }

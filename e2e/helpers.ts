@@ -246,3 +246,41 @@ export async function sidebarWidth(page: Page): Promise<number> {
     return Math.max(...parts.map((b) => b.right)) - Math.min(...parts.map((b) => b.left));
   });
 }
+
+/**
+ * Report a fixed device position (design D6). Call again to move it; geolocation watchers
+ * receive the update.
+ */
+export async function fakePosition(page: Page, longitude: number, latitude: number): Promise<void> {
+  await page.context().grantPermissions(["geolocation"]);
+  await page.context().setGeolocation({ longitude, latitude, accuracy: 10 });
+}
+
+/** GeolocationPositionError codes. */
+export const GEO_DENIED = 1;
+export const GEO_UNAVAILABLE = 2;
+export const GEO_TIMEOUT = 3;
+
+/**
+ * Make every geolocation request fail with `code` (design D6). Must run before `page.goto`.
+ * A stub, because how headless Chromium answers an ungranted prompt isn't deterministic.
+ */
+export async function failGeolocation(page: Page, code: number): Promise<void> {
+  await page.addInitScript((errorCode: number) => {
+    const error = () => ({
+      code: errorCode,
+      message: `stubbed geolocation error ${errorCode}`,
+      PERMISSION_DENIED: 1,
+      POSITION_UNAVAILABLE: 2,
+      TIMEOUT: 3,
+    });
+    const geo = navigator.geolocation;
+    let nextWatch = 1;
+    geo.getCurrentPosition = (_ok, fail) => void setTimeout(() => fail?.(error() as GeolocationPositionError), 50);
+    geo.watchPosition = (_ok, fail) => {
+      setTimeout(() => fail?.(error() as GeolocationPositionError), 50);
+      return nextWatch++;
+    };
+    geo.clearWatch = () => {};
+  }, code);
+}

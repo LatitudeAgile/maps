@@ -27,7 +27,7 @@ function showNotice({ kind, title, message, items, closable = false, id }: Notic
   notice.open = true;
   notice.closable = closable;
   notice.width = "full";
-  // Danger notices interrupt; the fallback notice is informational.
+  // Danger notices interrupt; warnings are announced politely.
   notice.setAttribute("role", kind === "danger" ? "alert" : "status");
 
   const titleEl = document.createElement("div");
@@ -90,13 +90,20 @@ export function showLayerErrors(ids: string[]): HTMLElement {
   });
 }
 
-/** The configured basemap needs a key that isn't configured. Closable. */
-export function showFallbackNotice(configured: string, fallback: string): HTMLElement {
+/** What each GeolocationPositionError code means for the user (design D3). */
+const LOCATION_MESSAGES: Readonly<Record<number, string>> = {
+  1: "Location access was denied. Allow location access for this site in your browser's settings, then try again.",
+  2: "Your device couldn't determine its location.",
+  3: "Finding your location took too long. Try again.",
+};
+
+/** A locate or track component couldn't get the device's position. Closable; replaces itself. */
+export function showLocationError(code: number): HTMLElement {
   return showNotice({
-    id: "fallback-notice",
+    id: "location-error",
     kind: "warning",
     closable: true,
-    title: "Fallback basemap in use",
-    message: `No API key is configured, so the "${fallback}" basemap is shown instead of "${configured}". Set VITE_ARCGIS_API_KEY to use ArcGIS basemaps (see the README).`,
+    title: "Your location isn't available",
+    message: LOCATION_MESSAGES[code] ?? LOCATION_MESSAGES[2],
   });
 }

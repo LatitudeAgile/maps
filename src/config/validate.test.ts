@@ -237,6 +237,15 @@ describe("tolerated and unknown settings", () => {
     const raw = { map: { ...minimal().map, basemap: "osm" } };
     expect(validateConfig(raw).warnings).toEqual([]);
   });
+
+  test("Hybrid is not a legacy ID: the built-in free basemap validates with no warning", () => {
+    const raw = { map: { ...minimal().map, basemap: "hybrid", fallbackBasemap: "hybrid" } };
+    const { config, errors, warnings } = validateConfig(raw);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+    expect(config?.map.basemap).toBe("hybrid");
+    expect(config?.map.fallbackBasemap).toBe("hybrid");
+  });
 });
 
 describe("shipped default config", () => {
@@ -255,6 +264,8 @@ describe("shipped default config", () => {
     });
     expect(config?.components).toEqual([
       { id: "home", type: "home", placement: "top-left", options: {} },
+      { id: "locate", type: "locate", placement: "top-left", options: {} },
+      { id: "basemap-toggle", type: "basemap-toggle", placement: "top-right", options: { nextBasemap: "hybrid" } },
       // Placement omitted in the file: defaults to a sidebar panel.
       { id: "legend", type: "legend", placement: "panel", options: {} },
     ]);

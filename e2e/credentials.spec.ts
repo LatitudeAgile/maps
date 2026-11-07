@@ -12,13 +12,12 @@ function carriesKey(req: Request, k: string): boolean {
   return Object.values(req.headers()).some((v) => v.includes(k));
 }
 
-test("API key present: ArcGIS Streets is shown with no fallback notice", async ({ page }) => {
+test("API key present: ArcGIS Streets is shown with no notice", async ({ page }) => {
   await page.goto("./");
   await mapReady(page);
   const s = await settled(page);
   expect(s.basemapStyleId).toBe("arcgis/streets");
-  await expect(page.locator("#fallback-notice")).toHaveCount(0);
-  await expect(page.locator("#map-error")).toHaveCount(0);
+  await expect(page.locator("calcite-notice")).toHaveCount(0);
 });
 
 test("Requests to other hosts carry no key (with an external layer and the Home component)", async ({ page, log }) => {
