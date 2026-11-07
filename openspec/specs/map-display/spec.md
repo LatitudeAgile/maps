@@ -38,22 +38,23 @@ SHALL change the zoom level by one.
 ### Requirement: Basemap falls back when no basemap credential is available
 When `map.basemap` names a basemap styles service style (`provider/style`, e.g.
 `arcgis/streets`) and no basemap credential is configured, the viewer SHALL use
-`map.fallbackBasemap` instead. It SHALL show a dismissible notice that a fallback basemap is
-in use. It SHALL NOT send any request to the basemap styles service.
+`map.fallbackBasemap` instead, without showing a notice: running without a key is a supported
+configuration. It SHALL NOT send any request to the basemap styles service, including for
+basemaps named by components.
 
 #### Scenario: No API key
 - **GIVEN** the app was built without an API key
-- **WHEN** the map opens with `map.basemap` set to `arcgis/streets`
-- **THEN** the OpenStreetMap basemap is shown, a notice says a fallback basemap is in use because no API key is configured, and no request goes to the basemap styles service (Playwright, network log)
+- **WHEN** the app starts with the shipped default config, which has `map.basemap` `arcgis/streets` and a basemap toggle
+- **THEN** the OpenStreetMap basemap is shown, no notice appears, no sign-in dialog appears, and no request goes to the basemap styles service (Playwright, network log)
 
 #### Scenario: API key present
 - **GIVEN** the app was built with a valid API key that has the basemap styles privilege
 - **WHEN** the map opens with `map.basemap` set to `arcgis/streets`
-- **THEN** the ArcGIS Streets basemap is shown and no fallback notice appears (Playwright, skipped when no key is configured)
+- **THEN** the ArcGIS Streets basemap is shown and no notice appears (Playwright, skipped when no key is configured)
 
 #### Scenario: Configured basemap needs no credential
 - **WHEN** `map.basemap` is `osm` and no API key is configured
-- **THEN** the OpenStreetMap basemap is shown and no fallback notice appears
+- **THEN** the OpenStreetMap basemap is shown and no notice appears
 
 ### Requirement: Map keeps its center on resize
 When the viewport is resized, the map SHALL keep the same geographic center (P-03).
@@ -69,3 +70,24 @@ message in the page instead of leaving a blank map without explanation.
 #### Scenario: Basemap service unreachable
 - **WHEN** all requests for the basemap's service metadata, styles, and tiles are blocked
 - **THEN** within 15 seconds an error message appears saying the basemap could not be loaded (Playwright, request blocking)
+
+### Requirement: A hybrid basemap that needs no key is built in
+The basemap ID `hybrid` SHALL mean imagery with roads and place names, drawn from Esri's public
+tile services (`services.arcgisonline.com`: `World_Imagery`, with the
+`Reference/World_Transportation` and `Reference/World_Boundaries_and_Places` layers on top). It
+SHALL need no API key and SHALL be accepted wherever a basemap ID is: `map.basemap`,
+`map.fallbackBasemap`, and a basemap toggle's `nextBasemap`. `hybrid` SHALL NOT be treated as a
+legacy basemap ID.
+
+#### Scenario: Hybrid without a key
+- **GIVEN** the app was built without an API key
+- **WHEN** the map opens with `map.basemap` set to `hybrid`
+- **THEN** the map shows the imagery and both reference layers, every tile request goes to `services.arcgisonline.com`, no request goes to the basemap styles service, and no notice appears (Playwright, network log)
+
+#### Scenario: Hybrid is not a legacy ID
+- **WHEN** `map.basemap` is `hybrid`
+- **THEN** validation passes with no warning (Vitest)
+
+#### Scenario: Hybrid layers
+- **WHEN** the `hybrid` basemap is created
+- **THEN** it has one base layer and two reference layers, each a tile layer on `services.arcgisonline.com`, a title, a thumbnail, and a copyright on every layer (Vitest)

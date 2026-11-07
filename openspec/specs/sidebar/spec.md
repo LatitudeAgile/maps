@@ -92,9 +92,9 @@ in-page notices SHALL NOT be covered by the sidebar, whether it is open or colla
 - **THEN** in both states the zoom buttons' left edge is to the right of the sidebar's right edge (Playwright)
 
 #### Scenario: Notice beside an open panel
-- **GIVEN** the viewer shows the fallback-basemap notice
+- **GIVEN** the viewer shows the layer-error notice, because a configured layer could not be loaded
 - **WHEN** the Legend panel is open at 1280×800
-- **THEN** the notice does not overlap the sidebar (Playwright, comparing bounding boxes; runs without an API key)
+- **THEN** the notice does not overlap the sidebar (Playwright, comparing bounding boxes; runs with or without an API key)
 
 ### Requirement: Sidebar width follows the screen width
 From a viewport width of 768 px, the sidebar SHALL be on the starting side of the map. With a
