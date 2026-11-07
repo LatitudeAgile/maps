@@ -1,11 +1,59 @@
 html,
 body {
-  background-color: var(--calcite-ui-foreground-2);
+  background-color: var(--calcite-color-background);
   height: 100%;
   margin: 0;
+  overflow: hidden;
 }
 
-arcgis-chart {
-  width: 350px;
-  height: 250px;
+calcite-shell {
+  height: 100%;
+  width: 100%;
+}
+
+arcgis-map {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+/* Notices sit above the map, centered, without taking layout space from it. */
+.notices {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--calcite-space-sm, 8px);
+  inset-inline: 0;
+  margin-inline: auto;
+  max-width: min(40rem, 100%);
+  padding: var(--calcite-space-md, 12px);
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  z-index: 10;
+}
+
+.notices > * {
+  pointer-events: auto;
+}
+
+/* Long URLs in messages wrap instead of overflowing. */
+.notices [slot="message"] {
+  overflow-wrap: anywhere;
+}
+
+/* On narrow screens, keep clear of the top-left zoom buttons. */
+@media (max-width: 47.99rem) {
+  .notices {
+    padding-inline-start: 60px;
+  }
+}
+
+.notices:empty {
+  display: none;
+}
+
+.notice-list {
+  margin: var(--calcite-space-xs, 4px) 0 0;
+  padding-inline-start: var(--calcite-space-lg, 16px);
 }

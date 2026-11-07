@@ -1,73 +1,56 @@
+import "@esri/calcite-components/main.css";
+import "@arcgis/map-components/main.css";
 import "./style.css";
-
-// Optional: If you're loading secure web maps
-// import { configureOAuth } from "./auth/configureOAuth";
-// configureOAuth({
-//   // Default portalUrl is ArcGIS Online
-//   // Only set if using other portals
-//   portalUrl: "YOUR_PORTAL_URL",
-//   appId: "YOUR_APP_ID",
-// });
-
-// Individual imports for each Map, Chart and Calcite component
-import "@arcgis/map-components/components/arcgis-expand";
-import "@arcgis/map-components/components/arcgis-legend";
-import "@arcgis/map-components/components/arcgis-map";
-import "@arcgis/map-components/components/arcgis-search";
-import "@arcgis/map-components/components/arcgis-zoom";
-import "@arcgis/charts-components/components/arcgis-chart";
 import "@esri/calcite-components/components/calcite-shell";
-import "@esri/calcite-components/components/calcite-navigation";
-import "@esri/calcite-components/components/calcite-navigation-logo";
 
-// Import modules and types from the SDK's core API
-import Graphic from "@arcgis/core/Graphic.js";
-import Point from "@arcgis/core/geometry/Point.js";
-import SimpleMarkerSymbol from "@arcgis/core/symbols/SimpleMarkerSymbol.js";
-import SimpleLineSymbol from "@arcgis/core/symbols/SimpleLineSymbol.js";
-import type WebMap from "@arcgis/core/WebMap.js";
+import esriConfig from "@arcgis/core/config.js";
+import { loadConfig } from "./config/load.ts";
+import { validateConfig } from "./config/validate.ts";
+import { applyApiKey, readApiKey } from "./credentials/apiKey.ts";
+import { chooseBasemap } from "./map/chooseBasemap.ts";
+import { createMap } from "./map/createMap.ts";
+import { showConfigError, showFallbackNotice, showMapError } from "./ui/notices.ts";
 
-const viewElement = document.querySelector("arcgis-map");
-const calciteNavLogo = document.querySelector("calcite-navigation-logo");
+// Kept for add-location-services-auth (optional OAuth sign-in):
+// import { configureOAuth } from "./auth/configureOAuth.ts";
 
-viewElement?.addEventListener("arcgisViewReadyChange", () => {
-  // Use metadata from the Web Map to populate the header
-  const map = viewElement.map as WebMap;
-  const portalItem = map.portalItem;
-  const title = portalItem?.title ? portalItem.title : "A web map";
-  const description = portalItem?.description ? portalItem.description : "ArcGIS Maps SDK for JavaScript template";
-
-  if (calciteNavLogo) {
-    calciteNavLogo.heading = title;
-    calciteNavLogo.description = description;
+/** Startup: load config → validate → credentials → create map. */
+async function start(): Promise<void> {
+  const loaded = await loadConfig();
+  if (!loaded.ok) {
+    showConfigError("The viewer could not load its configuration", [loaded.message]);
+    return;
   }
 
-  // Define a point geometry
-  const point = new Point({
-    longitude: -98.38,
-    latitude: 38.34,
-  });
+  const { config, errors, warnings } = validateConfig(loaded.raw);
+  for (const w of warnings) console.warn(`Viewer config: ${w.path}: ${w.message}`);
+  if (!config) {
+    showConfigError(
+      "The viewer configuration is invalid",
+      errors.map((e) => `${e.path}: ${e.message}`),
+      `Fix these settings in ${loaded.url}:`,
+    );
+    return;
+  }
 
-  // Create an outline for the marker symbol
-  const outline = new SimpleLineSymbol({
-    color: "white",
-    width: 2,
-  });
+  document.title = config.app.title;
+  esriConfig.portalUrl = config.portal.url;
 
-  // Create a symbol for drawing the point
-  const symbol = new SimpleMarkerSymbol({
-    style: "triangle",
-    size: 20,
-    color: "red",
-    outline,
-  });
+  const apiKey = readApiKey(import.meta.env.VITE_ARCGIS_API_KEY);
+  applyApiKey(esriConfig, apiKey);
 
-  // Create a graphic and add the geometry and symbol to it
-  const pointGraphic = new Graphic({
-    geometry: point,
-    symbol,
-  });
+  const choice = chooseBasemap(config, apiKey !== undefined);
+  if (choice.fellBack) showFallbackNotice(config.map.basemap, choice.basemap);
 
-  // Add a graphic to demonstrate custom visualizations beyond Web Map content
-  viewElement.graphics.add(pointGraphic);
-});
+  const shell = document.querySelector("calcite-shell");
+  if (!shell) throw new Error("index.html is missing calcite-shell");
+
+  createMap({
+    config,
+    basemap: choice.basemap,
+    container: shell,
+    onFailure: (reason) => showMapError(reason),
+  });
+}
+
+void start();
