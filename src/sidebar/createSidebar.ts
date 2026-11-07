@@ -39,7 +39,7 @@ export function createSidebar({ shell, panels }: CreateSidebarOptions): Sidebar 
 
   const actionBar = document.createElement("calcite-action-bar");
   actionBar.slot = "action-bar";
-  actionBar.expandDisabled = true;
+  actionBar.expandToggleDisabled = true; // no expand toggle (expandDisabled is deprecated since Calcite 5.2)
   shellPanel.append(actionBar);
 
   const actions = new Map<string, HTMLCalciteActionElement>();
