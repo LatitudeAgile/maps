@@ -8,8 +8,9 @@ This project replaces [dojo-sidebar](https://github.com/DavidSpriggs/dojo-sideba
 which was built on the retired ArcGIS API for JavaScript 3.x and Dojo. It is a rewrite,
 not an in-place upgrade. dojo-sidebar is kept unchanged as a reference.
 
-> **Status:** early migration. The viewer shows a config-driven map with zoom buttons; the
-> sidebar, layers, and components are still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
+> **Status:** early migration. The viewer shows a config-driven map with layers, a Home
+> button, and a collapsible sidebar with a legend. More components (locate, basemap toggle,
+> search, directions) are still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
 > [`openspec/`](openspec/).
 
 ## Requirements
@@ -35,9 +36,13 @@ Before the first `npm run test:e2e`, install the test browser once:
 
 ## Configure
 
-The map's basemap, center, and zoom come from `public/config/viewer.json`, which is copied
-to `dist/config/viewer.json` and can be edited after deployment without rebuilding. Every
-setting is described in [docs/configuration.md](docs/configuration.md).
+The map, its layers, and its components (including sidebar panels) come from
+`public/config/viewer.json`, which is copied to `dist/config/viewer.json` and can be edited
+after deployment without rebuilding. Every setting is described in
+[docs/configuration.md](docs/configuration.md).
+
+The shipped config includes a **sample layer** (a public Esri demo service) so the sidebar's
+Legend has something to show. Replace it with your own layers before deploying.
 
 ## API key
 

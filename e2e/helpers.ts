@@ -1,9 +1,22 @@
 import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
 
-/** The shipped default config, read from source. */
-export function defaultConfig(): Record<string, any> {
+/** URL prefix of the shipped config's live sample layer, kept out of tests by default. */
+export const SAMPLE_LAYER_HOST = "https://sampleserver6.arcgisonline.com/";
+
+/** The shipped config, read from source, exactly as deployed (includes the live sample layer). */
+export function shippedConfig(): Record<string, any> {
   return JSON.parse(readFileSync(new URL("../public/config/viewer.json", import.meta.url), "utf8"));
+}
+
+/**
+ * The shipped config without its live sample layer: the base for tests, so the suite never
+ * depends on an external service. Tests opt in to the real layer with `test.use({ liveSampleLayer: true })`.
+ */
+export function defaultConfig(): Record<string, any> {
+  const config = shippedConfig();
+  config.layers = (config.layers ?? []).filter((l: { url?: string }) => !l.url?.startsWith(SAMPLE_LAYER_HOST));
+  return config;
 }
 
 /** Serve `body` (string, or an object to stringify) in place of config/viewer.json. */
@@ -162,20 +175,74 @@ export async function drawnFeatureCount(page: Page, layerId: string, timeout = 1
   );
 }
 
-/** Click the map at a longitude/latitude, once the view is ready and settled. */
-export async function clickMapAt(page: Page, lon: number, lat: number): Promise<void> {
-  await settled(page);
-  const pt = await page.locator("arcgis-map").evaluate((el: HTMLArcgisMapElement, [lon, lat]) => {
-    // The view is Web Mercator with no rotation: project, then scale into the view's extent.
+/** Page coordinates where a longitude/latitude is drawn (Web Mercator view, no rotation). */
+export async function mapToScreen(page: Page, lon: number, lat: number): Promise<{ x: number; y: number }> {
+  return page.locator("arcgis-map").evaluate((el: HTMLArcgisMapElement, [lon, lat]) => {
     const R = 20037508.342789244;
     const x = (lon * R) / 180;
     const y = (Math.log(Math.tan(((90 + lat) * Math.PI) / 360)) / (Math.PI / 180)) * (R / 180);
+    // With view padding, view.extent covers only the padded area, so project into that box.
     const e = el.view.extent;
+    const p = el.view.padding;
     const box = el.getBoundingClientRect();
+    const w = el.view.width - (p.left ?? 0) - (p.right ?? 0);
+    const h = el.view.height - (p.top ?? 0) - (p.bottom ?? 0);
     return {
-      x: box.left + ((x - e.xmin) / (e.xmax - e.xmin)) * el.view.width,
-      y: box.top + ((e.ymax - y) / (e.ymax - e.ymin)) * el.view.height,
+      x: box.left + (p.left ?? 0) + ((x - e.xmin) / (e.xmax - e.xmin)) * w,
+      y: box.top + (p.top ?? 0) + ((e.ymax - y) / (e.ymax - e.ymin)) * h,
     };
   }, [lon, lat] as const);
+}
+
+/** Click the map at a longitude/latitude, once the view is ready and settled. */
+export async function clickMapAt(page: Page, lon: number, lat: number): Promise<void> {
+  await settled(page);
+  const pt = await mapToScreen(page, lon, lat);
   await page.mouse.click(pt.x, pt.y);
+}
+
+/** The sidebar action for a panel component. */
+export const sidebarAction = (page: Page, id: string) => page.locator(`calcite-action[data-panel-for="${id}"]`);
+/** The sidebar panel for a panel component. */
+export const sidebarPanel = (page: Page, id: string) => page.locator(`calcite-panel[data-panel-for="${id}"]`);
+
+/** Ids of the sidebar panels currently open (visible). */
+export async function openPanels(page: Page): Promise<string[]> {
+  return page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>("calcite-panel[data-panel-for]")]
+      .filter((p) => !p.hidden && p.getBoundingClientRect().width > 0)
+      .map((p) => p.dataset.panelFor ?? ""),
+  );
+}
+
+/** A config with two titled GeoJSON layers, served from fixtures, and the given components. */
+export async function serveSidebarConfig(page: Page, components: Record<string, unknown>[], edit: (c: Record<string, any>) => void = () => {}): Promise<void> {
+  await serveGeoJSON(page, "**/config/data/*.geojson");
+  await serveModifiedConfig(page, (c) => {
+    c.layers = [geojsonLayer("sites", { title: "Survey sites" }), geojsonLayer("roads", { title: "Road works" })];
+    c.components = components;
+    edit(c);
+  });
+}
+
+/** Right edge of the sidebar's visible parts (icon bar and open panel), in page pixels. */
+export async function sidebarRightEdge(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const parts = [
+      document.querySelector("calcite-shell-panel calcite-action-bar"),
+      ...[...document.querySelectorAll<HTMLElement>("calcite-shell-panel calcite-panel")].filter((p) => !p.hidden),
+    ].filter((e): e is Element => !!e);
+    return Math.max(0, ...parts.map((e) => e.getBoundingClientRect().right));
+  });
+}
+
+/** Width of the sidebar's visible parts together (icon bar plus open panel), in pixels. */
+export async function sidebarWidth(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const parts = [
+      document.querySelector("calcite-shell-panel calcite-action-bar"),
+      ...[...document.querySelectorAll<HTMLElement>("calcite-shell-panel calcite-panel")].filter((p) => !p.hidden),
+    ].filter((e): e is Element => !!e).map((e) => e.getBoundingClientRect());
+    return Math.max(...parts.map((b) => b.right)) - Math.min(...parts.map((b) => b.left));
+  });
 }

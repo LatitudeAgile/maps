@@ -1,10 +1,20 @@
 import type { OptionKind, ComponentTypeSchema } from "../components/registry.ts";
 import { ID_PATTERN } from "./layers.ts";
-import { COMPONENT_PLACEMENTS, isCredentialKey, type ConfigProblem, type ComponentConfig, type ComponentPlacement } from "./types.ts";
+import {
+  COMPONENT_PLACEMENTS,
+  isCredentialKey,
+  type ComponentConfig,
+  type ComponentPlacement,
+  type ConfigProblem,
+  type PanelSettings,
+} from "./types.ts";
 
 type Obj = Record<string, unknown>;
 const isObject = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
-const KNOWN_KEYS = ["id", "type", "placement", "options"];
+const KNOWN_KEYS = ["id", "type", "placement", "options", "panel"];
+
+/** Placement used when an entry doesn't set one. */
+export const DEFAULT_PLACEMENT: ComponentPlacement = "panel";
 
 export interface ComponentValidationContext {
   /** Registered component types and their supported options. */
@@ -55,9 +65,10 @@ export function validateComponents(
     const schema = typeof type === "string" && Object.hasOwn(context.types, type) ? context.types[type] : undefined;
     if (!schema) errors.push({ path: `${at}.type`, message: `Expected one of: ${typeNames.join(", ")}.` });
 
-    const placement = entry.placement;
+    // Omitted placement means a sidebar panel, as `tab` did in dojo-sidebar (P-14).
+    const placement = entry.placement ?? DEFAULT_PLACEMENT;
     if (typeof placement !== "string" || !(COMPONENT_PLACEMENTS as readonly string[]).includes(placement)) {
-      errors.push({ path: `${at}.placement`, message: `Required. Expected one of: ${COMPONENT_PLACEMENTS.join(", ")}.` });
+      errors.push({ path: `${at}.placement`, message: `Expected one of: ${COMPONENT_PLACEMENTS.join(", ")}.` });
     }
 
     const options: Obj = {};
@@ -76,11 +87,54 @@ export function validateComponents(
       }
     }
 
+    const panel = validatePanel(entry.panel, placement === "panel", `${at}.panel`, errors, warnings);
+
     if (errors.length > before) return;
-    result.push({ id: id as string, type: type as string, placement: placement as ComponentPlacement, options });
+    result.push({
+      id: id as string,
+      type: type as string,
+      placement: placement as ComponentPlacement,
+      options,
+      ...(panel ? { panel } : {}),
+    });
   });
 
   return result;
+}
+
+/**
+ * A component's `panel` setting: sidebar heading and icon (sidebar, P-21). Only meaningful
+ * for `panel` placement; elsewhere it is ignored with one warning.
+ */
+function validatePanel(
+  raw: unknown,
+  isPanel: boolean,
+  path: string,
+  errors: ConfigProblem[],
+  warnings: ConfigProblem[],
+): PanelSettings | undefined {
+  if (raw === undefined) return undefined;
+  if (!isPanel) {
+    warnings.push({ path, message: 'Only used when placement is "panel"; it is ignored.' });
+    return undefined;
+  }
+  if (!isObject(raw)) {
+    errors.push({ path, message: "Expected an object, such as { \"heading\": \"Legend\", \"icon\": \"legend\" }." });
+    return undefined;
+  }
+  const panel: PanelSettings = {};
+  for (const key of Object.keys(raw)) {
+    if (key !== "heading" && key !== "icon") warnings.push({ path: `${path}.${key}`, message: "Unknown setting; it is ignored." });
+  }
+  if (raw.heading !== undefined) {
+    if (typeof raw.heading === "string" && raw.heading.trim() !== "") panel.heading = raw.heading;
+    else errors.push({ path: `${path}.heading`, message: "Expected a non-empty string." });
+  }
+  if (raw.icon !== undefined) {
+    if (typeof raw.icon === "string" && raw.icon.trim() !== "") panel.icon = raw.icon;
+    else errors.push({ path: `${path}.icon`, message: "Expected a Calcite icon name, such as \"legend\"." });
+  }
+  return panel;
 }
 
 /** Check one option value against its kind. Returns true when it is valid. */
@@ -112,6 +166,30 @@ function checkOption(kind: OptionKind, value: unknown, path: string, layerIds: s
       value.forEach((id, j) => {
         if (typeof id !== "string" || !layerIds.includes(id)) {
           errors.push({ path: `${path}[${j}]`, message: unknownLayer(id) });
+          ok = false;
+        }
+      });
+      return ok;
+    }
+    case "layer-info[]": {
+      if (!Array.isArray(value)) {
+        errors.push({ path, message: 'Expected an array of { "layer": <layer id>, "title": <text> } entries.' });
+        return false;
+      }
+      let ok = true;
+      value.forEach((item: unknown, j) => {
+        const at = `${path}[${j}]`;
+        if (!isObject(item)) {
+          errors.push({ path: at, message: 'Expected { "layer": <layer id>, "title": <text> }.' });
+          ok = false;
+          return;
+        }
+        if (typeof item.layer !== "string" || !layerIds.includes(item.layer)) {
+          errors.push({ path: `${at}.layer`, message: unknownLayer(item.layer) });
+          ok = false;
+        }
+        if (item.title !== undefined && typeof item.title !== "string") {
+          errors.push({ path: `${at}.title`, message: "Expected a string." });
           ok = false;
         }
       });

@@ -55,19 +55,6 @@ test("Order within a corner: first above second", async ({ page }) => {
   expect(first.y).toBeLessThan(second.y);
 });
 
-test("Panel component before the sidebar exists: not shown, one warning names it", async ({ page, log }) => {
-  await serveModifiedConfig(page, (c) => (c.components = [component("later", "panel")]));
-  await page.goto("./");
-  await mapReady(page);
-  await expect
-    .poll(() => log.console.filter((m) => m.type() === "warning" && m.text().includes("panel components")).length)
-    .toBe(1);
-  const warning = log.console.find((m) => m.text().includes("panel components"))!.text();
-  expect(warning).toContain("later");
-  await expect(byId(page, "later")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /home/i })).toHaveCount(0);
-});
-
 test("Headless component: not visible, but found by id through the app model", async ({ page }) => {
   await serveModifiedConfig(page, (c) => {
     c.debug = true;

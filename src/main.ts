@@ -14,12 +14,14 @@ import { chooseBasemap } from "./map/chooseBasemap.ts";
 import { createMap } from "./map/createMap.ts";
 import { addLayers } from "./layers/addLayers.ts";
 import { createComponents, type CreateComponentsOptions } from "./components/createComponents.ts";
+import { createSidebar } from "./sidebar/createSidebar.ts";
+import { trackSidebarInsets } from "./sidebar/insets.ts";
 import { showConfigError, showFallbackNotice, showLayerErrors, showMapError } from "./ui/notices.ts";
 
 // Kept for add-location-services-auth (optional OAuth sign-in):
 // import { configureOAuth } from "./auth/configureOAuth.ts";
 
-/** Startup: load config → validate → credentials and proxy → map → layers → components. */
+/** Startup: load config → validate → credentials and proxy → map → layers → components → sidebar. */
 async function start(): Promise<void> {
   const apiKey = readApiKey(import.meta.env.VITE_ARCGIS_API_KEY);
   // Created first so every later stage can report errors; the key is redacted from reports.
@@ -84,7 +86,14 @@ async function start(): Promise<void> {
   const { failed } = await addLayers({ entries: config.layers, map, app });
   if (failed.length > 0) showLayerErrors(failed);
 
-  await createComponents({ entries: config.components, mapElement: mapEl as unknown as CreateComponentsOptions["mapElement"], app });
+  const { panels } = await createComponents({
+    entries: config.components,
+    mapElement: mapEl as unknown as CreateComponentsOptions["mapElement"],
+    app,
+  });
+  const sidebar = createSidebar({ shell, panels });
+  // The sidebar floats over the map: pad the view, and inset corner UI and notices (design D4).
+  if (sidebar) trackSidebarInsets(sidebar, mapEl, shell);
 }
 
 /**

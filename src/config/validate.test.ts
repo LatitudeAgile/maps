@@ -253,6 +253,11 @@ describe("shipped default config", () => {
       center: [-98.579404, 39.828127],
       scale: 18489298,
     });
-    expect(config?.components).toEqual([{ id: "home", type: "home", placement: "top-left", options: {} }]);
+    expect(config?.components).toEqual([
+      { id: "home", type: "home", placement: "top-left", options: {} },
+      // Placement omitted in the file: defaults to a sidebar panel.
+      { id: "legend", type: "legend", placement: "panel", options: {} },
+    ]);
+    expect(config?.layers.map((l) => [l.id, l.type])).toEqual([["usa", "map-image"]]);
   });
 });

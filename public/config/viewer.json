@@ -8,6 +8,17 @@
     "scale": 18489298
   },
   "services": {},
-  "layers": [],
-  "components": [{ "id": "home", "type": "home", "placement": "top-left" }]
+  "layers": [
+    {
+      "id": "usa",
+      "type": "map-image",
+      "url": "https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer",
+      "title": "USA (sample layer: replace with your own)",
+      "opacity": 0.8
+    }
+  ],
+  "components": [
+    { "id": "home", "type": "home", "placement": "top-left" },
+    { "id": "legend", "type": "legend" }
+  ]
 }

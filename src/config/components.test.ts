@@ -45,8 +45,15 @@ describe("component entry validation", () => {
     for (const p of ["top-left", "bottom-end", "panel", "none"]) expect(errors[0].message).toContain(p);
   });
 
-  test("placement is required", () => {
-    expect(run([{ id: "h", type: "home" }]).paths).toEqual(["components[0].placement"]);
+  test("Placement omitted: defaults to panel", () => {
+    const { errors, components } = run([{ id: "h", type: "home" }]);
+    expect(errors).toEqual([]);
+    expect(components[0].placement).toBe("panel");
+  });
+
+  test("an explicit placement is kept, and a non-string placement is still an error", () => {
+    expect(run([home({ placement: "bottom-left" })]).components[0].placement).toBe("bottom-left");
+    expect(run([home({ placement: 5 })]).paths).toEqual(["components[0].placement"]);
   });
 
   test("every corner, panel, and none are accepted", () => {
@@ -107,5 +114,87 @@ describe("validateConfig with components", () => {
 
   test("the built-in registry is used by default", () => {
     expect(validateConfig({ ...base, components: [home()] }).errors).toEqual([]);
+  });
+});
+
+describe("panel settings (sidebar)", () => {
+  const panelEntry = (panel: unknown, extra: Record<string, unknown> = {}) => ({ id: "h", type: "home", placement: "panel", panel, ...extra });
+
+  test("heading and icon are kept on panel components", () => {
+    const { components, errors, warnings } = run([panelEntry({ heading: "Start over", icon: "reset" })]);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+    expect(components[0].panel).toEqual({ heading: "Start over", icon: "reset" });
+  });
+
+  test("panel is optional; omitted means type defaults", () => {
+    const { components } = run([{ id: "h", type: "home", placement: "panel" }]);
+    expect(components[0]).not.toHaveProperty("panel");
+  });
+
+  test("Wrong type: heading must be a non-empty string", () => {
+    const { paths } = run([panelEntry({ heading: 5 })]);
+    expect(paths).toEqual(["components[0].panel.heading"]);
+    expect(run([panelEntry({ heading: " " })]).paths).toEqual(["components[0].panel.heading"]);
+  });
+
+  test("icon must be a non-empty string; panel must be an object", () => {
+    expect(run([panelEntry({ icon: 3 })]).paths).toEqual(["components[0].panel.icon"]);
+    expect(run([panelEntry("Legend")]).paths).toEqual(["components[0].panel"]);
+  });
+
+  test("Panel settings on a corner component: ignored with one warning", () => {
+    const { components, errors, warnings } = run([panelEntry({ heading: "Home" }, { placement: "top-right" })]);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([{ path: "components[0].panel", message: 'Only used when placement is "panel"; it is ignored.' }]);
+    expect(components[0]).not.toHaveProperty("panel");
+  });
+
+  test("panel settings apply to the default placement too", () => {
+    const { components, warnings } = run([{ id: "h", type: "home", panel: { heading: "Home view" } }]);
+    expect(warnings).toEqual([]);
+    expect(components[0]).toMatchObject({ placement: "panel", panel: { heading: "Home view" } });
+  });
+
+  test("unknown keys inside panel warn", () => {
+    expect(run([panelEntry({ title: "x" })]).warnings.map((w) => w.path)).toEqual(["components[0].panel.title"]);
+  });
+});
+
+describe("legend and layer-info[] (P-33)", () => {
+  const legend = (options: Record<string, unknown>) => ({ id: "legend", type: "legend", options });
+
+  test("legend is registered, defaults to a panel, and keeps valid layerInfos", () => {
+    const { components, errors } = run([legend({ layerInfos: [{ layer: "parcels", title: "Parcels" }, { layer: "roads" }] })]);
+    expect(errors).toEqual([]);
+    expect(components[0]).toMatchObject({
+      type: "legend",
+      placement: "panel",
+      options: { layerInfos: [{ layer: "parcels", title: "Parcels" }, { layer: "roads" }] },
+    });
+  });
+
+  test("Unknown layer: error at layerInfos[i].layer naming the id", () => {
+    const { paths, errors } = run([legend({ layerInfos: [{ layer: "nope" }] })]);
+    expect(paths).toEqual(["components[0].options.layerInfos[0].layer"]);
+    expect(errors[0].message).toContain('"nope" is not a configured layer');
+  });
+
+  test("title must be a string; entries must be objects; the option must be an array", () => {
+    expect(run([legend({ layerInfos: [{ layer: "roads", title: 7 }] })]).paths).toEqual(["components[0].options.layerInfos[0].title"]);
+    expect(run([legend({ layerInfos: ["roads"] })]).paths).toEqual(["components[0].options.layerInfos[0]"]);
+    expect(run([legend({ layerInfos: { layer: "roads" } })]).paths).toEqual(["components[0].options.layerInfos"]);
+  });
+
+  test("boolean legend options are checked", () => {
+    expect(run([legend({ basemapLegendVisible: true, hideLayersNotInCurrentView: false })]).errors).toEqual([]);
+    expect(run([legend({ basemapLegendVisible: "yes" })]).paths).toEqual(["components[0].options.basemapLegendVisible"]);
+  });
+
+  test("every registered type has panel defaults", () => {
+    for (const [name, type] of Object.entries(COMPONENT_TYPES)) {
+      expect(type.panel.heading, name).not.toBe("");
+      expect(type.panel.icon, name).not.toBe("");
+    }
   });
 });

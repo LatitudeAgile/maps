@@ -11,6 +11,19 @@ export interface ComponentElement {
   setAttribute(name: string, value: string): void;
 }
 
+/** A component for the sidebar, with its heading and icon resolved (config, else type default). */
+export interface PanelComponent {
+  entry: ComponentConfig;
+  element: ComponentElement;
+  heading: string;
+  icon: string;
+}
+
+export interface CreateComponentsResult {
+  /** `panel` components in config order, for the sidebar to show. */
+  panels: PanelComponent[];
+}
+
 export interface CreateComponentsOptions {
   entries: ComponentConfig[];
   /** The `arcgis-map` element components are slotted into. */
@@ -19,22 +32,20 @@ export interface CreateComponentsOptions {
   types?: Readonly<Record<string, ComponentType>>;
   /** Defaults to `document.createElement`. */
   createElement?: (tag: string) => ComponentElement;
-  /** Defaults to `console.warn`. */
-  warn?: (message: string) => void;
 }
 
 /**
- * The component stage (design D6). Runs after layers settle. Corner components are slotted into
- * the map in config order; `none` components are attached hidden; `panel` components wait for the
- * sidebar. Never throws; problems go to the app model's error channel.
+ * The component stage. Runs after layers settle. Corner components are slotted into the map in
+ * config order; `none` components are attached hidden; `panel` components are created with a
+ * reference to the map (they live outside it, in the sidebar) and returned for the sidebar to
+ * place. Never throws; problems go to the app model's error channel.
  */
-export async function createComponents(options: CreateComponentsOptions): Promise<void> {
+export async function createComponents(options: CreateComponentsOptions): Promise<CreateComponentsResult> {
   const { entries, mapElement, app, types = COMPONENT_TYPES } = options;
   const createElement = options.createElement ?? ((tag: string) => document.createElement(tag) as unknown as ComponentElement);
-  const warn = options.warn ?? ((message: string) => console.warn(message));
 
-  // Load each type once, before creating anything, so corner order isn't affected by load order.
-  const needed = new Set(entries.filter((e) => e.placement !== "panel").map((e) => e.type));
+  // Load each type once, before creating anything, so order isn't affected by load order.
+  const needed = new Set(entries.map((e) => e.type));
   const loaded = new Set<string>();
   await Promise.all(
     [...needed].map(async (name) => {
@@ -47,13 +58,8 @@ export async function createComponents(options: CreateComponentsOptions): Promis
     }),
   );
 
-  const panelIds: string[] = [];
+  const panels: PanelComponent[] = [];
   for (const entry of entries) {
-    if (entry.placement === "panel") {
-      panelIds.push(entry.id);
-      app.addComponent({ entry, element: undefined });
-      continue;
-    }
     if (!loaded.has(entry.type)) continue;
 
     const type = types[entry.type];
@@ -62,17 +68,25 @@ export async function createComponents(options: CreateComponentsOptions): Promis
     for (const [name, value] of Object.entries(entry.options)) {
       (element as unknown as Record<string, unknown>)[name] = resolveOption(type.options[name], value, app);
     }
+    app.addComponent({ entry, element: element as unknown as HTMLElement });
+
+    if (entry.placement === "panel") {
+      // Outside arcgis-map, a map component finds its view through referenceElement (design D6).
+      (element as unknown as { referenceElement: unknown }).referenceElement = mapElement;
+      panels.push({
+        entry,
+        element,
+        heading: entry.panel?.heading ?? type.panel.heading,
+        icon: entry.panel?.icon ?? type.panel.icon,
+      });
+      continue;
+    }
     if (entry.placement === "none") element.hidden = true;
     else element.slot = entry.placement;
     mapElement.append(element);
-    app.addComponent({ entry, element: element as unknown as HTMLElement });
   }
 
-  if (panelIds.length > 0) {
-    warn(
-      `Viewer: panel components need the sidebar, which this version doesn't have yet. Not shown: ${panelIds.join(", ")}.`,
-    );
-  }
+  return { panels };
 }
 
 /** Layer-reference options become the created layers; everything else passes as is. */
@@ -80,5 +94,11 @@ function resolveOption(kind: string | undefined, value: unknown, app: AppModel):
   const layer = (id: string): Layer | undefined => app.getLayer(id)?.layer;
   if (kind === "layer") return layer(value as string);
   if (kind === "layer[]") return (value as string[]).map(layer).filter((l): l is Layer => l !== undefined);
+  if (kind === "layer-info[]") {
+    return (value as { layer: string; title?: string }[]).flatMap((info) => {
+      const resolved = layer(info.layer);
+      return resolved ? [{ layer: resolved, ...(info.title !== undefined ? { title: info.title } : {}) }] : [];
+    });
+  }
   return value;
 }

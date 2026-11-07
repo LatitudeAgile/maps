@@ -80,6 +80,12 @@ export const CORNER_PLACEMENTS = [
 export const COMPONENT_PLACEMENTS = [...CORNER_PLACEMENTS, "panel", "none"] as const;
 export type ComponentPlacement = (typeof COMPONENT_PLACEMENTS)[number];
 
+/** Sidebar heading and icon for a `panel` component; type defaults fill gaps (sidebar). */
+export interface PanelSettings {
+  heading?: string;
+  icon?: string;
+}
+
 /** One validated `components` entry. */
 export interface ComponentConfig {
   id: string;
@@ -87,6 +93,8 @@ export interface ComponentConfig {
   placement: ComponentPlacement;
   /** Supported options only; unsupported ones were dropped with a warning. */
   options: Record<string, unknown>;
+  /** Only on `panel` components. */
+  panel?: PanelSettings;
 }
 
 /** One validation problem, located by a path such as `map.center[1]`. */

@@ -26,7 +26,7 @@ there.
 
 ## Example
 
-The shipped default:
+The shipped default (`public/config/viewer.json`):
 
 ```json
 {
@@ -39,10 +39,25 @@ The shipped default:
     "scale": 18489298
   },
   "services": {},
-  "layers": [],
-  "components": []
+  "layers": [
+    {
+      "id": "usa",
+      "type": "map-image",
+      "url": "https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer",
+      "title": "USA (sample layer: replace with your own)",
+      "opacity": 0.8
+    }
+  ],
+  "components": [
+    { "id": "home", "type": "home", "placement": "top-left" },
+    { "id": "legend", "type": "legend" }
+  ]
 }
 ```
+
+The `usa` layer is a **sample**: a public Esri demo service that gives the Legend something to
+show. Replace it with your own layers. If the sample service is unavailable, the viewer keeps
+working and lists the layer in a "could not be loaded" notice.
 
 The smallest valid config sets only `map.basemap`, `map.center`, and one of `map.zoom` or
 `map.scale`.
@@ -76,8 +91,11 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `layers[].hooks.onLoad` | string | none | Name of a built-in hook to run once the layer has loaded. |
 | `components` | array | `[]` | Components, one entry each, created after the layers have loaded. See [Components](#components). |
 | `components[].id` | string | none | **Required.** 1 to 64 letters, digits, hyphens, or underscores, unique among components. |
-| `components[].type` | string | none | **Required.** A registered component type. This version has `home`. |
-| `components[].placement` | string | none | **Required.** A map corner (`top-left`, `top-right`, `bottom-left`, `bottom-right`, `top-start`, `top-end`, `bottom-start`, `bottom-end`), `panel`, or `none`. |
+| `components[].type` | string | none | **Required.** A registered component type: `home` or `legend`. |
+| `components[].placement` | string | `"panel"` | A map corner (`top-left`, `top-right`, `bottom-left`, `bottom-right`, `top-start`, `top-end`, `bottom-start`, `bottom-end`), `panel` (the sidebar), or `none`. |
+| `components[].panel` | object | none | For `panel` components: how the sidebar shows them. Ignored, with a console warning, on other placements. |
+| `components[].panel.heading` | string | the type's default | Non-empty. The panel's heading and its icon's accessible name, such as `"Map key"`. |
+| `components[].panel.icon` | string | the type's default | A [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/) name for the sidebar icon, such as `"list"`. An unknown name shows no icon. |
 | `components[].options` | object | `{}` | Settings for that component type. Unsupported settings are ignored with a console warning. |
 | `debug` | boolean | `false` | `true` or `false`. When `true`, the app model is available as `window.app` in the browser console, and every runtime error report is logged to the console. Turn it off for production. |
 | `request` | object | `{}` | Optional section. Routes ArcGIS requests through a proxy. |
@@ -131,9 +149,10 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 
 | Type | What it is | Options |
 |---|---|---|
-| `home` | A button that returns the map to its configured initial view. | `icon` (string): a [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/) name. |
+| `home` | A button that returns the map to its configured initial view. Panel default: "Home", `home` icon. | `icon` (string): a [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/) name. |
+| `legend` | The symbols of the map's operational layers. Panel default: "Legend", `legend` icon. | `layerInfos`: which layers to show and their titles, as `[{ "layer": "<layer id>", "title": "<text>" }]` (`title` optional); all layers when omitted. `basemapLegendVisible` (boolean, default `false`): include the basemap. `hideLayersNotInCurrentView` (boolean): hide layers with nothing in view. |
 
-Later versions add more types, such as locate, basemap toggle, and legend.
+Later versions add more types, such as locate and basemap toggle.
 
 **Placements**
 
@@ -141,19 +160,45 @@ Later versions add more types, such as locate, basemap toggle, and legend.
   components in one corner stack in config order. The `-start` and `-end` corners follow the
   page's reading direction (left and right in left-to-right languages). The zoom buttons
   are always first in `top-left`.
-- **`panel`:** the component belongs in the sidebar. This version has no sidebar yet, so panel
-  components are accepted but not shown, and the console warns once, naming them.
+- **`panel`** (the default): the component gets an icon in the sidebar and a panel that opens
+  from it. See [Sidebar](#sidebar).
 - **`none`:** the component is created without any visible UI and connected to the map. It is
   useful for components that only act behind the scenes. Debug mode can find it through the app
   model.
 
-**Layer references:** some component types (none in this version) take layers as options, for
-example a legend's list of layers. Those options take layer `id`s from `layers`, such as
-`"layers": ["parcels", "roads"]`, and the component receives the layers themselves. An `id` that
-isn't in `layers` fails validation, and the error names the option and the id.
+**Layer references:** some options take layer `id`s from `layers`, such as the legend's
+`layerInfos`. The component receives the layers themselves. An `id` that isn't in `layers`
+fails validation, and the error names the option and the id, for example
+`components[1].options.layerInfos[0].layer: "nope" is not a configured layer`.
 
 **Order:** components are created after every layer has loaded or failed, or after 15 seconds,
 whichever comes first.
+
+### Sidebar
+
+When at least one component is placed in `panel`, the viewer shows a sidebar:
+
+```json
+"components": [
+  { "id": "legend", "type": "legend", "panel": { "heading": "Map key", "icon": "list" } },
+  { "id": "start", "type": "home", "panel": { "heading": "Start over" } }
+]
+```
+
+- **Icons:** one per panel component, in config order. The sidebar starts collapsed.
+  - Clicking an icon opens its panel. Clicking another icon switches panels.
+  - Clicking the open panel's icon again, the panel's close button, or Escape collapses it.
+- **Over the map:** the sidebar floats over the map, which keeps filling the window. The map
+  centers and zooms within the uncovered part, and its controls, attribution, popups and the
+  viewer's notices move out from under the sidebar.
+- **Width:** from 768 px wide, the sidebar sits on the left. With a panel open, it is 305 px
+  wide, 390 px from 992 px, and 460 px from 1200 px.
+- **Phones:** below 768 px, the icons form a bar along the bottom, and an open panel rises
+  above it, covering at most 60% of the screen.
+- **Keyboard:** Tab reaches each icon, and Enter or Space opens it. Screen readers announce each
+  icon by its heading and whether its panel is open. Escape closes the panel and returns focus
+  to its icon.
+- **No sidebar:** with no panel components, there is no sidebar at all.
 
 ### Zoom or scale
 

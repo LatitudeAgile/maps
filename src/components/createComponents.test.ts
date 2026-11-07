@@ -17,27 +17,31 @@ class FakeElement implements ComponentElement {
 }
 
 const TYPES: Record<string, ComponentType> = {
-  home: { tag: "arcgis-home", load: async () => undefined, options: { label: "string", icon: "string" } },
-  "test-legend": { tag: "test-legend", load: async () => undefined, options: { layers: "layer[]", focus: "layer" } },
-  broken: { tag: "x-broken", load: () => Promise.reject(new Error("chunk failed")), options: {} },
+  home: { tag: "arcgis-home", load: async () => undefined, options: { label: "string", icon: "string" }, panel: { heading: "Home", icon: "home" } },
+  "test-legend": {
+    tag: "test-legend",
+    load: async () => undefined,
+    options: { layers: "layer[]", focus: "layer", layerInfos: "layer-info[]" },
+    panel: { heading: "Test", icon: "list" },
+  },
+  broken: { tag: "x-broken", load: () => Promise.reject(new Error("chunk failed")), options: {}, panel: { heading: "B", icon: "x" } },
 };
 
 function setup(entries: ComponentConfig[]) {
   const app = new AppModel();
   const appended: FakeElement[] = [];
-  const warnings: string[] = [];
   const reports: string[] = [];
   app.errors.subscribe((r) => reports.push(`${r.source}: ${r.message}`));
+  const mapElement = { append: (...nodes: unknown[]) => appended.push(...(nodes as FakeElement[])) };
   const run = () =>
     createComponents({
       entries,
       app,
       types: TYPES,
-      mapElement: { append: (...nodes) => appended.push(...(nodes as FakeElement[])) },
+      mapElement,
       createElement: (tag) => new FakeElement(tag),
-      warn: (m) => warnings.push(m),
     });
-  return { app, appended, warnings, reports, run };
+  return { app, appended, reports, run, mapElement };
 }
 
 const component = (id: string, extra: Partial<ComponentConfig> = {}): ComponentConfig => ({
@@ -85,6 +89,18 @@ describe("createComponents", () => {
     expect(s.appended[0].focus).toBe(roads);
   });
 
+  test("layer-info[] options resolve layer ids to { layer, title } with the layer objects", async () => {
+    const s2 = setup([
+      component("legend", { type: "test-legend", placement: "none", options: { layerInfos: [{ layer: "sites", title: "Survey sites" }, { layer: "roads" }] } }),
+    ]);
+    const sites = { id: "sites" } as Layer;
+    const roads = { id: "roads" } as Layer;
+    s2.app.addLayer({ entry: { id: "sites", type: "geojson", options: {}, hooks: {} }, layer: sites });
+    s2.app.addLayer({ entry: { id: "roads", type: "geojson", options: {}, hooks: {} }, layer: roads });
+    await s2.run();
+    expect(s2.appended[0].layerInfos).toEqual([{ layer: sites, title: "Survey sites" }, { layer: roads }]);
+  });
+
   test("none: attached hidden, without a slot, and registered", async () => {
     const s = setup([component("quiet", { placement: "none" })]);
     await s.run();
@@ -93,13 +109,36 @@ describe("createComponents", () => {
     expect(s.app.getComponent("quiet")?.element).toBe(s.appended[0]);
   });
 
-  test("panel: not created, one warning naming each id, still registered", async () => {
-    const s = setup([component("a", { placement: "panel" }), component("b", { placement: "panel" }), component("c")]);
-    await s.run();
+  test("panel: created outside the map, referencing it, and returned in config order", async () => {
+    const s = setup([component("a", { placement: "panel" }), component("c"), component("b", { placement: "panel" })]);
+    const { panels } = await s.run();
+    // Only the corner component goes into the map.
     expect(s.appended.map((e) => e.attributes["data-component-id"])).toEqual(["c"]);
-    expect(s.warnings).toHaveLength(1);
-    expect(s.warnings[0]).toContain("a, b");
-    expect(s.app.getComponent("a")).toEqual({ entry: expect.objectContaining({ id: "a" }), element: undefined });
+    expect(panels.map((p) => p.entry.id)).toEqual(["a", "b"]);
+    for (const p of panels) {
+      expect((p.element as FakeElement).referenceElement).toBe(s.mapElement);
+      expect(p.element.slot).toBe("");
+      expect(s.app.getComponent(p.entry.id)?.element).toBe(p.element);
+    }
+  });
+
+  test("panel heading and icon: config settings win, type defaults fill gaps", async () => {
+    const s = setup([
+      component("plain", { placement: "panel" }),
+      component("custom", { placement: "panel", panel: { heading: "Start over" } }),
+      component("both", { placement: "panel", panel: { heading: "Key", icon: "list" } }),
+    ]);
+    const { panels } = await s.run();
+    expect(panels.map((p) => [p.heading, p.icon])).toEqual([
+      ["Home", "home"],
+      ["Start over", "home"],
+      ["Key", "list"],
+    ]);
+  });
+
+  test("no panel components: nothing for the sidebar", async () => {
+    const s = setup([component("c")]);
+    expect((await s.run()).panels).toEqual([]);
   });
 
   test("a component type that fails to load is reported; other components are still created", async () => {

@@ -17,13 +17,16 @@ arcgis-map {
   width: 100%;
 }
 
-/* Notices sit above the map, centered, without taking layout space from it. */
+/*
+ * Notices sit above the map, centered in the part the sidebar doesn't cover, without taking
+ * layout space from it. --sidebar-inset-start is set by src/sidebar/insets.ts.
+ */
 .notices {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: var(--calcite-space-sm, 8px);
-  inset-inline: 0;
+  inset-inline: var(--sidebar-inset-start, 0px) 0;
   margin-inline: auto;
   max-width: min(40rem, 100%);
   padding: var(--calcite-space-md, 12px);
@@ -56,4 +59,45 @@ arcgis-map {
 .notice-list {
   margin: var(--calcite-space-xs, 4px) 0 0;
   padding-inline-start: var(--calcite-space-lg, 16px);
+}
+
+/*
+ * Sidebar widths (P-25): icons plus open panel are 305, 390, and 460 px wide at dojo-sidebar's
+ * 768 / 992 / 1200 px breakpoints. The custom properties size the panel, so each value is the
+ * total minus Calcite's action bar (49 px).
+ */
+@media (min-width: 768px) {
+  calcite-shell-panel.sidebar {
+    --calcite-shell-panel-width: 256px;
+    --calcite-shell-panel-max-width: 256px;
+    --calcite-shell-panel-min-width: 256px;
+  }
+}
+@media (min-width: 992px) {
+  calcite-shell-panel.sidebar {
+    --calcite-shell-panel-width: 341px;
+    --calcite-shell-panel-max-width: 341px;
+    --calcite-shell-panel-min-width: 341px;
+  }
+}
+@media (min-width: 1200px) {
+  calcite-shell-panel.sidebar {
+    --calcite-shell-panel-width: 411px;
+    --calcite-shell-panel-max-width: 411px;
+    --calcite-shell-panel-min-width: 411px;
+  }
+}
+
+/* Narrow screens: an open panel covers at most 60% of the height, so the map stays usable. */
+@media (max-width: 767.98px) {
+  calcite-shell-panel.sidebar {
+    --calcite-shell-panel-max-height: 60vh;
+  }
+}
+
+/* Components in sidebar panels fill the panel's width. */
+calcite-shell-panel.sidebar calcite-panel > [data-component-id] {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
 }
