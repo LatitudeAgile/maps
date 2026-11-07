@@ -1,0 +1,28 @@
+{
+  "name": "arcgis-sidebar-viewer",
+  "version": "0.1.0",
+  "description": "Config-driven ArcGIS Maps SDK for JavaScript viewer with a tabbed Calcite sidebar (successor to dojo-sidebar)",
+  "license": "MIT",
+  "author": "David Spriggs",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@arcgis/charts-components": "^5.1.0",
+    "@arcgis/core": "^5.1.0",
+    "@arcgis/map-components": "^5.1.0",
+    "@esri/calcite-components": "^5.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "~24.10.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.16"
+  }
+}
