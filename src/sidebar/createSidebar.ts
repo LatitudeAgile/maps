@@ -103,9 +103,33 @@ export function createSidebar({ shell, panels }: CreateSidebarOptions): Sidebar 
     // Full width on narrow screens (no floating margins); floating over the map when wide.
     shellPanel.displayMode = isWide ? "float-all" : "overlay";
     actionBar.layout = isWide ? "vertical" : "horizontal";
+    // Phones: the bar starts from the right, first icon nearest the thumb (design D12). Only
+    // the bar's direction changes; Tab still follows config order, now read from the right.
+    if (isWide) actionBar.removeAttribute("dir");
+    else actionBar.dir = "rtl";
   };
   applyLayout();
   wide.addEventListener("change", applyLayout);
+
+  // Phones: Calcite's arrow keys follow DOM order (Right = next) whatever the direction, which
+  // on the right-to-left bar points the wrong way. Swap Left and Right and re-send the key from
+  // the same element, so Calcite still does the focusing and its Tab-stop bookkeeping (D12).
+  // Calcite reads event.key and doesn't check isTrusted.
+  const mirrored = new WeakSet<Event>();
+  actionBar.addEventListener(
+    "keydown",
+    (event) => {
+      if (wide.matches || mirrored.has(event) || !event.target) return;
+      const key = event.key === "ArrowLeft" ? "ArrowRight" : event.key === "ArrowRight" ? "ArrowLeft" : undefined;
+      if (!key) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const swapped = new KeyboardEvent("keydown", { key, bubbles: true, composed: true, cancelable: true });
+      mirrored.add(swapped);
+      event.target.dispatchEvent(swapped);
+    },
+    { capture: true },
+  );
 
   for (const [id, action] of actions) action.aria = { expanded: false, controlsElements: [calcitePanels.get(id)!] };
 

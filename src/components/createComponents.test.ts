@@ -73,12 +73,20 @@ function setup(entries: ComponentConfig[], withMap = true) {
   const locationErrors: number[] = [];
   app.errors.subscribe((r) => reports.push(`${r.source}: ${r.message}`));
   const mapElement = { append: (...nodes: unknown[]) => appended.push(...(nodes as FakeElement[])) };
+  // Records which corner stack each element went into (design D1).
+  const cornerStack = (slot: string) => ({
+    append: (...nodes: unknown[]) => {
+      for (const n of nodes as FakeElement[]) n.corner = slot;
+      appended.push(...(nodes as FakeElement[]));
+    },
+  });
   const run = () =>
     createComponents({
       entries,
       app,
       types: TYPES,
       mapElement,
+      cornerStack,
       createElement: (tag) => new FakeElement(tag),
       onLocationError: (code) => locationErrors.push(code),
       map: withMap ? ({ title: "the map" } as never) : undefined,
@@ -96,14 +104,20 @@ const component = (id: string, extra: Partial<ComponentConfig> = {}): ComponentC
 });
 
 describe("createComponents", () => {
-  test("corner components are slotted in config order and marked with their id", async () => {
-    const s = setup([component("first", { placement: "top-right" }), component("second", { placement: "top-right" })]);
-    await s.run();
-    expect(s.appended.map((e) => [e.tag, e.slot, e.attributes["data-component-id"]])).toEqual([
-      ["arcgis-home", "top-right", "first"],
-      ["arcgis-home", "top-right", "second"],
+  test("corner components go into their corner's stack in config order, marked with their id", async () => {
+    const s = setup([
+      component("first", { placement: "bottom-right" }),
+      component("other", { placement: "top-left" }),
+      component("second", { placement: "bottom-right" }),
     ]);
-    expect(s.app.getComponent("second")?.element).toBe(s.appended[1]);
+    await s.run();
+    // The stack carries the slot; the component itself has none.
+    expect(s.appended.map((e) => [e.tag, e.corner, e.slot, e.attributes["data-component-id"]])).toEqual([
+      ["arcgis-home", "bottom-right", "", "first"],
+      ["arcgis-home", "top-left", "", "other"],
+      ["arcgis-home", "bottom-right", "", "second"],
+    ]);
+    expect(s.app.getComponent("second")?.element).toBe(s.appended[2]);
   });
 
   test("supported options are applied as properties", async () => {
@@ -149,6 +163,7 @@ describe("createComponents", () => {
     await s.run();
     expect(s.appended[0].hidden).toBe(true);
     expect(s.appended[0].slot).toBe("");
+    expect(s.appended[0].corner).toBeUndefined();
     expect(s.app.getComponent("quiet")?.element).toBe(s.appended[0]);
   });
 
@@ -263,6 +278,9 @@ describe("search configure (design D3)", () => {
       apiKey: "KEY",
     });
     expect(el.includeDefaultSourcesDisabled).toBe(true);
+    // "All" selected, with the component's own property name (D16).
+    expect(el.searchAllDisabled).toBe(false);
+    expect(el.activeSourceIndex).toBe(-1);
     expect(el.sources).toEqual([expect.objectContaining({ url: "https://geo.example.com/GeocodeServer", singleLineFieldName: "SingleLine" })]);
     expect(JSON.stringify(el.sources)).not.toContain("KEY");
     expect(el.maxSuggestions).toBe(4);

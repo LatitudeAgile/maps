@@ -1,6 +1,7 @@
 import esriConfig from "@arcgis/core/config.js";
 import type { Config } from "@arcgis/core/config.js";
 import { DEFAULT_GEOCODER_URL, geocoderSource } from "./geocoder.ts";
+import { buildSearchSources } from "./searchSources.ts";
 import type { ComponentContext, ConfigurableElement, KeylessResult } from "./registry.ts";
 
 /** Esri's world route service. It needs a key with the Routing privilege. */
@@ -48,7 +49,7 @@ export function addRouteKeyScope(config: Pick<Config, "apiKeys">, token: string,
 export async function configureDirections(
   element: ConfigurableElement,
   options: Readonly<Record<string, unknown>>,
-  { map, apiKey }: ComponentContext,
+  { map, apiKey, geocoding }: ComponentContext,
 ): Promise<void> {
   const url = options.routeServiceUrl as string;
   // The key goes only to an ArcGIS routing service, never to a route service on another host.
@@ -60,11 +61,35 @@ export async function configureDirections(
   map.add(layer);
   element.layer = layer;
   element.unit = options.unit;
-  // Stops are found with the same keyless geocoder as Search (design D3).
-  element.searchProperties = { includeDefaultSourcesDisabled: true, sources: [geocoderSource(DEFAULT_GEOCODER_URL)] };
+  // Stops are found with the same sources as Search (design D3, D16).
+  element.searchProperties = directionsSearchProperties(await buildSearchSources(DEFAULT_GEOCODER_URL, geocoding, apiKey));
   element.hideSaveButton = true;
   element.hideSaveAsButton = true;
   element.hidePrintButton = true;
+}
+
+/**
+ * Directions' stop search: only the keyless geocoder (design D3). `searchProperties` takes the
+ * core Search properties, where the switch is `includeDefaultSources: false`; the Search
+ * component's `includeDefaultSourcesDisabled` means nothing here, and with it the portal's
+ * default World geocoder (geocode-api.arcgis.com, which needs a key) was listed as a second
+ * source. Setting `searchProperties` replaces Directions' defaults, so those are restated.
+ */
+export function directionsSearchProperties(sources: unknown[] = [geocoderSource(DEFAULT_GEOCODER_URL)]): {
+  includeDefaultSources: false;
+  popupEnabled: false;
+  resultGraphicEnabled: false;
+  searchAllEnabled: true;
+  sources: unknown[];
+} {
+  return {
+    includeDefaultSources: false,
+    popupEnabled: false,
+    resultGraphicEnabled: false,
+    // With more than one source, a search covers all of them (D16).
+    searchAllEnabled: true,
+    sources,
+  };
 }
 
 /** Without a key, a Directions panel on an ArcGIS routing service would fail, so it's left out. */

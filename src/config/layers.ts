@@ -6,7 +6,8 @@ const isObject = (v: unknown): v is Obj => typeof v === "object" && v !== null &
 /** Config ids: also used as SDK layer ids and in error paths. */
 export const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 const PORTAL_ITEM_ID = /^[0-9a-f]{32}$/i;
-const KNOWN_KEYS = ["id", "type", "url", "portalItem", "title", "visible", "opacity", "popupEnabled", "options", "hooks"];
+const KNOWN_KEYS = ["id", "type", "url", "portalItem", "title", "visible", "opacity", "popupEnabled", "showSublayers", "hideSublayers", "options", "hooks"];
+const SUBLAYER_KEYS = ["showSublayers", "hideSublayers"] as const;
 const HOOK_KEYS = ["preLoad", "onLoad"] as const;
 
 export interface LayerValidationContext {
@@ -102,6 +103,25 @@ export function validateLayers(
       errors.push({ path: `${at}.options`, message: "Expected an object of layer properties." });
     }
 
+    // sublayer visibility (map-image only)
+    const sublayers: Partial<Record<(typeof SUBLAYER_KEYS)[number], number[]>> = {};
+    for (const key of SUBLAYER_KEYS) {
+      const value = entry[key];
+      if (value === undefined) continue;
+      const path = `${at}.${key}`;
+      if (!Array.isArray(value) || !value.every((v) => Number.isInteger(v) && (v as number) >= 0)) {
+        errors.push({ path, message: "Expected a list of sublayer ids: whole numbers 0 or greater, such as [0, 3]." });
+      } else if (type !== "map-image") {
+        warnings.push({ path, message: "Only map-image layers have sublayers; it is ignored." });
+      } else {
+        sublayers[key] = [...new Set(value as number[])];
+      }
+    }
+    const both = (sublayers.showSublayers ?? []).filter((id) => sublayers.hideSublayers?.includes(id));
+    if (both.length > 0) {
+      errors.push({ path: `${at}.hideSublayers`, message: `Sublayer ${both.join(", ")} is also in showSublayers; list each id in one of them.` });
+    }
+
     // hooks
     const hooks: LayerConfig["hooks"] = {};
     if (entry.hooks !== undefined) {
@@ -132,6 +152,7 @@ export function validateLayers(
       ...(entry.visible !== undefined ? { visible: entry.visible as boolean } : {}),
       ...(entry.opacity !== undefined ? { opacity: entry.opacity as number } : {}),
       ...(entry.popupEnabled !== undefined ? { popupEnabled: entry.popupEnabled as boolean } : {}),
+      ...sublayers,
       options: (entry.options as Obj | undefined) ?? {},
       hooks,
     });

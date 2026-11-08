@@ -45,12 +45,15 @@ than 0). A config that sets both, or neither, SHALL fail validation.
 ### Requirement: Missing optional settings receive documented defaults
 The viewer SHALL apply these defaults when a setting is absent:
 - `app.title`: "ArcGIS Sidebar Viewer"
+- `app.titleVisible`: `true`
 - `portal.url`: `https://www.arcgis.com`
 - `map.fallbackBasemap`: `osm`
 
+`app.theme` has no default: without it, the viewer keeps the Calcite default colors.
+
 #### Scenario: Minimal config
 - **WHEN** the config contains only `map.basemap`, `map.center`, and `map.zoom`
-- **THEN** the viewer starts with the default title, default portal URL, and default fallback basemap (Vitest)
+- **THEN** the viewer starts with the default title, the title box shown, no theme, the default portal URL, and the default fallback basemap (Vitest)
 
 ### Requirement: Invalid config stops startup with a readable error
 The viewer SHALL validate the config before creating the map. When validation fails, it SHALL
@@ -100,8 +103,8 @@ The viewer SHALL set the browser document title to `app.title`.
 
 ### Requirement: Unrecognized top-level settings are ignored with a warning
 The viewer SHALL recognize the top-level settings `app`, `portal`, `map`, `services`, `layers`,
-`components`, `debug`, and `request`. For any other top-level setting, it SHALL log one console
-warning that names the setting, and SHALL continue starting.
+`components`, `geocoding`, `debug`, and `request`. For any other top-level setting, it SHALL log
+one console warning that names the setting, and SHALL continue starting.
 
 #### Scenario: All recognized settings present
 - **WHEN** the config sets every recognized top-level setting with valid values

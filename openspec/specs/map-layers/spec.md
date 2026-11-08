@@ -124,3 +124,41 @@ to `false` (P-06).
 #### Scenario: Popup turned off
 - **WHEN** the layer entry has `"popupEnabled": false` and the user clicks one of its points
 - **THEN** no popup opens (Playwright)
+
+### Requirement: Map image sublayers can be shown or hidden from config
+A `map-image` layer entry MAY list sublayer ids in `showSublayers` and `hideSublayers`. Once the
+layer has loaded, and before its `onLoad` hook runs, the viewer SHALL turn the listed sublayers
+on or off, including ones the service has off by default. Showing a sublayer SHALL also show the
+groups above it. Every other sublayer SHALL keep the service's default, and users SHALL still be
+able to switch any sublayer in the layer list.
+
+#### Scenario: Hide a sublayer that is on by default
+- **GIVEN** a `map-image` service whose sublayer 3 is on by default
+- **WHEN** its layer entry has `"hideSublayers": [3]`
+- **THEN** sublayer 3 is off once the layer loads, and the other sublayers are as the service set them (Vitest, with a stand-in layer)
+
+#### Scenario: Show a sublayer that is off by default, inside a hidden group
+- **GIVEN** a `map-image` service whose sublayer 1 is off by default, inside group sublayer 0, which is also off
+- **WHEN** its layer entry has `"showSublayers": [1]`
+- **THEN** sublayers 1 and 0 are on once the layer loads, and sublayer 1's siblings keep the service's setting (Vitest, with a stand-in layer)
+
+#### Scenario: Id the service doesn't have
+- **WHEN** a `map-image` layer entry has `"showSublayers": [9]`, and the service has no sublayer 9
+- **THEN** the other listed sublayers are still applied, and one console warning names the layer's `id` and sublayer 9 (Vitest, with a stand-in layer)
+
+### Requirement: Sublayer settings are validated
+`showSublayers` and `hideSublayers` SHALL each be a list of whole numbers 0 or greater. The same
+id SHALL NOT be in both. The viewer SHALL report invalid sublayer settings by path. On a layer
+type other than `map-image`, it SHALL ignore them with one console warning per setting.
+
+#### Scenario: Not a list of ids
+- **WHEN** a `map-image` layer entry has `"hideSublayers": ["3"]`
+- **THEN** validation fails with an error at `layers[0].hideSublayers` saying whole numbers 0 or greater are expected (Vitest)
+
+#### Scenario: Same id in both lists
+- **WHEN** a `map-image` layer entry has `"showSublayers": [1, 3]` and `"hideSublayers": [3]`
+- **THEN** validation fails with an error at `layers[0].hideSublayers` naming sublayer 3 (Vitest)
+
+#### Scenario: Not a map image layer
+- **WHEN** a `feature` layer entry has `"hideSublayers": [3]`
+- **THEN** validation passes with one warning at `layers[0].hideSublayers`, and the setting is dropped (Vitest)

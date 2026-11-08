@@ -1,5 +1,8 @@
 {
-  "app": { "title": "ArcGIS Sidebar Viewer" },
+  "app": {
+    "title": "ArcGIS Sidebar Viewer",
+    "theme": { "color": "#1f6f8b", "opacity": 0.85 }
+  },
   "portal": { "url": "https://www.arcgis.com" },
   "map": {
     "basemap": "arcgis/streets",
@@ -14,17 +17,18 @@
       "type": "map-image",
       "url": "https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer",
       "title": "USA (sample layer: replace with your own)",
+      "visible": false,
       "opacity": 0.8
     }
   ],
   "components": [
-    { "id": "home", "type": "home", "placement": "top-left" },
-    { "id": "locate", "type": "locate", "placement": "top-left" },
-    { "id": "basemap-toggle", "type": "basemap-toggle", "placement": "top-right", "options": { "nextBasemap": "hybrid" } },
-    { "id": "search", "type": "search" },
-    { "id": "directions", "type": "directions" },
-    { "id": "layers", "type": "layer-list" },
-    { "id": "legend", "type": "legend" },
-    { "id": "basemaps", "type": "basemap-gallery" }
+    { "id": "home", "type": "home", "placement": "bottom-right" },
+    { "id": "locate", "type": "locate", "placement": "bottom-right" },
+    { "id": "zoom", "type": "zoom", "placement": "bottom-right" },
+    { "id": "search", "type": "search", "placement": "panel" },
+    { "id": "directions", "type": "directions", "placement": "panel" },
+    { "id": "layers", "type": "layer-list", "placement": "panel" },
+    { "id": "legend", "type": "legend", "placement": "panel" },
+    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" }
   ]
 }

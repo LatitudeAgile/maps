@@ -8,10 +8,14 @@ context: |
   cites its ID in the proposal and covers it with a spec scenario.
 
   Target: ArcGIS Maps SDK for JavaScript 5.x via npm + Vite, vanilla TypeScript (no UI
-  framework). Use map components (arcgis-*) for all map UI. Never import
-  @arcgis/core/widgets/* and never use view.ui.add/remove/move: widgets are deprecated
-  at 5.0 and may be removed as early as Q1 2027. Core API modules are fine for maps,
-  layers, config, identity and reactiveUtils.
+  framework). Use map components (arcgis-*) for all map UI. Never import widget UI classes
+  from @arcgis/core/widgets/* (Search, Legend, Expand and the like) and never use
+  view.ui.add/remove/move: widgets are deprecated at 5.0 and may be removed as early as
+  Q1 2027. Exception: non-UI classes and objects under widgets/ that map components need
+  as data, such as Search sources (widgets/Search/SearchSource), may be imported when no
+  non-widgets equivalent exists. Keep each such import in one module, note it in the design,
+  and replace it when the SDK moves it. Core API modules are fine for maps, layers, config,
+  identity and reactiveUtils.
 
   UI uses Calcite components, Calcite design tokens and Calcite icons only. No Font
   Awesome, no other component libraries.

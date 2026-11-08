@@ -55,6 +55,18 @@ test("Order within a corner: first above second", async ({ page }) => {
   expect(first.y).toBeLessThan(second.y);
 });
 
+test("Order within a bottom corner: first above second, in one column", async ({ page }) => {
+  // On its own the SDK lays out bottom slots side by side; the corner stack keeps a column (D1).
+  await serveModifiedConfig(page, (c) => (c.components = [component("first", "bottom-right"), component("second", "bottom-right")]));
+  await page.goto("./");
+  await mapReady(page);
+  await expect(byId(page, "second")).toBeVisible();
+  const first = (await byId(page, "first").boundingBox())!;
+  const second = (await byId(page, "second").boundingBox())!;
+  expect(first.y + first.height).toBeLessThanOrEqual(second.y);
+  expect(Math.abs(first.x + first.width - (second.x + second.width))).toBeLessThanOrEqual(2);
+});
+
 test("Headless component: not visible, but found by id through the app model", async ({ page }) => {
   await serveModifiedConfig(page, (c) => {
     c.debug = true;

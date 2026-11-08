@@ -207,7 +207,7 @@ describe("map controls: locate, track, basemap-toggle (P-31, P-32)", () => {
 
   test("Unknown component type lists every registered type", () => {
     const { errors } = run([entry("compass")]);
-    for (const t of ["home", "legend", "locate", "track", "basemap-toggle", "search", "directions", "layer-list", "basemap-gallery", "hello-world"]) expect(errors[0].message).toContain(t);
+    for (const t of ["home", "zoom", "legend", "locate", "track", "basemap-toggle", "search", "directions", "layer-list", "basemap-gallery", "hello-world"]) expect(errors[0].message).toContain(t);
   });
 
   test("locate and track accept their options", () => {

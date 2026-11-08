@@ -12,12 +12,15 @@ interface NoticeOptions {
   title: string;
   message?: string;
   items?: string[];
-  closable?: boolean;
   /** Stable hook for tests and for replacing an existing notice. */
   id: string;
 }
 
-function showNotice({ kind, title, message, items, closable = false, id }: NoticeOptions): HTMLElement {
+/**
+ * Every notice can be closed, errors included (notices spec). Closing removes it; it comes
+ * back only if its cause happens again, or on reload.
+ */
+function showNotice({ kind, title, message, items, id }: NoticeOptions): HTMLElement {
   document.getElementById(id)?.remove();
 
   const notice = document.createElement("calcite-notice");
@@ -25,7 +28,7 @@ function showNotice({ kind, title, message, items, closable = false, id }: Notic
   notice.kind = kind;
   notice.icon = true;
   notice.open = true;
-  notice.closable = closable;
+  notice.closable = true;
   notice.width = "full";
   // Danger notices interrupt; warnings are announced politely.
   notice.setAttribute("role", kind === "danger" ? "alert" : "status");
@@ -54,18 +57,18 @@ function showNotice({ kind, title, message, items, closable = false, id }: Notic
   }
   notice.append(body);
 
-  if (closable) notice.addEventListener("calciteNoticeClose", () => notice.remove());
+  notice.addEventListener("calciteNoticeClose", () => notice.remove());
 
   region().append(notice);
   return notice;
 }
 
-/** Startup could not complete: the config is unreadable or invalid. Not closable. */
+/** Startup could not complete: the config is unreadable or invalid. No map is created. */
 export function showConfigError(title: string, items: string[], message?: string): HTMLElement {
   return showNotice({ id: "config-error", kind: "danger", title, items, message });
 }
 
-/** The map or its basemap failed after creation. Not closable. */
+/** The map or its basemap failed after creation. */
 export function showMapError(message: string): HTMLElement {
   return showNotice({
     id: "map-error",
@@ -75,12 +78,11 @@ export function showMapError(message: string): HTMLElement {
   });
 }
 
-/** Some configured layers failed to load. Closable; the rest of the viewer keeps working. */
+/** Some configured layers failed to load. The rest of the viewer keeps working. */
 export function showLayerErrors(ids: string[]): HTMLElement {
   return showNotice({
     id: "layer-errors",
     kind: "warning",
-    closable: true,
     title: ids.length === 1 ? "A layer could not be loaded" : "Some layers could not be loaded",
     message:
       ids.length === 1
@@ -97,12 +99,11 @@ const LOCATION_MESSAGES: Readonly<Record<number, string>> = {
   3: "Finding your location took too long. Try again.",
 };
 
-/** A locate or track component couldn't get the device's position. Closable; replaces itself. */
+/** A locate or track component couldn't get the device's position. Replaces itself. */
 export function showLocationError(code: number): HTMLElement {
   return showNotice({
     id: "location-error",
     kind: "warning",
-    closable: true,
     title: "Your location isn't available",
     message: LOCATION_MESSAGES[code] ?? LOCATION_MESSAGES[2],
   });

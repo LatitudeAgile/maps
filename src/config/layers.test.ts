@@ -149,3 +149,44 @@ describe("validateConfig with layers", () => {
     expect(config?.layers[0].url).toBe("https://viewer.example.org/config/sites.geojson");
   });
 });
+
+describe("sublayer visibility settings (map-image)", () => {
+  const mapImage = (extra: Record<string, unknown> = {}) => ({
+    id: "usa",
+    type: "map-image",
+    url: "https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer",
+    ...extra,
+  });
+
+  test("showSublayers and hideSublayers are kept, duplicates dropped", () => {
+    const { layers, errors, warnings } = run([mapImage({ showSublayers: [5, 5, 0], hideSublayers: [3] })]);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+    expect(layers[0]).toMatchObject({ showSublayers: [5, 0], hideSublayers: [3] });
+  });
+
+  test("absent settings stay absent", () => {
+    const { layers } = run([mapImage()]);
+    expect(layers[0]).not.toHaveProperty("showSublayers");
+    expect(layers[0]).not.toHaveProperty("hideSublayers");
+  });
+
+  test.each([[["3"]], [[-1]], [[1.5]], ["3"], [{ 3: true }]])("not a list of whole numbers: %j", (value) => {
+    const { paths, errors } = run([mapImage({ hideSublayers: value })]);
+    expect(paths).toEqual(["layers[0].hideSublayers"]);
+    expect(errors[0].message).toMatch(/whole numbers 0 or greater/);
+  });
+
+  test("the same id in both lists is an error", () => {
+    const { paths, errors } = run([mapImage({ showSublayers: [1, 3], hideSublayers: [3] })]);
+    expect(paths).toEqual(["layers[0].hideSublayers"]);
+    expect(errors[0].message).toContain("Sublayer 3 is also in showSublayers");
+  });
+
+  test("on a layer type without sublayers: one warning, and the setting is dropped", () => {
+    const { layers, errors, warnings } = run([feature({ hideSublayers: [3] })]);
+    expect(errors).toEqual([]);
+    expect(warnings.map((w) => w.path)).toEqual(["layers[0].hideSublayers"]);
+    expect(layers[0]).not.toHaveProperty("hideSublayers");
+  });
+});

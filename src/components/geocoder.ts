@@ -8,11 +8,6 @@ export const DEFAULT_GEOCODER_URL = "https://geocode.arcgis.com/arcgis/rest/serv
  * A Search source for a geocoding service, as a plain object (design D3). `sources` autocasts it
  * to a locator source, so no `@arcgis/core/widgets/` import is needed. No API key is set on it.
  */
-export function geocoderSource(url: string): Record<string, unknown> {
-  return {
-    url,
-    name: "ArcGIS World Geocoding Service",
-    placeholder: "Find address or place",
-    singleLineFieldName: "SingleLine",
-  };
+export function geocoderSource(url: string, name = "ArcGIS World Geocoding Service", placeholder = "Find address or place"): Record<string, unknown> {
+  return { url, name, placeholder, singleLineFieldName: "SingleLine" };
 }

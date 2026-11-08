@@ -1,3 +1,8 @@
+/* One corner radius for the floating sidebar and the title box (branding), so they match. */
+:root {
+  --viewer-chrome-radius: var(--calcite-corner-radius-round, 4px);
+}
+
 html,
 body {
   background-color: var(--calcite-color-background);
@@ -18,8 +23,140 @@ arcgis-map {
 }
 
 /*
- * Notices sit above the map, centered in the part the sidebar doesn't cover, without taking
- * layout space from it. --sidebar-inset-start is set by src/sidebar/insets.ts.
+ * Corner stacks (src/map/cornerStack.ts, design D1): one per used corner, top to bottom in
+ * config order. arcgis-map styles only its slotted children, which is now the stack, so the
+ * stack gives its items what ::slotted() gave them directly: the 10 px spacing, the controls'
+ * shadow, and the panel width of panel-like components (see the change notes, task 1.1).
+ */
+.corner-stack {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--calcite-spacing-sm-plus, 10px);
+}
+
+.corner-stack:is([slot$="-right"], [slot$="-end"]) {
+  align-items: flex-end;
+}
+
+/* The components the SDK gives a shadow when slotted (its ::slotted list, SDK 5.2). */
+.corner-stack > :is(arcgis-home, arcgis-locate, arcgis-track, arcgis-zoom, arcgis-search, arcgis-legend, arcgis-layer-list, arcgis-basemap-gallery, arcgis-directions) {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+}
+
+.corner-stack > :is(arcgis-legend, arcgis-layer-list, arcgis-basemap-gallery, arcgis-directions) {
+  min-height: var(--calcite-spacing-xxxl);
+  min-width: var(--calcite-spacing-xxxl);
+  overflow-y: auto;
+  width: var(--arcgis-internal-panel-width, 300px);
+}
+
+/*
+ * Title box (src/ui/titleBox.ts, P-27): first in the top-left stack, one line, cut off with an
+ * ellipsis when it doesn't fit beside the sidebar. Colors come from the theme when one is set
+ * (src/ui/theme.ts), else Calcite's foreground and text colors.
+ */
+.title-box {
+  background-color: var(--viewer-theme-background, var(--calcite-color-foreground-1));
+  border-radius: var(--viewer-chrome-radius);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+  box-sizing: border-box;
+  color: var(--viewer-theme-text, var(--calcite-color-text-1));
+  font-family: var(--calcite-font-family);
+  font-size: var(--calcite-font-size-lg, 18px);
+  font-weight: var(--calcite-font-weight-medium, 500);
+  line-height: 1.5;
+  margin: 0;
+  /* The map's width, less the sidebar and a gutter on each side. */
+  max-width: calc(100vw - var(--sidebar-inset-start, 0px) - 2 * var(--calcite-spacing-lg, 16px));
+  overflow: hidden;
+  padding: var(--calcite-spacing-xs, 4px) var(--calcite-spacing-md, 12px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Theme (src/ui/theme.ts, P-28): the icon bar, wide or along the bottom on phones, takes the
+ * theme color; its icons are transparent over it, in the text color. The open panel's icon is
+ * a darker, opaque shade. Open panels keep Calcite's colors. The title box reads the same
+ * --viewer-theme-* properties (above).
+ */
+calcite-shell.themed calcite-shell-panel.sidebar > calcite-action-bar {
+  --calcite-action-bar-background-color: var(--viewer-theme-background);
+}
+
+/*
+ * Calcite draws a 1 px light-gray edge around the bar (three sides on the bar, one on the shell
+ * panel). Draw it in the bar's own color instead, themed or not, so the bar has no frame and
+ * matches the title box (design D11).
+ */
+calcite-shell-panel.sidebar {
+  --calcite-shell-panel-border-color: var(--viewer-theme-background, var(--calcite-color-foreground-1));
+}
+
+calcite-shell-panel.sidebar > calcite-action-bar {
+  border-color: var(--viewer-theme-background, var(--calcite-color-foreground-1));
+}
+
+calcite-shell.themed calcite-shell-panel.sidebar > calcite-action-bar calcite-action {
+  --calcite-action-background-color: transparent;
+  --calcite-action-background-color-hover: var(--viewer-theme-hover);
+  --calcite-action-background-color-press: var(--viewer-theme-hover);
+  --calcite-action-text-color: var(--viewer-theme-text);
+  --calcite-action-text-color-press: var(--viewer-theme-text);
+  --calcite-action-text-color-pressed: var(--viewer-theme-text);
+}
+
+calcite-shell.themed calcite-shell-panel.sidebar > calcite-action-bar calcite-action[active] {
+  --calcite-action-background-color: var(--viewer-theme-pressed);
+  --calcite-action-background-color-hover: var(--viewer-theme-pressed);
+  --calcite-action-background-color-press: var(--viewer-theme-pressed);
+  --calcite-action-background-color-pressed: var(--viewer-theme-pressed);
+}
+
+/*
+ * The title box keeps the floating bar's spacing (design D10). Corner slots sit
+ * --calcite-spacing-lg from the map's edge (from the sidebar, on wide screens); Calcite floats
+ * the bar --calcite-spacing-sm from it. Pulling the whole top-left stack in keeps components
+ * under the title lined up with it. Wide: level with the bar's top, 8 px right of the sidebar.
+ * Phones: 8 px from the map's top and left edges.
+ */
+.corner-stack[slot="top-left"]:has(> .title-box) {
+  margin-left: calc(var(--calcite-spacing-sm, 8px) - var(--calcite-spacing-lg, 16px));
+  margin-top: calc(var(--calcite-spacing-sm, 8px) - var(--calcite-spacing-lg, 16px));
+}
+
+/* Wide screens: the floating sidebar's corners match the title box's (the phone bar is flush). */
+@media (min-width: 768px) {
+  calcite-shell-panel.sidebar {
+    --calcite-shell-panel-corner-radius: var(--viewer-chrome-radius);
+  }
+
+  /*
+   * Calcite rounds a float-all bar only through the shell panel's outer clip, 1 px outside the
+   * bar, and never rounds a panel, so round the hosts themselves (design D11). The panel host
+   * already clips its content; the bar host needs overflow: hidden to. Outer corners only:
+   * where the bar meets an open panel the edges stay square.
+   */
+  calcite-shell-panel.sidebar > calcite-action-bar {
+    border-end-start-radius: var(--viewer-chrome-radius);
+    border-start-start-radius: var(--viewer-chrome-radius);
+    overflow: hidden;
+  }
+  calcite-shell-panel.sidebar[collapsed] > calcite-action-bar {
+    border-end-end-radius: var(--viewer-chrome-radius);
+    border-start-end-radius: var(--viewer-chrome-radius);
+  }
+  calcite-shell-panel.sidebar > calcite-panel {
+    border-end-end-radius: var(--viewer-chrome-radius);
+    border-start-end-radius: var(--viewer-chrome-radius);
+  }
+}
+
+/*
+ * Notices sit above the map, centered in the part the sidebar doesn't cover, below the title
+ * box, without taking layout space from it. --sidebar-inset-start is set by
+ * src/sidebar/insets.ts, --title-inset-top by src/ui/titleBox.ts (0 when there is no title).
  */
 .notices {
   box-sizing: border-box;
@@ -32,7 +169,7 @@ arcgis-map {
   padding: var(--calcite-space-md, 12px);
   pointer-events: none;
   position: absolute;
-  top: 0;
+  top: var(--title-inset-top, 0px);
   z-index: 10;
 }
 
@@ -43,13 +180,6 @@ arcgis-map {
 /* Long URLs in messages wrap instead of overflowing. */
 .notices [slot="message"] {
   overflow-wrap: anywhere;
-}
-
-/* On narrow screens, keep clear of the top-left zoom buttons. */
-@media (max-width: 47.99rem) {
-  .notices {
-    padding-inline-start: 60px;
-  }
 }
 
 .notices:empty {
@@ -100,4 +230,9 @@ calcite-shell-panel.sidebar calcite-panel > [data-component-id] {
   box-sizing: border-box;
   display: block;
   width: 100%;
+}
+
+/* The search box has no inner margin of its own; keep it off the panel's edges. */
+calcite-shell-panel.sidebar calcite-panel > arcgis-search {
+  padding: var(--calcite-spacing-md, 12px);
 }

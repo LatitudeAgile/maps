@@ -4,6 +4,8 @@ import { errorText } from "../app/errors.ts";
 import type { ComponentConfig } from "../config/types.ts";
 import { COMPONENT_TYPES, type ComponentContext, type ComponentType, type ConfigurableElement, type OptionKind } from "./registry.ts";
 import { resolveBasemap } from "../map/freeBasemaps.ts";
+import { cornerStack } from "../map/cornerStack.ts";
+import { handleRemoveLocationAction, replaceRemoveAction } from "./locationMarker.ts";
 
 /** The parts of an element the stage touches. Real DOM elements satisfy it. */
 export interface ComponentElement {
@@ -43,17 +45,27 @@ export interface CreateComponentsOptions {
   map?: ComponentContext["map"];
   /** The build's API key, for `configure` hooks that need it. */
   apiKey?: string;
+  /** The validated `geocoding` section, for Search and Directions (D16). */
+  geocoding?: ComponentContext["geocoding"];
+  /**
+   * The container for a map corner (design D1). Defaults to the viewer's corner stack inside
+   * `mapElement`; tests pass their own.
+   */
+  cornerStack?: (slot: string) => { append(...nodes: ComponentElement[]): void };
 }
 
 /**
- * The component stage. Runs after layers settle. Corner components are slotted into the map in
- * config order; `none` components are attached hidden; `panel` components are created with a
- * reference to the map (they live outside it, in the sidebar) and returned for the sidebar to
- * place. Never throws; problems go to the app model's error channel.
+ * The component stage. Runs after layers settle. Corner components go into their corner's
+ * stack in config order, so each corner reads top to bottom (design D1); `none` components are
+ * attached hidden; `panel` components are created with a reference to the map (they live
+ * outside it, in the sidebar) and returned for the sidebar to place. Never throws; problems go
+ * to the app model's error channel.
  */
 export async function createComponents(options: CreateComponentsOptions): Promise<CreateComponentsResult> {
   const { entries, mapElement, app, types = COMPONENT_TYPES } = options;
   const createElement = options.createElement ?? ((tag: string) => document.createElement(tag) as unknown as ComponentElement);
+  const stackFor =
+    options.cornerStack ?? ((slot: string) => cornerStack(mapElement as unknown as HTMLElement, slot) as unknown as { append(...nodes: ComponentElement[]): void });
 
   // Load each type once, before creating anything, so order isn't affected by load order.
   const needed = new Set(entries.map((e) => e.type));
@@ -82,7 +94,7 @@ export async function createComponents(options: CreateComponentsOptions): Promis
         continue;
       }
       try {
-        await type.configure(element as unknown as ConfigurableElement, entry.options, { map: options.map, app, apiKey: options.apiKey });
+        await type.configure(element as unknown as ConfigurableElement, entry.options, { map: options.map, app, apiKey: options.apiKey, geocoding: options.geocoding });
       } catch (err) {
         app.errors.report({ source: `component:${entry.id}`, message: `The "${entry.id}" component could not be set up.`, detail: errorText(err) });
         continue;
@@ -93,6 +105,11 @@ export async function createComponents(options: CreateComponentsOptions): Promis
       }
     }
     app.addComponent({ entry, element: element as unknown as HTMLElement });
+    if (type.locationMarker) {
+      // The marker's built-in remove action throws in SDK 5.2; use ours (D14).
+      replaceRemoveAction(element as unknown as Parameters<typeof replaceRemoveAction>[0]);
+      handleRemoveLocationAction(mapElement as unknown as Parameters<typeof handleRemoveLocationAction>[0]);
+    }
     if (type.reportsLocationErrors) {
       element.addEventListener("arcgisError", (event) => {
         const error = (event as CustomEvent<{ error?: { code?: number; message?: string } }>).detail?.error;
@@ -117,9 +134,12 @@ export async function createComponents(options: CreateComponentsOptions): Promis
       });
       continue;
     }
-    if (entry.placement === "none") element.hidden = true;
-    else element.slot = entry.placement;
-    mapElement.append(element);
+    if (entry.placement === "none") {
+      element.hidden = true;
+      mapElement.append(element);
+    } else {
+      stackFor(entry.placement).append(element);
+    }
   }
 
   return { panels };

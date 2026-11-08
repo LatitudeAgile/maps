@@ -1,7 +1,9 @@
 import type EsriMap from "@arcgis/core/Map.js";
 import type { AppModel } from "../app/AppModel.ts";
 import { isBasemapStyleId } from "../map/basemapIds.ts";
-import { DEFAULT_GEOCODER_URL, geocoderSource } from "./geocoder.ts";
+import { DEFAULT_GEOCODER_URL } from "./geocoder.ts";
+import { buildSearchSources } from "./searchSources.ts";
+import type { GeocodingConfig } from "../config/geocoding.ts";
 import { basemapGalleryKeyless, configureBasemapGallery, DEFAULT_GALLERY_BASEMAPS } from "./basemapGallery.ts";
 import { configureDirections, DEFAULT_ROUTE_SERVICE_URL, DIRECTIONS_UNITS, directionsKeyless } from "./directions.ts";
 
@@ -47,6 +49,11 @@ export interface ComponentType extends ComponentTypeSchema {
   /** The element emits `arcgisError` with a GeolocationPositionError, shown to the user (D3). */
   reportsLocationErrors?: boolean;
   /**
+   * The element puts a location marker (its `graphic`) on the map, whose built-in remove action
+   * the SDK 5.2 popup component can't carry out; the stage swaps in a working one (D14).
+   */
+  locationMarker?: boolean;
+  /**
    * Applies the validated options to the element, instead of assigning each one as a property.
    * For types whose config options don't map one-to-one to element properties.
    */
@@ -65,6 +72,8 @@ export interface ComponentContext {
   app: AppModel;
   /** The build's API key, or undefined. Only hooks that need it should read it. */
   apiKey: string | undefined;
+  /** The validated `geocoding` section: search sources for Search and Directions (D16). */
+  geocoding?: GeocodingConfig;
 }
 
 /** An element whose properties a `configure` hook sets. */
@@ -82,6 +91,14 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { icon: "string" },
     panel: { heading: "Home", icon: "home" },
   },
+  // Zoom-in and zoom-out buttons. A config without a zoom entry shows none; wheel, pinch and
+  // keyboard zoom still work (P-02, design D2).
+  zoom: {
+    tag: "arcgis-zoom",
+    load: () => import("@arcgis/map-components/components/arcgis-zoom"),
+    options: {},
+    panel: { heading: "Zoom", icon: "magnifying-glass-plus" },
+  },
   legend: {
     tag: "arcgis-legend",
     load: () => import("@arcgis/map-components/components/arcgis-legend"),
@@ -95,6 +112,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { scale: "scale", icon: "string", popupDisabled: "boolean" },
     panel: { heading: "Locate", icon: "gps-off" },
     reportsLocationErrors: true,
+    locationMarker: true,
   },
   track: {
     tag: "arcgis-track",
@@ -102,6 +120,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { scale: "scale", icon: "string", rotationDisabled: "boolean" },
     panel: { heading: "Track", icon: "compass-north-circle" },
     reportsLocationErrors: true,
+    locationMarker: true,
   },
   "basemap-toggle": {
     tag: "arcgis-basemap-toggle",
@@ -123,10 +142,14 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { geocoderUrl: "url", maxSuggestions: { integer: [1, 10] }, popupDisabled: "boolean" },
     defaults: { geocoderUrl: DEFAULT_GEOCODER_URL },
     panel: { heading: "Search", icon: "search" },
-    configure: (element, options) => {
+    configure: async (element, options, { geocoding, apiKey }) => {
       // Never fall back to the portal's default source, which needs a key.
       element.includeDefaultSourcesDisabled = true;
-      element.sources = [geocoderSource(options.geocoderUrl as string)];
+      // The world geocoder, then the geocoding section's sources; "All" is selected (D16).
+      element.sources = await buildSearchSources(options.geocoderUrl as string, geocoding, apiKey);
+      // The component's name for it; the core Search API calls it searchAllEnabled.
+      element.searchAllDisabled = false;
+      element.activeSourceIndex = -1; // "All"
       if (options.maxSuggestions !== undefined) element.maxSuggestions = options.maxSuggestions;
       if (options.popupDisabled !== undefined) element.popupDisabled = options.popupDisabled;
     },

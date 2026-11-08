@@ -24,16 +24,28 @@ from 320 px up.
 - **THEN** in both cases the map's bounding box equals the viewport and the document does not scroll (Playwright)
 
 ### Requirement: Zoom buttons replace the zoom slider
-The map SHALL show zoom-in and zoom-out buttons in its top-left corner (P-02). Each press
-SHALL change the zoom level by one.
+A `zoom` component SHALL show zoom-in and zoom-out buttons where it is placed (P-02). Each press
+SHALL change the zoom level by one. The map SHALL NOT add zoom buttons of its own: a config with
+no `zoom` component SHALL show none, and pinch, scroll-wheel and keyboard zoom SHALL keep
+working. The shipped default config SHALL place its `zoom` component last in the bottom-right
+corner, so the zoom buttons are lowest.
 
 #### Scenario: Zoom in
+- **GIVEN** the shipped default config
 - **WHEN** the map has settled at zoom level N and the zoom-in button is pressed
-- **THEN** the map settles at zoom level N + 1
+- **THEN** the map settles at zoom level N + 1 (Playwright)
 
 #### Scenario: Keyboard operable
 - **WHEN** focus is moved to the zoom-out button with the Tab key and Enter is pressed
-- **THEN** the map zooms out by one level
+- **THEN** the map zooms out by one level (Playwright)
+
+#### Scenario: No zoom component
+- **WHEN** the config has no `zoom` component
+- **THEN** no zoom buttons are shown, and scrolling the mouse wheel over the map still changes its zoom level (Playwright)
+
+#### Scenario: Zoom placed elsewhere
+- **WHEN** a `zoom` component is placed `top-right`
+- **THEN** the zoom buttons appear in the top-right corner of the map (Playwright, comparing bounding boxes)
 
 ### Requirement: Basemap falls back when no basemap credential is available
 When `map.basemap` names a basemap styles service style (`provider/style`, e.g.
@@ -44,7 +56,7 @@ basemaps named by components.
 
 #### Scenario: No API key
 - **GIVEN** the app was built without an API key
-- **WHEN** the app starts with the shipped default config, which has `map.basemap` `arcgis/streets` and a basemap toggle
+- **WHEN** the app starts with the shipped default config, which has `map.basemap` `arcgis/streets` and a Basemaps panel
 - **THEN** the OpenStreetMap basemap is shown, no notice appears, no sign-in dialog appears, and no request goes to the basemap styles service (Playwright, network log)
 
 #### Scenario: API key present
@@ -64,8 +76,9 @@ When the viewport is resized, the map SHALL keep the same geographic center (P-0
 - **THEN** after the map is stationary, its center is within 0.01° of the center before the resize (Playwright)
 
 ### Requirement: Map failures are reported
-When the basemap fails to load, or the map cannot become ready, the viewer SHALL show an error
-message in the page instead of leaving a blank map without explanation.
+When the basemap fails to load, and so does the fallback basemap if one was tried, or the map
+cannot become ready, the viewer SHALL show an error message in the page instead of leaving a
+blank map without explanation.
 
 #### Scenario: Basemap service unreachable
 - **WHEN** all requests for the basemap's service metadata, styles, and tiles are blocked
@@ -114,3 +127,19 @@ as a legacy basemap ID.
 #### Scenario: Satellite is not a legacy ID
 - **WHEN** `map.basemap` is `satellite`
 - **THEN** validation passes with no warning (Vitest)
+
+### Requirement: Basemap falls back when its service refuses the key
+When `map.basemap` names a basemap styles service style, a key is configured, and that basemap
+fails to load (for example, the service rejects the key or the key lacks the basemap styles
+privilege), the viewer SHALL switch to `map.fallbackBasemap` without an error notice. It SHALL
+write one console warning that names the configured basemap and says the fallback is shown.
+
+#### Scenario: Key rejected
+- **GIVEN** the app was built with an API key, and the basemap styles service answers every request with HTTP 401 (request interception)
+- **WHEN** the app starts with the shipped default config
+- **THEN** the OpenStreetMap basemap is shown, no error notice appears, and one console warning names `arcgis/streets` (Playwright; skipped when no key is configured)
+
+#### Scenario: Fallback fails too
+- **GIVEN** the app was built with an API key, and every request to a host other than the viewer's own fails, so the fallback can't display either
+- **WHEN** the app starts with the shipped default config
+- **THEN** within 15 seconds an error message appears saying the basemap could not be loaded (Playwright, request blocking; skipped when no key is configured)

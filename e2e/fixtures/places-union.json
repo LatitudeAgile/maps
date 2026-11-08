@@ -1,0 +1,12 @@
+{
+  "results": [
+    {
+      "placeId": "fixture-union-station",
+      "location": { "x": -105.0003, "y": 39.7530 },
+      "categories": [{ "categoryId": "4bf58dd8d48988d129951735", "label": "Train Station" }],
+      "name": "Union Station",
+      "distance": 412.7
+    }
+  ],
+  "links": null
+}

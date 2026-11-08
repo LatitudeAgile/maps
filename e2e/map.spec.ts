@@ -50,7 +50,8 @@ test.describe("zoom buttons", () => {
 
     const zoomOut = page.getByRole("button", { name: "Zoom out" });
     let focused = false;
-    for (let i = 0; i < 10 && !focused; i++) {
+    // The zoom buttons come after the sidebar icons and the other bottom-right controls.
+    for (let i = 0; i < 20 && !focused; i++) {
       await page.keyboard.press("Tab");
       focused = await zoomOut.evaluate((el) => el.matches(":focus"));
     }
@@ -59,6 +60,36 @@ test.describe("zoom buttons", () => {
     await page.keyboard.press("Enter");
     const s = await settled(page, (s) => s.zoom !== start);
     expect(s.zoom).toBe(start - 1);
+  });
+
+  test("No zoom component: no zoom buttons, and the mouse wheel still zooms", async ({ page }) => {
+    await serveModifiedConfig(page, (c) => (c.components = c.components.filter((e: { type: string }) => e.type !== "zoom")));
+    await page.goto("./");
+    await mapReady(page);
+    // Components are created after layers settle; wait for one before checking zoom's absence.
+    await expect(page.locator('[data-component-id="home"]')).toBeVisible();
+    await expect(page.locator("arcgis-zoom")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Zoom in" })).toHaveCount(0);
+
+    const start = (await settled(page)).zoom;
+    const box = (await page.locator("arcgis-map").boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, -400);
+    const s = await settled(page, (s) => s.zoom !== start);
+    expect(s.zoom).toBeGreaterThan(start);
+  });
+
+  test("Zoom placed elsewhere: top-right", async ({ page }) => {
+    await serveModifiedConfig(page, (c) => (c.components = [{ id: "zoom", type: "zoom", placement: "top-right" }]));
+    await page.goto("./");
+    await mapReady(page);
+    const zoom = page.locator('[data-component-id="zoom"]');
+    await expect(zoom).toBeVisible();
+    const map = (await page.locator("arcgis-map").boundingBox())!;
+    const b = (await zoom.boundingBox())!;
+    expect(b.x).toBeGreaterThan(map.x + map.width / 2);
+    expect(b.y + b.height).toBeLessThan(map.y + map.height / 2);
+    expect(map.x + map.width - (b.x + b.width)).toBeLessThan(80);
   });
 });
 

@@ -18,6 +18,8 @@ import { createComponents, type CreateComponentsOptions } from "./components/cre
 import { createSidebar } from "./sidebar/createSidebar.ts";
 import { trackSidebarInsets } from "./sidebar/insets.ts";
 import { showConfigError, showLayerErrors, showLocationError, showMapError } from "./ui/notices.ts";
+import { createTitleBox, trackTitleInset } from "./ui/titleBox.ts";
+import { applyTheme } from "./ui/theme.ts";
 
 // Kept for add-location-services-auth (optional OAuth sign-in):
 // import { configureOAuth } from "./auth/configureOAuth.ts";
@@ -48,6 +50,10 @@ async function start(): Promise<void> {
   if (config.debug) enableDebug(app);
 
   document.title = config.app.title;
+  const shell = document.querySelector("calcite-shell");
+  if (!shell) throw new Error("index.html is missing calcite-shell");
+  // Before anything themed is created, so the title box and icon bar never flash unthemed.
+  if (config.app.theme) applyTheme(shell, config.app.theme);
   esriConfig.portalUrl = config.portal.url;
 
   applyApiKey(esriConfig, apiKey);
@@ -60,12 +66,15 @@ async function start(): Promise<void> {
   if (choice.fellBack) {
     console.info(`[viewer] No API key is configured, so "${choice.basemap}" is shown instead of "${config.map.basemap}". Set VITE_ARCGIS_API_KEY to use ArcGIS basemaps.`);
   }
+  // Places needs a key with the Places privilege; without one it's left out of every search (D16).
+  const geocoding = config.geocoding.places && !hasKey ? { ...config.geocoding, places: undefined } : config.geocoding;
+  if (config.geocoding.places && !hasKey) {
+    console.warn("[viewer] geocoding.places is set, but no API key is configured, so Places search is left out. Set VITE_ARCGIS_API_KEY to a key with the Places privilege.");
+  }
   // Without a key, leave out or trim components that would need one (design D2).
   const { kept: components, leftOut } = applyKeyless(config.components, hasKey);
   for (const c of leftOut) console.warn(leftOutWarning(c));
 
-  const shell = document.querySelector("calcite-shell");
-  if (!shell) throw new Error("index.html is missing calcite-shell");
 
   const mapEl = createMap({
     config,
@@ -76,6 +85,12 @@ async function start(): Promise<void> {
       showMapError(reason);
     },
   });
+  // Shown at once, not after layers settle, and first in the top-left corner (design D3).
+  if (config.app.titleVisible) {
+    const titleBox = createTitleBox(mapEl, config.app.title);
+    // Notices start below it (design D6).
+    trackTitleInset(titleBox, mapEl, shell);
+  }
 
   // The view becomes ready on its own schedule; layers don't wait for it.
   mapEl.viewOnReady().then(
@@ -101,6 +116,7 @@ async function start(): Promise<void> {
     onLocationError: showLocationError,
     map,
     apiKey,
+    geocoding,
   });
   const sidebar = createSidebar({ shell, panels });
   // The sidebar floats over the map: pad the view, and inset corner UI and notices (design D4).

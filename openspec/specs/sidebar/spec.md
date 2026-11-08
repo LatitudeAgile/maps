@@ -84,10 +84,15 @@ center and zoom-to operations refer to the uncovered part of the map (P-05).
 - **THEN** the map's bounding box still equals the viewport (Playwright)
 
 ### Requirement: Map controls and notices stay clear of the sidebar
-Components in map corners on the sidebar's side, the zoom buttons, the attribution, and
-in-page notices SHALL NOT be covered by the sidebar, whether it is open or collapsed (P-24).
+Components in map corners on the sidebar's side, the title box, the attribution, and in-page
+notices SHALL NOT be covered by the sidebar, whether it is open or collapsed (P-24).
+
+#### Scenario: Title box moves with the sidebar
+- **WHEN** the Legend panel is opened and then closed at 1280×800
+- **THEN** in both states the title box's left edge is to the right of the sidebar's right edge (Playwright)
 
 #### Scenario: Zoom buttons move with the sidebar
+- **GIVEN** a `zoom` component placed `top-left`
 - **WHEN** the Legend panel is opened and then closed at 1280×800
 - **THEN** in both states the zoom buttons' left edge is to the right of the sidebar's right edge (Playwright)
 
@@ -115,23 +120,99 @@ least the top 40% of the map uncovered. The document SHALL NOT scroll (P-25).
 - **THEN** the icons are in a bar along the bottom edge, the panel is directly above it and as wide as the window, its top edge is at least 267 px from the top, and the document does not scroll (Playwright)
 
 #### Scenario: Bottom controls stay clear on a phone
-- **WHEN** the viewport is 375×667 and a `home` component is placed `bottom-right`
-- **THEN** the Home button is above the icon bar, not under it (Playwright)
+- **WHEN** the viewport is 375×667 and the app starts with the shipped default config
+- **THEN** the Home button, the Locate button and the zoom buttons in the bottom-right corner are all above the icon bar, not under it (Playwright, comparing bounding boxes)
 
 ### Requirement: The sidebar works from the keyboard and with screen readers
-Each icon SHALL be reachable with Tab and activated with Enter or Space. Each icon SHALL have
-its panel heading as its accessible name and SHALL expose whether its panel is open. Pressing
-Escape while a panel is open SHALL collapse the sidebar and return focus to that panel's icon
-(P-26).
+The icon bar SHALL be one Tab stop: Tab SHALL move focus into the bar and, from there, out of
+it. Inside the bar, the arrow keys SHALL move focus from icon to icon, and Enter or Space SHALL
+activate the focused icon. Each icon SHALL have its panel heading as its accessible name and
+SHALL expose whether its panel is open. Pressing Escape while a panel is open SHALL collapse the
+sidebar and return focus to that panel's icon (P-26).
 
 #### Scenario: Keyboard only
-- **WHEN** the user moves focus to the Legend icon with Tab and presses Enter, then presses Escape
-- **THEN** the Legend panel opens on Enter, and on Escape it closes and focus is back on the Legend icon (Playwright)
+- **GIVEN** a wide screen and two panel components, Home first and then Legend
+- **WHEN** the user moves focus into the icon bar with Tab, moves to the Legend icon with the Down arrow, and presses Enter, then presses Escape
+- **THEN** Tab first lands on the Home icon, the Legend panel opens on Enter, and on Escape it closes and focus is back on the Legend icon (Playwright)
+
+#### Scenario: One Tab stop
+- **GIVEN** focus is on an icon in the icon bar
+- **WHEN** the user presses Tab
+- **THEN** focus leaves the icon bar rather than moving to the next icon (Playwright)
 
 #### Scenario: Name and state exposed
 - **WHEN** the Legend panel is opened and then closed
 - **THEN** the Legend icon's accessible name is its heading, and its expanded or pressed state is true while open and false after closing (Playwright, reading the accessibility tree)
 
 #### Scenario: Screen reader
-- **WHEN** a screen-reader user tabs to each icon, opens a panel, and closes it
+- **WHEN** a screen-reader user tabs into the icon bar, moves through the icons with the arrow keys, opens a panel, and closes it
 - **THEN** each icon is announced by its heading with its open or closed state, and the panel's heading is announced on opening (named manual check with NVDA on Windows, recorded in the change notes)
+
+### Requirement: The sidebar spans the full height on wide screens
+From a viewport width of 768 px, the sidebar's icon bar and any open panel SHALL each span the
+full height of the map, inside the sidebar's floating margins, however many icons the bar has
+and however short the panel's content is. A panel whose content is taller SHALL scroll inside
+the panel, and the document SHALL NOT scroll.
+
+#### Scenario: Collapsed
+- **WHEN** the viewport is 1280×800 and no panel is open
+- **THEN** the icon bar's top and bottom edges are each within 16 px of the map's top and bottom edges (Playwright, comparing bounding boxes)
+
+#### Scenario: Panel open
+- **WHEN** the viewport is 1280×800 and the Legend panel is open
+- **THEN** the icon bar's and the panel's top and bottom edges are each within 16 px of the map's top and bottom edges (Playwright, comparing bounding boxes)
+
+#### Scenario: Short panel content
+- **WHEN** the viewport is 1280×800 and the Search panel, whose content is one input, is open
+- **THEN** the panel's bottom edge is within 16 px of the map's bottom edge (Playwright, comparing bounding boxes)
+
+#### Scenario: Tall panel content
+- **GIVEN** a 1280×600 viewport and a legend for enough layers that its content is taller than the panel
+- **WHEN** the Legend panel is open
+- **THEN** the panel's bottom edge is within 16 px of the map's bottom edge, the legend scrolls inside the panel, and the document does not scroll (Playwright)
+
+#### Scenario: Few icons
+- **WHEN** the viewport is 1280×800 and the config has a single panel component
+- **THEN** the icon bar's top and bottom edges are each within 16 px of the map's top and bottom edges (Playwright)
+
+#### Scenario: Resized across the breakpoint
+- **WHEN** the viewport changes from 375×667 to 1280×800
+- **THEN** the icon bar is vertical and spans the map's height as above, and an open panel does too (Playwright)
+
+### Requirement: The floating sidebar has the title box's rounded corners
+From a viewport width of 768 px, the sidebar's outer corners SHALL have the same radius as the
+title box. With no panel open, all four corners of the icon bar SHALL be rounded. With a panel
+open, the icon bar's two outer corners and the panel's two outer corners SHALL be rounded, and
+the edges where the bar meets the panel SHALL stay square, so the two read as one block. Like
+the title box, the icon bar SHALL have no border in a color other than its own background.
+
+#### Scenario: Collapsed corners
+- **WHEN** the viewport is 1280×800 and no panel is open
+- **THEN** each of the icon bar's four corner radii equals the title box's (Playwright, reading computed styles)
+
+#### Scenario: No frame around the bar
+- **WHEN** the viewport is 1280×800, with and without `app.theme`
+- **THEN** every border of the icon bar, and the sidebar's edge beside it, is either 0 px wide or the same color as the bar's background (Playwright, reading computed styles)
+
+#### Scenario: Open corners
+- **WHEN** the viewport is 1280×800 and the Legend panel is open
+- **THEN** the icon bar's top-left and bottom-left radii and the panel's top-right and bottom-right radii equal the title box's, and the bar's right-hand and the panel's left-hand radii are 0 (Playwright, reading computed styles)
+
+### Requirement: The phone bottom bar starts from the right
+Below a viewport width of 768 px, the bottom bar SHALL start from the right edge: the first
+panel component's icon SHALL be rightmost, nearest the thumb, and each later one SHALL be to the
+left of the one before. The Left and Right arrow keys SHALL move focus in the direction they
+point on screen. From 768 px, the icons SHALL be in config order from top to bottom again.
+
+#### Scenario: Icons start from the right on a phone
+- **WHEN** the viewport is 375×667 and the app starts with the shipped default config, built with an API key
+- **THEN** the bar's icons are, from right to left, Search, Directions, Layers, Legend, Basemaps, and the Search icon's right edge is within 16 px of the window's right edge (Playwright; the keyless build checks the same order without Directions)
+
+#### Scenario: Arrow keys follow the screen on a phone
+- **GIVEN** a 375×667 viewport, the shipped default config built with an API key, and focus on the Search icon
+- **WHEN** the user presses the Left arrow, and then the Right arrow
+- **THEN** focus moves to the Directions icon, to Search's left, and then back to Search, and a Tab from there leaves the icon bar (Playwright; the keyless build expects Layers instead of Directions)
+
+#### Scenario: Back to the top-to-bottom order on a wide screen
+- **WHEN** the viewport changes from 375×667 to 1280×800
+- **THEN** the icons are, from top to bottom, in config order again (Playwright)

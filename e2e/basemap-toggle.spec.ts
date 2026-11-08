@@ -4,9 +4,17 @@ import { BASEMAP_STYLES_HOSTS, hostOf, mapReady, serveModifiedConfig, settled } 
 
 const toggleButton = (page: Page) => page.locator('[data-component-id="basemap-toggle"]').getByRole("button");
 
+/** The shipped config has no toggle (the Basemaps panel covers it): add one at top right. */
+async function serveWithToggle(page: Page, options?: Record<string, unknown>): Promise<void> {
+  await serveModifiedConfig(page, (c) =>
+    c.components.push({ id: "basemap-toggle", type: "basemap-toggle", placement: "top-right", ...(options ? { options } : {}) }),
+  );
+}
+
 test.describe("basemap toggle (P-32)", () => {
   test("Toggle and back: hybrid, then the starting basemap", async ({ page, log }) => {
     // Runs in both suites: ArcGIS Streets ↔ hybrid with a key, OpenStreetMap ↔ hybrid without.
+    await serveWithToggle(page);
     await page.goto("./");
     await mapReady(page);
     const start = await settled(page);
@@ -33,10 +41,7 @@ test.describe("basemap toggle (P-32)", () => {
 
   test("Next basemap needs a key: the toggle is left out, with a console warning", async ({ page, log }) => {
     test.skip(hasApiKey(), "Build has an API key; this scenario needs a keyless build");
-    await serveModifiedConfig(page, (c) => {
-      const toggle = c.components.find((e: { type: string }) => e.type === "basemap-toggle");
-      toggle.options = { nextBasemap: "arcgis/imagery/standard" };
-    });
+    await serveWithToggle(page, { nextBasemap: "arcgis/imagery/standard" });
     await page.goto("./");
     await mapReady(page);
     await settled(page);
@@ -51,14 +56,11 @@ test.describe("basemap toggle (P-32)", () => {
     await expect(page.locator('[data-component-id="locate"]')).toBeVisible();
   });
 
-  test("Default placement, with or without a key: the toggle is in the top-right corner", async ({ page }) => {
+  test("Default placement, with or without a key: the shipped config has no toggle", async ({ page }) => {
     await page.goto("./");
     await mapReady(page);
-    const toggle = page.locator('[data-component-id="basemap-toggle"]');
-    await expect(toggle).toBeVisible();
-    const box = (await toggle.boundingBox())!;
-    const map = (await page.locator("arcgis-map").boundingBox())!;
-    expect(box.x + box.width).toBeGreaterThan(map.x + map.width - 80);
-    expect(box.y).toBeLessThan(map.y + 80);
+    // Wait for the component stage before checking the toggle's absence.
+    await expect(page.locator('[data-component-id="zoom"]')).toBeVisible();
+    await expect(page.locator("arcgis-basemap-toggle")).toHaveCount(0);
   });
 });

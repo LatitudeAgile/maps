@@ -10,11 +10,11 @@ const minimal = () => ({
 const paths = (problems: { path: string }[]) => problems.map((p) => p.path);
 
 describe("defaults", () => {
-  test("Minimal config: default title, portal URL, and fallback basemap", () => {
+  test("Minimal config: default title, title box shown, no theme, portal URL, and fallback basemap", () => {
     const { config, errors, warnings } = validateConfig(minimal());
     expect(errors).toEqual([]);
     expect(warnings).toEqual([]);
-    expect(config?.app.title).toBe("ArcGIS Sidebar Viewer");
+    expect(config?.app).toEqual({ title: "ArcGIS Sidebar Viewer", titleVisible: true });
     expect(config?.portal.url).toBe("https://www.arcgis.com");
     expect(config?.map.fallbackBasemap).toBe("osm");
     expect(config?.app.title).toBe(DEFAULTS.app.title);
@@ -33,6 +33,20 @@ describe("defaults", () => {
     const { config } = validateConfig(raw);
     expect(config?.app.title).toBe("County Viewer");
     expect(config?.portal.url).toBe("https://gis.example.org/portal");
+  });
+});
+
+describe("title box setting (branding)", () => {
+  test("app.titleVisible false is kept", () => {
+    const { config, errors } = validateConfig({ ...minimal(), app: { titleVisible: false } });
+    expect(errors).toEqual([]);
+    expect(config?.app).toEqual({ title: "ArcGIS Sidebar Viewer", titleVisible: false });
+  });
+
+  test("Wrong type: app.titleVisible must be true or false", () => {
+    const { errors } = validateConfig({ ...minimal(), app: { titleVisible: "no" } });
+    expect(paths(errors)).toEqual(["app.titleVisible"]);
+    expect(errors[0].message).toBe("Expected true or false.");
   });
 });
 
@@ -270,10 +284,11 @@ describe("shipped default config", () => {
       scale: 18489298,
     });
     expect(config?.components).toEqual([
-      { id: "home", type: "home", placement: "top-left", options: {} },
-      { id: "locate", type: "locate", placement: "top-left", options: {} },
-      { id: "basemap-toggle", type: "basemap-toggle", placement: "top-right", options: { nextBasemap: "hybrid" } },
-      // Placement omitted in the file: defaults to a sidebar panel. Defaults fill the options.
+      // Mobile first: map controls bottom right, zoom lowest (P-02, P-30, P-31).
+      { id: "home", type: "home", placement: "bottom-right", options: {} },
+      { id: "locate", type: "locate", placement: "bottom-right", options: {} },
+      { id: "zoom", type: "zoom", placement: "bottom-right", options: {} },
+      // Defaults fill the options.
       { id: "search", type: "search", placement: "panel", options: { geocoderUrl: "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer" } },
       {
         id: "directions",
@@ -292,6 +307,15 @@ describe("shipped default config", () => {
         },
       },
     ]);
-    expect(config?.layers.map((l) => [l.id, l.type])).toEqual([["usa", "map-image"]]);
+    // The sample layer starts off; users turn it on in the Layers panel.
+    expect(config?.layers.map((l) => [l.id, l.type, l.visible])).toEqual([["usa", "map-image", false]]);
+  });
+
+  test("Placement stated in the shipped config", () => {
+    const raw = JSON.parse(readFileSync(new URL("../../public/config/viewer.json", import.meta.url), "utf8")) as {
+      components: { id: string; placement?: string }[];
+    };
+    for (const entry of raw.components) expect(entry.placement, entry.id).toBeDefined();
+    expect(raw.components.filter((e) => e.placement === "panel").map((e) => e.id)).toEqual(["search", "directions", "layers", "legend", "basemaps"]);
   });
 });

@@ -1,4 +1,4 @@
-import { test, expect as baseExpect } from "./fixtures.ts";
+import { test, expect as baseExpect, hasApiKey } from "./fixtures.ts";
 import {
   geojsonLayer,
   mapReady,
@@ -44,12 +44,19 @@ test.describe("sidebar contents", () => {
   });
 
   test("No panel components: no sidebar, controls laid out as before", async ({ page }) => {
-    await serveModifiedConfig(page, (c) => (c.components = [{ id: "home", type: "home", placement: "top-left" }]));
+    await serveModifiedConfig(
+      page,
+      (c) =>
+        (c.components = [
+          { id: "zoom", type: "zoom", placement: "top-left" },
+          { id: "home", type: "home", placement: "top-left" },
+        ]),
+    );
     await page.goto("./");
     await mapReady(page);
     await expect(page.locator('[data-component-id="home"]')).toBeVisible();
     await expect(page.locator("calcite-shell-panel")).toHaveCount(0);
-    const zoom = (await page.locator("arcgis-zoom").boundingBox())!;
+    const zoom = (await page.locator('[data-component-id="zoom"]').boundingBox())!;
     expect(zoom.x).toBeLessThan(40);
   });
 
@@ -148,6 +155,7 @@ test.describe("room for the sidebar (P-05)", () => {
     await serveSidebarConfig(page, [
       { id: "legend", type: "legend" },
       { id: "home", type: "home", placement: "top-right" },
+      { id: "zoom", type: "zoom", placement: "top-right" },
     ]);
     await page.goto("./");
     await mapReady(page);
@@ -191,6 +199,7 @@ test.describe("controls and notices stay clear (P-24)", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await serveSidebarConfig(page, [
       { id: "legend", type: "legend" },
+      { id: "zoom", type: "zoom", placement: "top-left" },
       { id: "corner", type: "home", placement: "bottom-left" },
     ]);
     await page.goto("./");
@@ -203,6 +212,20 @@ test.describe("controls and notices stay clear (P-24)", () => {
       for (const sel of ["arcgis-zoom", '[data-component-id="corner"]', ".esri-view-attribution"]) {
         await expect.poll(async () => (await boxOf(page, sel)).left, { message: `${sel} when ${state}` }).toBeGreaterThanOrEqual(edge);
       }
+    }
+  });
+
+  test("Title box moves with the sidebar, open and closed", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await serveSidebarConfig(page, [{ id: "legend", type: "legend" }]);
+    await page.goto("./");
+    await mapReady(page);
+    await expect(sidebarAction(page, "legend")).toBeVisible();
+    for (const state of ["collapsed", "open", "closed again"]) {
+      if (state !== "collapsed") await sidebarAction(page, "legend").click();
+      await expect.poll(() => openPanels(page)).toEqual(state === "open" ? ["legend"] : []);
+      const edge = await sidebarRightEdge(page);
+      await expect.poll(async () => (await boxOf(page, ".title-box")).left, { message: `title box when ${state}` }).toBeGreaterThanOrEqual(edge);
     }
   });
 
@@ -239,6 +262,161 @@ test.describe("responsive layout (P-25)", () => {
   }
 });
 
+test.describe("full height on wide screens", () => {
+  /** Top and bottom gaps between an element and the map, in pixels. */
+  const gaps = (page: import("@playwright/test").Page, selector: string) =>
+    page.evaluate((sel) => {
+      const el = [...document.querySelectorAll<HTMLElement>(sel)].find((e) => !e.hidden);
+      const map = document.querySelector("arcgis-map")!.getBoundingClientRect();
+      if (!el) return { top: 999, bottom: 999 };
+      const b = el.getBoundingClientRect();
+      return { top: b.top - map.top, bottom: map.bottom - b.bottom };
+    }, selector);
+  const BAR = "calcite-shell-panel > calcite-action-bar";
+  const PANEL = "calcite-shell-panel > calcite-panel";
+  const expectFullHeight = async (page: import("@playwright/test").Page, selector: string) => {
+    await expect.poll(async () => { const g = await gaps(page, selector); return Math.max(Math.abs(g.top), Math.abs(g.bottom)); }, { message: selector }).toBeLessThanOrEqual(16);
+  };
+
+  test("Collapsed: the icon bar spans the map's height", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("./"); // the shipped default config
+    await mapReady(page);
+    await expect(sidebarAction(page, "legend")).toBeVisible();
+    await expectFullHeight(page, BAR);
+  });
+
+  test("Panel open: the icon bar and the panel span the map's height", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await serveSidebarConfig(page, LEGEND_AND_HOME);
+    await page.goto("./");
+    await mapReady(page);
+    await sidebarAction(page, "legend").click();
+    await expect.poll(() => openPanels(page)).toEqual(["legend"]);
+    await expectFullHeight(page, BAR);
+    await expectFullHeight(page, PANEL);
+  });
+
+  test("Few icons: a single panel component still gives a full-height bar", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await serveSidebarConfig(page, [{ id: "legend", type: "legend" }]);
+    await page.goto("./");
+    await mapReady(page);
+    await expect(sidebarAction(page, "legend")).toBeVisible();
+    await expectFullHeight(page, BAR);
+  });
+
+  test("Short panel content: the Search panel reaches the bottom", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("./"); // the shipped default config
+    await mapReady(page);
+    await sidebarAction(page, "search").click();
+    await expect.poll(() => openPanels(page)).toEqual(["search"]);
+    await expectFullHeight(page, PANEL);
+  });
+
+  test("Tall panel content: the legend scrolls inside the panel; the page doesn't", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 600 });
+    const layers = Array.from({ length: 20 }, (_, i) => geojsonLayer(`layer${i}`, { title: `Layer ${i}` }));
+    await serveSidebarConfig(page, [{ id: "legend", type: "legend" }], (c) => (c.layers = layers));
+    await page.goto("./");
+    await mapReady(page);
+    await sidebarAction(page, "legend").click();
+    await expect.poll(() => openPanels(page)).toEqual(["legend"]);
+    const legend = sidebarPanel(page, "legend").locator("arcgis-legend");
+    await expect(legend).toContainText("Layer 19");
+    await expectFullHeight(page, PANEL);
+    const panel = (await sidebarPanel(page, "legend").boundingBox())!;
+    // The last entry starts below the panel's bottom edge: the content is taller than the panel.
+    const last = legend.getByText("Layer 19", { exact: true });
+    const before = (await last.boundingBox())!;
+    expect(before.y).toBeGreaterThan(panel.y + panel.height);
+    // Scrolling over the panel brings it up, while the page itself never scrolls.
+    await page.mouse.move(panel.x + panel.width / 2, panel.y + panel.height / 2);
+    await page.mouse.wheel(0, 2000);
+    await expect.poll(async () => (await last.boundingBox())!.y).toBeLessThan(panel.y + panel.height);
+    expect(await page.evaluate(() => [document.documentElement.scrollHeight, window.scrollY])).toEqual([600, 0]);
+  });
+
+  test("Resized across the breakpoint: vertical and full height again", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await serveSidebarConfig(page, [{ id: "legend", type: "legend" }]);
+    await page.goto("./");
+    await mapReady(page);
+    await sidebarAction(page, "legend").click();
+    await expect.poll(() => openPanels(page)).toEqual(["legend"]);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect.poll(() => page.locator(BAR).evaluate((el: HTMLCalciteActionBarElement) => el.layout)).toBe("vertical");
+    await expectFullHeight(page, BAR);
+    await expectFullHeight(page, PANEL);
+  });
+});
+
+test.describe("rounded corners on wide screens (design D11)", () => {
+  /** Corner radii (top-left, top-right, bottom-right, bottom-left) of the bar, the open panel, and the title box. */
+  const radii = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => {
+      const corners = (el: Element | null | undefined) => {
+        if (!el) return undefined;
+        const cs = getComputedStyle(el);
+        return [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius];
+      };
+      return {
+        title: getComputedStyle(document.querySelector(".title-box")!).borderTopLeftRadius,
+        bar: corners(document.querySelector("calcite-shell-panel > calcite-action-bar")),
+        panel: corners([...document.querySelectorAll<HTMLElement>("calcite-shell-panel > calcite-panel")].find((p) => !p.hidden)),
+      };
+    });
+
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await serveSidebarConfig(page, [{ id: "legend", type: "legend" }]);
+    await page.goto("./");
+    await mapReady(page);
+    await expect(sidebarAction(page, "legend")).toBeVisible();
+  });
+
+  test("Collapsed corners: all four of the bar's match the title box", async ({ page }) => {
+    const r = await radii(page);
+    expect(r.title).not.toBe("0px");
+    expect(r.bar).toEqual([r.title, r.title, r.title, r.title]);
+  });
+
+  test("No frame around the bar: its edges are its own color, with or without a theme", async ({ page }) => {
+    for (const theme of [undefined, { color: "#1f6f8b", opacity: 0.85 }]) {
+      await page.unroute("**/config/viewer.json");
+      await serveSidebarConfig(page, [{ id: "legend", type: "legend" }], (c) => {
+        if (theme) c.app.theme = theme;
+        else delete c.app.theme;
+      });
+      await page.goto("./");
+      await mapReady(page);
+      await expect(sidebarAction(page, "legend")).toBeVisible();
+      const edges = await page.evaluate(() => {
+        const bar = document.querySelector("calcite-shell-panel > calcite-action-bar")!;
+        const background = getComputedStyle(bar.shadowRoot!.querySelector(".container")!).backgroundColor;
+        const container = document.querySelector("calcite-shell-panel")!.shadowRoot!.querySelector(".container")!;
+        const sides = (el: Element) => {
+          const cs = getComputedStyle(el);
+          return ["Top", "Right", "Bottom", "Left"].map((side) => ({ width: cs.getPropertyValue(`border-${side.toLowerCase()}-width`), color: cs.getPropertyValue(`border-${side.toLowerCase()}-color`) }));
+        };
+        return { background, sides: [...sides(bar), ...sides(container)] };
+      });
+      for (const side of edges.sides) {
+        if (side.width !== "0px") expect(side.color, theme ? "themed" : "unthemed").toBe(edges.background);
+      }
+    }
+  });
+
+  test("Open corners: the bar's and the panel's outer corners match; where they meet is square", async ({ page }) => {
+    await sidebarAction(page, "legend").click();
+    await expect.poll(() => openPanels(page)).toEqual(["legend"]);
+    const r = await radii(page);
+    expect(r.bar).toEqual([r.title, "0px", "0px", r.title]);
+    expect(r.panel).toEqual(["0px", r.title, r.title, "0px"]);
+  });
+});
+
 test.describe("narrow screens (P-25)", () => {
   const boxes = (page: import("@playwright/test").Page) =>
     page.evaluate(() => {
@@ -271,7 +449,19 @@ test.describe("narrow screens (P-25)", () => {
     expect(b.scroll).toEqual({ w: 375, h: 667 });
   });
 
-  test("Bottom controls stay clear on a phone: a bottom-right component sits above the bar", async ({ page }) => {
+  test("Bottom controls stay clear on a phone: the shipped bottom-right stack sits above the bar", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("./"); // the shipped default config: Home, Locate, zoom at bottom right
+    await mapReady(page);
+    const barTop = () => page.evaluate(() => document.querySelector("calcite-shell-panel calcite-action-bar")!.getBoundingClientRect().top);
+    for (const id of ["home", "locate", "zoom"]) {
+      const control = page.locator(`[data-component-id="${id}"]`);
+      await expect(control).toBeVisible();
+      await expect.poll(async () => { const b = (await control.boundingBox())!; return b.y + b.height - (await barTop()); }, { message: id }).toBeLessThanOrEqual(0);
+    }
+  });
+
+  test("Bottom controls stay clear of an open panel on a phone", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await serveSidebarConfig(page, [
       { id: "legend", type: "legend" },
@@ -281,10 +471,64 @@ test.describe("narrow screens (P-25)", () => {
     await mapReady(page);
     const corner = page.locator('[data-component-id="corner"]');
     await expect(corner).toBeVisible();
-    await expect.poll(async () => (await corner.boundingBox())!.y + (await corner.boundingBox())!.height).toBeLessThanOrEqual((await boxes(page)).bar.top);
     await sidebarAction(page, "legend").click();
     await expect.poll(() => openPanels(page)).toEqual(["legend"]);
     await expect.poll(async () => (await corner.boundingBox())!.y + (await corner.boundingBox())!.height).toBeLessThanOrEqual((await boxes(page)).panel.top);
+  });
+
+  /** Sidebar icon ids sorted by their position: left to right, or top to bottom. */
+  const iconsBy = (page: import("@playwright/test").Page, axis: "x" | "y") =>
+    page.evaluate((axis) => {
+      const icons = [...document.querySelectorAll<HTMLElement>("calcite-shell-panel > calcite-action-bar calcite-action[data-panel-for]")];
+      return icons
+        .map((a) => ({ id: a.dataset.panelFor!, box: a.getBoundingClientRect() }))
+        .filter((a) => a.box.width > 0)
+        .sort((a, b) => (axis === "x" ? a.box.left - b.box.left : a.box.top - b.box.top))
+        .map((a) => a.id);
+    }, axis);
+
+  test("Icons start from the right on a phone, in config order", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("./"); // the shipped default config
+    await mapReady(page);
+    await expect(sidebarAction(page, "basemaps")).toBeVisible();
+    const configOrder = hasApiKey() ? ["search", "directions", "layers", "legend", "basemaps"] : ["search", "layers", "legend", "basemaps"];
+    // Right to left = config order.
+    await expect.poll(async () => (await iconsBy(page, "x")).reverse()).toEqual(configOrder);
+    const search = (await sidebarAction(page, "search").boundingBox())!;
+    expect(375 - (search.x + search.width)).toBeLessThanOrEqual(16);
+  });
+
+  test("Arrow keys follow the screen on a phone: Left goes left, Right goes right, Tab leaves", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto("./"); // the shipped default config
+    await mapReady(page);
+    await expect(sidebarAction(page, "basemaps")).toBeVisible();
+    const focused = () =>
+      page.evaluate(() => (document.activeElement as HTMLElement | null)?.closest("calcite-shell-panel > calcite-action-bar calcite-action")?.getAttribute("data-panel-for") ?? "");
+    const second = hasApiKey() ? "directions" : "layers"; // the icon left of Search
+    await sidebarAction(page, "search").evaluate((el: HTMLCalciteActionElement) => el.setFocus());
+    await expect.poll(focused).toBe("search");
+    await page.keyboard.press("ArrowLeft");
+    await expect.poll(focused).toBe(second);
+    // On screen, that icon is to Search's left.
+    const s = (await sidebarAction(page, "search").boundingBox())!;
+    const n = (await sidebarAction(page, second).boundingBox())!;
+    expect(n.x).toBeLessThan(s.x);
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(focused).toBe("search");
+    await page.keyboard.press("Tab");
+    await expect.poll(focused).toBe("");
+  });
+
+  test("Back to the top-to-bottom order on a wide screen", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await serveSidebarConfig(page, LEGEND_AND_HOME);
+    await page.goto("./");
+    await mapReady(page);
+    await expect.poll(async () => (await iconsBy(page, "x")).reverse()).toEqual(["legend", "start"]);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect.poll(() => iconsBy(page, "y")).toEqual(["legend", "start"]);
   });
 
   test("resizing across 768 px keeps the open panel open", async ({ page }) => {
@@ -306,23 +550,33 @@ test.describe("narrow screens (P-25)", () => {
 
 test.describe("keyboard and screen readers (P-26)", () => {
   test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    // Home first, so reaching Legend takes the arrow keys (design D13).
     await serveSidebarConfig(page, [
-      { id: "legend", type: "legend" },
       { id: "start", type: "home", placement: "panel" },
+      { id: "legend", type: "legend" },
     ]);
     await page.goto("./");
     await mapReady(page);
     await expect(sidebarAction(page, "legend")).toBeVisible({ timeout: SIDEBAR_READY_MS });
   });
 
-  test("Keyboard only: Tab to the Legend icon, Enter opens, Escape closes and returns focus", async ({ page }) => {
-    const legendFocused = () => sidebarAction(page, "legend").evaluate((a) => a.matches(":focus-within"));
-    let focused = false;
-    for (let i = 0; i < 15 && !focused; i++) {
+  /** The data-panel-for of the sidebar icon that has focus, or "" when focus is elsewhere. */
+  const focusedIcon = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => {
+      const a = document.activeElement as HTMLElement | null;
+      return a?.closest("calcite-shell-panel > calcite-action-bar calcite-action")?.getAttribute("data-panel-for") ?? "";
+    });
+
+  test("Keyboard only: Tab into the bar, Down arrow to Legend, Enter opens, Escape closes and returns focus", async ({ page }) => {
+    let icon = "";
+    for (let i = 0; i < 15 && !icon; i++) {
       await page.keyboard.press("Tab");
-      focused = await legendFocused();
+      icon = await focusedIcon(page);
     }
-    expect(focused, "Legend icon reachable with Tab").toBe(true);
+    expect(icon, "Tab lands on the first icon").toBe("start");
+    await page.keyboard.press("ArrowDown");
+    await expect.poll(() => focusedIcon(page)).toBe("legend");
 
     await page.keyboard.press("Enter");
     await expect.poll(() => openPanels(page)).toEqual(["legend"]);
@@ -331,7 +585,14 @@ test.describe("keyboard and screen readers (P-26)", () => {
     await sidebarPanel(page, "legend").getByRole("button", { name: "Close" }).focus();
     await page.keyboard.press("Escape");
     await expect.poll(() => openPanels(page)).toEqual([]);
-    await expect.poll(legendFocused).toBe(true);
+    await expect.poll(() => focusedIcon(page)).toBe("legend");
+  });
+
+  test("One Tab stop: Tab from an icon leaves the bar", async ({ page }) => {
+    await sidebarAction(page, "start").evaluate((el: HTMLCalciteActionElement) => el.setFocus());
+    await expect.poll(() => focusedIcon(page)).toBe("start");
+    await page.keyboard.press("Tab");
+    await expect.poll(() => focusedIcon(page)).toBe("");
   });
 
   test("closing with the panel's close button returns focus to its icon", async ({ page }) => {

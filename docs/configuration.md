@@ -30,7 +30,10 @@ The shipped default (`public/config/viewer.json`):
 
 ```json
 {
-  "app": { "title": "ArcGIS Sidebar Viewer" },
+  "app": {
+    "title": "ArcGIS Sidebar Viewer",
+    "theme": { "color": "#1f6f8b", "opacity": 0.85 }
+  },
   "portal": { "url": "https://www.arcgis.com" },
   "map": {
     "basemap": "arcgis/streets",
@@ -45,24 +48,34 @@ The shipped default (`public/config/viewer.json`):
       "type": "map-image",
       "url": "https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer",
       "title": "USA (sample layer: replace with your own)",
+      "visible": false,
       "opacity": 0.8
     }
   ],
   "components": [
-    { "id": "home", "type": "home", "placement": "top-left" },
-    { "id": "locate", "type": "locate", "placement": "top-left" },
-    { "id": "basemap-toggle", "type": "basemap-toggle", "placement": "top-right", "options": { "nextBasemap": "hybrid" } },
-    { "id": "search", "type": "search" },
-    { "id": "directions", "type": "directions" },
-    { "id": "layers", "type": "layer-list" },
-    { "id": "legend", "type": "legend" },
-    { "id": "basemaps", "type": "basemap-gallery" }
+    { "id": "home", "type": "home", "placement": "bottom-right" },
+    { "id": "locate", "type": "locate", "placement": "bottom-right" },
+    { "id": "zoom", "type": "zoom", "placement": "bottom-right" },
+    { "id": "search", "type": "search", "placement": "panel" },
+    { "id": "directions", "type": "directions", "placement": "panel" },
+    { "id": "layers", "type": "layer-list", "placement": "panel" },
+    { "id": "legend", "type": "legend", "placement": "panel" },
+    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" }
   ]
 }
 ```
 
-The `usa` layer is a **sample**: a public Esri demo service that gives the Legend something to
-show. Replace it with your own layers. If the sample service is unavailable, the viewer keeps
+The map controls sit in the bottom-right corner, within reach of a thumb on a phone: Home,
+then Locate, then the zoom buttons lowest. The five panels form the sidebar, in the order listed
+(see [Display order](#components)). There is no basemap toggle: the Basemaps panel switches
+basemaps. To add one, see the `basemap-toggle` type.
+
+**Upgrading an older config:** the map no longer adds zoom buttons by itself. To keep them, add
+a `zoom` entry, for example `{ "id": "zoom", "type": "zoom", "placement": "bottom-right" }`.
+
+The `usa` layer is a **sample**: a public Esri demo service that gives the Layers and Legend
+panels something to show. It starts off (`"visible": false`); turn it on in the Layers panel.
+Replace it with your own layers. If the sample service is unavailable, the viewer keeps
 working and lists the layer in a "could not be loaded" notice.
 
 The smallest valid config sets only `map.basemap`, `map.center`, and one of `map.zoom` or
@@ -73,12 +86,17 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | Setting | Type | Default | Rule |
 |---|---|---|---|
 | `app` | object | `{}` | Optional section. |
-| `app.title` | string | `"ArcGIS Sidebar Viewer"` | Non-empty. Becomes the browser tab title. |
+| `app.title` | string | `"ArcGIS Sidebar Viewer"` | Non-empty. Becomes the browser tab title, and shows in the title box on the map. See [Title box](#title-box). |
+| `app.titleVisible` | boolean | `true` | `true` or `false`. `false` hides the title box; `app.title` still sets the tab title. |
+| `app.theme` | object | none | Colors for the sidebar's icon bar and the title box. Without it, they use Calcite's default colors. See [Theme](#theme). |
+| `app.theme.color` | string | none | **Required** in `app.theme`. A hex color, `#rgb` or `#rrggbb`, such as `#1f6f8b`: the background of the icon bar and the title box. |
+| `app.theme.opacity` | number | `1` | From 0 to 1. Applies to the background only: icons and the title stay fully opaque. |
+| `app.theme.textColor` | string | white or black | A hex color for the icons and the title. Without it, the viewer picks white or black, whichever contrasts more with `color`. |
 | `portal` | object | `{}` | Optional section. |
 | `portal.url` | string | `"https://www.arcgis.com"` | Absolute `https` URL of your ArcGIS Online organization, ArcGIS Enterprise portal (for example `https://gis.example.org/portal`), or Location Platform portal. A trailing `/` is removed. |
 | `map` | object | none | **Required.** |
 | `map.basemap` | string | none | **Required**, non-empty. A basemap styles ID in `provider/style` form (for example `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`), which needs an API key, or a basemap that needs none: `osm` (OpenStreetMap), or one of Esri's public tile services: `hybrid` (imagery with roads and place names), `satellite` (imagery), `light` (light gray), or `dark` (dark gray). Legacy IDs such as `streets-vector` are accepted with a warning that suggests the `provider/style` equivalent. |
-| `map.fallbackBasemap` | string | `"osm"` | Non-empty, and must not be a `provider/style` ID: `osm`, `hybrid`, `satellite`, `light`, or `dark`. Used instead of `map.basemap` when that basemap needs an API key and none is configured. |
+| `map.fallbackBasemap` | string | `"osm"` | Non-empty, and must not be a `provider/style` ID: `osm`, `hybrid`, `satellite`, `light`, or `dark`. Used instead of `map.basemap` when that basemap needs an API key and none is configured, or when the basemap styles service refuses the configured key (for example, an invalid key or one without the basemap styles privilege). In the second case the browser console says which basemap failed. |
 | `map.center` | `[number, number]` | none | **Required.** `[longitude, latitude]` in degrees. `map.center[0]` (longitude) must be between -180 and 180; `map.center[1]` (latitude) must be between -90 and 90. |
 | `map.zoom` | number | none | 0 or greater. A zoom level of the basemap's tiling scheme. Set exactly one of `map.zoom` or `map.scale`. |
 | `map.scale` | number | none | Greater than 0. The map scale denominator, for example `18489298` for 1:18,489,298. Set exactly one of `map.zoom` or `map.scale`. |
@@ -92,18 +110,29 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `layers[].visible` | boolean | `true` | Whether the layer starts visible. |
 | `layers[].opacity` | number | `1` | Between 0 and 1. |
 | `layers[].popupEnabled` | boolean | `true` | For `feature`, `geojson`, and `imagery` layers: `false` turns off the click popup. |
+| `layers[].showSublayers` | array | none | `map-image` layers only. Sublayer ids (whole numbers 0 or greater) to turn on once the layer loads, including ones the service has off by default. A sublayer inside a group also turns its groups on. See [Sublayers](#layers). |
+| `layers[].hideSublayers` | array | none | `map-image` layers only. Sublayer ids to turn off once the layer loads. An id can't be in both lists. |
 | `layers[].options` | object | `{}` | Extra layer properties passed to the SDK as they are, such as `definitionExpression` or `minScale`. **Not checked:** a misspelled property is silently ignored. |
 | `layers[].hooks.preLoad` | string | none | Name of a built-in hook to run after the layer is created, before it is added to the map. See [docs/extensions.md](extensions.md). |
 | `layers[].hooks.onLoad` | string | none | Name of a built-in hook to run once the layer has loaded. |
 | `components` | array | `[]` | Components, one entry each, created after the layers have loaded. See [Components](#components). |
 | `components[].id` | string | none | **Required.** 1 to 64 letters, digits, hyphens, or underscores, unique among components. |
-| `components[].type` | string | none | **Required.** A registered component type: `home` or `legend`. |
+| `components[].type` | string | none | **Required.** A registered component type. See the types under [Components](#components). |
 | `components[].placement` | string | `"panel"` | A map corner (`top-left`, `top-right`, `bottom-left`, `bottom-right`, `top-start`, `top-end`, `bottom-start`, `bottom-end`), `panel` (the sidebar), or `none`. |
 | `components[].panel` | object | none | For `panel` components: how the sidebar shows them. Ignored, with a console warning, on other placements. |
 | `components[].panel.heading` | string | the type's default | Non-empty. The panel's heading and its icon's accessible name, such as `"Map key"`. |
 | `components[].panel.icon` | string | the type's default | A [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/) name for the sidebar icon, such as `"list"`. An unknown name shows no icon. |
 | `components[].options` | object | `{}` | Settings for that component type. Unsupported settings are ignored with a console warning. |
 | `debug` | boolean | `false` | `true` or `false`. When `true`, the app model is available as `window.app` in the browser console, and every runtime error report is logged to the console. Turn it off for production. |
+| `geocoding` | object | `{}` | Optional section. Extra search sources shared by the Search panel and the Directions stop search. See [Geocoding](#geocoding). |
+| `geocoding.geocoders` | array | `[]` | Additional geocoders, searched after Esri's world geocoder. Each entry is `{ "url", "name", "placeholder" }`. |
+| `geocoding.geocoders[].url` | string | none | **Required** in each entry. Absolute `https` URL of a geocoding service (`.../GeocodeServer`). It must allow anonymous use: the API key is never sent to it. |
+| `geocoding.geocoders[].name` | string | none | **Required** in each entry. Non-empty. Its name in the search source menu. |
+| `geocoding.geocoders[].placeholder` | string | `"Find address or place"` | Non-empty. The hint in the search box while this source is selected. |
+| `geocoding.places` | object | none | Turns on ArcGIS Places search: places near the map's center. Needs an API key with the Places privilege; without a key, Places is left out with a console warning. |
+| `geocoding.places.radius` | number | `5000` | Whole meters, 1 to 10000. How far from the map's center to look. |
+| `geocoding.places.categories` | array | `[]` | Up to 10 Places category ids to limit results to, such as `"4bf58dd8d48988d1e0931735"` (coffee shops). Empty means any category. |
+| `geocoding.places.name` | string | `"Places"` | Non-empty. Its name in the search source menu. |
 | `request` | object | `{}` | Optional section. Routes ArcGIS requests through a proxy. |
 | `request.proxyUrl` | string | none | Proxy used when a request can't be made directly, for example to a server without CORS support. An absolute `https` URL, or a path on the viewer's own site such as `proxy/forward` (resolved against the app's base URL). |
 | `request.proxyRules` | array | `[]` | Requests whose URL starts with a rule's prefix always go through that rule's proxy. Each entry is `{ "urlPrefix": ..., "proxyUrl": ... }`. |
@@ -138,6 +167,20 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 - **Popups:** clicking a feature of a `feature`, `geojson`, or `imagery` layer opens a popup
   listing its attributes. Set `popupEnabled: false` to turn that off, or set a
   `popupTemplate` in `options` to customize it.
+- **Sublayers:** a `map-image` service has numbered sublayers, each on or off by default.
+  `showSublayers` and `hideSublayers` change only the ids they list; every other sublayer
+  keeps the service's default, and users can still switch any of them in the Layers panel.
+
+  ```json
+  { "id": "usa", "type": "map-image", "url": "https://.../USA/MapServer",
+    "showSublayers": [1], "hideSublayers": [3] }
+  ```
+
+  Turning on a sublayer inside a group also turns the group on, since a sublayer in a hidden
+  group draws nothing. An id the service doesn't have is skipped, and the browser console names
+  the layer and the id. On other layer types these settings are ignored with a warning. They
+  are applied before the layer's `onLoad` hook runs, so a hook sees them. Don't use
+  `options.sublayers` for this: the SDK then drops every sublayer you don't list.
 - **Hooks:** `hooks` names code built into the viewer that runs at a layer's `preLoad` or
   `onLoad` point. Config can't hold code, so hooks are added to the viewer's source and
   referred to by name. See [docs/extensions.md](extensions.md).
@@ -156,6 +199,7 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | Type | What it is | Options |
 |---|---|---|
 | `home` | A button that returns the map to its configured initial view. Panel default: "Home", `home` icon. | `icon` (string): a [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/) name. |
+| `zoom` | Zoom-in and zoom-out buttons; each press changes the zoom level by one. The map adds no zoom buttons of its own: without a `zoom` entry there are none, though the mouse wheel, pinch and the keyboard still zoom. Panel default: "Zoom", `magnifying-glass-plus` icon. | None. |
 | `legend` | The symbols of the map's operational layers. Panel default: "Legend", `legend` icon. | `layerInfos`: which layers to show and their titles, as `[{ "layer": "<layer id>", "title": "<text>" }]` (`title` optional); all layers when omitted. `basemapLegendVisible` (boolean, default `false`): include the basemap. `hideLayersNotInCurrentView` (boolean): hide layers with nothing in view. |
 | `locate` | A button that finds the device's location, marks it on the map, and zooms to it. Panel default: "Locate", `gps-off` icon. | `scale` (number greater than 0): the scale to zoom to; the SDK chooses one when omitted. The map snaps to the basemap's nearest zoom level outward, so `10000` shows at about 1:18,056 on ArcGIS and OpenStreetMap basemaps. `icon` (string): a Calcite icon name. `popupDisabled` (boolean, default `false`): don't open a popup on the location. |
 | `track` | A toggle button that keeps the map centered on the device as it moves. Press it again to stop. Panel default: "Track", `compass-north-circle` icon. | `scale` (number greater than 0): the scale to zoom to. `icon` (string): a Calcite icon name. `rotationDisabled` (boolean, default `false`): don't rotate the map to the direction of travel. |
@@ -166,23 +210,29 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `basemap-gallery` | Thumbnails of basemaps to choose from; the current one is marked. Without an API key, basemaps that need one are left out of the gallery (and the gallery is left out if none is left). Panel default: "Basemaps", `basemap` icon. | `basemaps` (list of basemap IDs, at least one): the basemaps to offer, in the same forms as `map.basemap`. Default: `osm`, `hybrid`, `satellite`, `light`, `dark`, `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`, `arcgis/light-gray`, `arcgis/dark-gray`. |
 | `hello-world` | A template for your own component types: shows its greeting and the map's center and scale, updating as the map moves. Not in the default config. See [custom-components.md](custom-components.md). Panel default: "Hello", `code` icon. | `greeting` (string, default `"Hello, world"`): the heading it shows. |
 
+**The location marker:** clicking the marker that `locate` or `track` puts on the map opens a
+popup with the position's details and a **Remove** action that takes the marker off the map.
+Pressing Locate again puts it back.
+
 **Location components need HTTPS.** Browsers only share the device's location with pages
 served over HTTPS (or from `localhost` during development). If the user denies access, or
 the location times out or can't be found, a closable notice explains why. Use either
 `locate` or `track`, not both: the SDK advises one location component per map.
 
-**Basemap toggle without an API key.** The default toggle switches to `hybrid`, which needs
-no key, so it works in every deployment: OpenStreetMap and hybrid without a key, ArcGIS Streets
+**Basemap toggle without an API key.** The shipped config has no toggle. A toggle switches to
+`hybrid` by default, which needs no key, so it works in every deployment: OpenStreetMap and hybrid without a key, ArcGIS Streets
 and hybrid with one. If `nextBasemap` is a `provider/style` ID and no key is configured, the
 toggle is left out and the browser console says why; otherwise the SDK would ask visitors to
 sign in.
 
 **Placements**
 
-- **A corner:** for example `top-left`. The component appears in that corner of the map. Several
-  components in one corner stack in config order. The `-start` and `-end` corners follow the
-  page's reading direction (left and right in left-to-right languages). The zoom buttons
-  are always first in `top-left`.
+- **A corner:** for example `bottom-right`. The component appears in that corner of the map.
+  Several components in one corner form a column, one above the other, lined up on the
+  corner's side. This is true in the bottom corners too: the viewer stacks them itself, where
+  the SDK on its own would lay them side by side. The `-start` and `-end` corners follow the
+  page's reading direction (left and right in left-to-right languages). They are separate from
+  `-left` and `-right`, so mixing `bottom-right` and `bottom-end` gives two columns.
 - **`panel`** (the default): the component gets an icon in the sidebar and a panel that opens
   from it. See [Sidebar](#sidebar).
 - **`none`:** the component is created without any visible UI and connected to the map. It is
@@ -194,8 +244,30 @@ sign in.
 fails validation, and the error names the option and the id, for example
 `components[1].options.layerInfos[0].layer: "nope" is not a configured layer`.
 
-**Order:** components are created after every layer has loaded or failed, or after 15 seconds,
-whichever comes first.
+**Display order:** the order of the `components` list is the order on screen. There is no
+separate order setting, so to move a component, move its entry.
+- **Sidebar:** icons appear in the order of their entries, from top to bottom, or from right to
+  left in the phone bottom bar.
+- **Corners:** each corner's components appear from top to bottom in the order of their
+  entries, in every corner. To put a control lowest in `bottom-right`, list it last among the
+  `bottom-right` entries.
+- Entries for different corners and the sidebar can be mixed in any order. Only the order
+  among entries with the same placement matters.
+
+```json
+"components": [
+  { "id": "search", "type": "search", "placement": "panel" },
+  { "id": "home", "type": "home", "placement": "bottom-right" },
+  { "id": "legend", "type": "legend", "placement": "panel" },
+  { "id": "zoom", "type": "zoom", "placement": "bottom-right" }
+]
+```
+
+This shows two sidebar icons, Search above Legend, and Home above the zoom buttons in the
+bottom-right corner.
+
+**When they're created:** components are created after every layer has loaded or failed, or
+after 15 seconds, whichever comes first.
 
 ### Sidebar
 
@@ -216,12 +288,86 @@ When at least one component is placed in `panel`, the viewer shows a sidebar:
   viewer's notices move out from under the sidebar.
 - **Width:** from 768 px wide, the sidebar sits on the left. With a panel open, it is 305 px
   wide, 390 px from 992 px, and 460 px from 1200 px.
-- **Phones:** below 768 px, the icons form a bar along the bottom, and an open panel rises
-  above it, covering at most 60% of the screen.
-- **Keyboard:** Tab reaches each icon, and Enter or Space opens it. Screen readers announce each
-  icon by its heading and whether its panel is open. Escape closes the panel and returns focus
-  to its icon.
+- **Height:** from 768 px wide, the icon bar and an open panel both run the full height of the
+  map, however few icons or however little content there is. A panel whose content is taller
+  scrolls inside the panel.
+- **Phones:** below 768 px, the icons form a bar along the bottom, starting from the right: the
+  first panel's icon is at the right edge, nearest your thumb, and the rest follow leftward. An
+  open panel rises above the bar, covering at most 60% of the screen.
+- **Keyboard:** the icon bar is one Tab stop. Tab moves into it, the arrow keys move from icon
+  to icon, and Enter or Space opens the focused icon's panel. Tab again leaves the bar. Screen
+  readers announce each icon by its heading and whether its panel is open. Escape closes the
+  panel and returns focus to its icon.
 - **No sidebar:** with no panel components, there is no sidebar at all.
+
+### Geocoding
+
+```json
+"geocoding": {
+  "geocoders": [
+    { "url": "https://gis.example.org/arcgis/rest/services/Addresses/GeocodeServer", "name": "County addresses" }
+  ],
+  "places": { "radius": 5000, "categories": ["4bf58dd8d48988d1e0931735"] }
+}
+```
+
+- **Shared:** the Search panel and the Directions stop boxes use the same sources, in this
+  order: Esri's keyless world geocoder (or Search's `geocoderUrl`), each of `geocoders`, then
+  Places.
+- **Source menu:** with more than one source, the search box shows a menu of sources. It
+  starts on **All**, so a search covers every source. Users can pick one source to narrow it.
+- **Additional geocoders** must allow anonymous use. The API key is never sent to them.
+  Geocoders that need a sign-in will work once organization sign-in is added.
+- **Places** finds businesses and landmarks within `radius` meters of the map's center, up to
+  10 km, optionally limited to `categories`. A place far from the current view isn't found;
+  the world geocoder still finds well-known places anywhere. Choosing a suggestion goes to the
+  place. Pressing Enter goes to the best match.
+  - It needs an API key with the **Places** privilege. Without a key, Places is left out and the
+    browser console says why.
+  - Places requests are billed when they return results, so the viewer sends as few as it can:
+    nothing under 3 characters, only once typing pauses, and never twice for the same term at
+    the same spot. Search adds its own short pause too.
+  - Category ids come from the Places service's `places/categories` request, described in
+    Esri's [Places REST API reference](https://developers.arcgis.com/rest/places/near-point-get/)
+    under `categoryIds`.
+
+### Title box
+
+```json
+"app": { "title": "Corporate Maps" }
+```
+
+- **Where:** `app.title` shows in a box at the top of the map's top-left corner, at every
+  screen width. On wide screens it sits beside the sidebar and moves over when a panel opens.
+  Components placed `top-left` appear below it.
+- **When:** it appears as soon as the map does. It doesn't wait for layers to load.
+- **Long titles:** the title stays on one line. If it doesn't fit, for example on a phone, it
+  is cut off with "…". Screen readers still read the whole title, and hovering shows it.
+- **Hide it:** set `"titleVisible": false`. The browser tab still shows `app.title`.
+
+### Theme
+
+```json
+"app": {
+  "title": "Corporate Maps",
+  "theme": { "color": "#1f6f8b", "opacity": 0.85 }
+}
+```
+
+- **What it colors:** the sidebar's icon bar, on wide screens and in the phone bottom bar, and
+  the title box. Open panels, notices and map controls keep Calcite's colors.
+- **Opacity:** `opacity` makes the background see-through, so the map shows behind the bar.
+  The icons and the title stay fully opaque. Use 0.8 or more: the lower it is, the more the map
+  beneath decides how readable the text is.
+- **Text color:** without `textColor`, the viewer uses white or black, whichever has the higher
+  contrast with `color`. For `#1f6f8b`, that is white.
+- **Contrast warning:** if the text and background colors have a contrast ratio below 4.5:1,
+  the level WCAG asks for in normal text, the viewer still starts but writes a warning to the
+  console with the ratio, for example
+  `Viewer config: app.theme.textColor: The text and background colors have a contrast of 3.0:1, ...` for white
+  on `#3a9fc0`. The ratio is measured against the opaque `color`.
+- **The open panel's icon** is drawn in a darker shade of `color`, so you can see which panel
+  is open.
 
 ### Zoom or scale
 
@@ -258,3 +404,8 @@ map.zoom: Expected a number 0 or greater.
 ```
 
 All problems are listed together, so one reload shows everything to fix.
+
+Every message on the page, errors and warnings alike, has a close button. Closing one doesn't
+fix its cause: a config error shows again on the next reload until the config is fixed, and
+the browser console keeps the details. Messages appear at the top of the map, below the title
+box.

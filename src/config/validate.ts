@@ -3,6 +3,8 @@ import { hooks } from "../extensions/hooks.ts";
 import { validateLayers } from "./layers.ts";
 import { validateRequest } from "./request.ts";
 import { validateComponents } from "./components.ts";
+import { validateTheme } from "./theme.ts";
+import { validateGeocoding } from "./geocoding.ts";
 import { COMPONENT_TYPES, type ComponentTypeSchema } from "../components/registry.ts";
 import {
   isCredentialKey,
@@ -101,6 +103,12 @@ export function validateConfig(raw: unknown, context: ValidationContext = {}): V
     if (isNonEmptyString(app.title)) title = app.title;
     else errors.push({ path: "app.title", message: "Expected a non-empty string." });
   }
+  let titleVisible: boolean = DEFAULTS.app.titleVisible;
+  if (app.titleVisible !== undefined) {
+    if (typeof app.titleVisible === "boolean") titleVisible = app.titleVisible;
+    else errors.push({ path: "app.titleVisible", message: "Expected true or false." });
+  }
+  const theme = validateTheme(app.theme, errors, warnings);
 
   // portal
   const portal = section(raw, "portal", errors);
@@ -216,18 +224,20 @@ export function validateConfig(raw: unknown, context: ValidationContext = {}): V
     else errors.push({ path: "debug", message: "Expected true or false." });
   }
 
+  const geocoding = validateGeocoding(raw.geocoding, errors, warnings);
   const request = validateRequest(raw.request, errors, warnings);
 
   if (errors.length > 0 || !view) return { config: undefined, errors, warnings };
 
   return {
     config: {
-      app: { title },
+      app: { title, titleVisible, ...(theme ? { theme } : {}) },
       portal: { url: portalUrl },
       map: { basemap, fallbackBasemap, center, ...view },
       services,
       layers,
       components,
+      geocoding,
       debug,
       request,
     },

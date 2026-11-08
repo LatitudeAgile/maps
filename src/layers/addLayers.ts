@@ -4,6 +4,7 @@ import { errorText } from "../app/errors.ts";
 import type { LayerConfig } from "../config/types.ts";
 import { hooks as builtInHooks, type LayerHook } from "../extensions/hooks.ts";
 import { applyDefaultPopup, createLayer } from "./factory.ts";
+import { applySublayerVisibility } from "./sublayers.ts";
 
 /** How long to wait for layers before creating components anyway (design D5). */
 export const SETTLE_TIMEOUT_MS = 15_000;
@@ -79,6 +80,8 @@ export async function addLayers(options: AddLayersOptions): Promise<AddLayersRes
       async () => {
         pending.delete(entry.id);
         applyDefaultPopup(entry, layer);
+        // Before onLoad, so hooks see the configured sublayer visibility.
+        applySublayerVisibility(entry, layer);
         await runHook("onLoad", entry, layer);
       },
       (err: unknown) => {

@@ -12,7 +12,8 @@ Adding a hook needs a rebuild. Choosing which layers use it does not: that's a c
 - **`preLoad`** runs after the layer object is created and before it is added to the map.
   Use it to change properties that should be in place before anything draws.
 - **`onLoad`** runs once, after the layer has loaded, when its fields and service details are
-  known.
+  known. By then the layer's default popup and any `showSublayers` or `hideSublayers` settings
+  have been applied, so a hook can rely on them or change them further.
 
 A hook may be `async`. If a hook throws or its promise rejects, the error is reported on the
 app model's error channel (and logged when `debug` is `true`). The layer stays on the map,

@@ -10,9 +10,9 @@ created.
 
 ### Requirement: Components are created from config
 The viewer SHALL create one component for each entry of the `components` config array, using the
-entry's `type`. Only registered component types SHALL be accepted. This version registers ten:
-`home`, `legend`, `locate`, `track`, `basemap-toggle`, `search`, `directions`, `layer-list`,
-`basemap-gallery`, and the `hello-world` template.
+entry's `type`. Only registered component types SHALL be accepted. This version registers eleven:
+`home`, `zoom`, `legend`, `locate`, `track`, `basemap-toggle`, `search`, `directions`,
+`layer-list`, `basemap-gallery`, and the `hello-world` template.
 
 #### Scenario: Home component returns to the initial view
 - **GIVEN** the config has a `home` component placed `top-left`
@@ -31,7 +31,8 @@ entry's `type`. Only registered component types SHALL be accepted. This version 
 A component entry's `placement` SHALL be a map corner (`top-left`, `top-right`, `bottom-left`,
 `bottom-right`, `top-start`, `top-end`, `bottom-start`, `bottom-end`), `panel`, or `none`, and
 SHALL default to `panel` when absent. Corner components SHALL appear in that corner of the map,
-in config order (P-14).
+stacked vertically in config order, the first entry at the top, in top and bottom corners alike
+(P-14).
 
 #### Scenario: Corner placement
 - **WHEN** a `home` component has `"placement": "bottom-right"`
@@ -40,6 +41,10 @@ in config order (P-14).
 #### Scenario: Order within a corner
 - **WHEN** two `home` components, `first` and `second`, are both placed `top-right`
 - **THEN** `first` appears above `second` (Playwright)
+
+#### Scenario: Order within a bottom corner
+- **WHEN** two `home` components, `first` and `second`, are both placed `bottom-right`
+- **THEN** `first` appears above `second`, and their right edges are within 2 px of each other (Playwright, comparing bounding boxes)
 
 #### Scenario: Invalid placement
 - **WHEN** a component entry has `"placement": "sidebar"`
@@ -113,8 +118,8 @@ set the scale the map zooms to. Its `icon` option SHALL set the button's icon. I
 - **THEN** the map settles within 0.01° of that position at a scale within 1% of 1:18,000, with a location graphic at that position (Playwright, fake geolocation)
 
 #### Scenario: Default layout
-- **WHEN** the app starts with the shipped default config
-- **THEN** the top-left corner shows, from top to bottom, the zoom buttons, the Home button, and the Locate button (P-30, P-31; Playwright, comparing bounding boxes)
+- **WHEN** the app starts with the shipped default config, at 1280×800 and at 375×667
+- **THEN** the bottom-right corner shows, from top to bottom, the Home button, the Locate button, and the zoom buttons, with their right edges within 2 px of each other, and the top-left corner holds only the title box (P-02, P-30, P-31; Playwright, comparing bounding boxes)
 
 #### Scenario: Invalid scale
 - **WHEN** a `locate` component has `"options": { "scale": 0 }`
@@ -167,10 +172,10 @@ A `basemap-toggle` component SHALL switch the map between its current basemap an
 named by its `nextBasemap` option. Pressing it again SHALL switch back. `nextBasemap` SHALL
 default to `hybrid`, the built-in basemap that needs no key (P-32). A legacy basemap ID SHALL
 be accepted with the same warning as in `map.basemap`. Its `showTitle` option (true or false)
-SHALL show the next basemap's name.
+SHALL show the next basemap's name. The shipped default config SHALL NOT include one.
 
 #### Scenario: Toggle and back
-- **GIVEN** the app starts with the shipped default config
+- **GIVEN** the shipped default config with a `basemap-toggle` component added, placed `top-right`, with no options
 - **WHEN** the user presses the basemap toggle, and then presses it again
 - **THEN** the map shows the `hybrid` basemap after the first press, and after the second the basemap it started with: ArcGIS Streets with an API key, OpenStreetMap without one (Playwright, run in both the keyed and keyless suites)
 
@@ -188,7 +193,7 @@ SHALL show the next basemap's name.
 
 #### Scenario: Default placement, with or without a key
 - **WHEN** the app starts with the shipped default config, whether or not it was built with an API key
-- **THEN** the basemap toggle is visible in the top-right corner of the map (Playwright, run in both the keyed and keyless suites)
+- **THEN** no basemap toggle is shown (Playwright, run in both the keyed and keyless suites)
 
 ### Requirement: A basemap toggle that needs a key is left out without one
 When no API key is configured and a `basemap-toggle` component's `nextBasemap` names a basemap
@@ -228,7 +233,7 @@ A `directions` component SHALL let the user add stops, solve a route, and read t
 directions, with a button that clears the route (P-35). The route service SHALL come from its
 `routeServiceUrl` option, which SHALL default to Esri's world route service. Distances SHALL be
 shown in miles unless its `unit` option names another length unit. Stops SHALL be found with the
-same keyless geocoder as Search.
+same sources as Search, never with the portal's default geocoder.
 
 #### Scenario: Route between two stops
 - **GIVEN** a `directions` component whose `routeServiceUrl` is answered by request fixtures captured from Esri's San Diego sample service, with a two-stop route of 1.82 miles
@@ -243,6 +248,10 @@ same keyless geocoder as Search.
 #### Scenario: Invalid unit
 - **WHEN** a `directions` component has `"options": { "unit": "furlongs" }`
 - **THEN** validation fails with an error at `components[0].options.unit` that lists the supported units (Vitest)
+
+#### Scenario: One world geocoder for stops
+- **WHEN** there is no `geocoding` setting
+- **THEN** Directions' stop search has exactly one source, the keyless world geocoder, and the portal's default geocoder is turned off (Vitest)
 
 ### Requirement: Directions sends the key only to ArcGIS routing
 When an API key is configured and a `directions` component's route service is an ArcGIS routing
@@ -330,7 +339,8 @@ no ID is left, the component SHALL be left out, with a console warning naming it
 ### Requirement: The default sidebar matches dojo-sidebar and adds the new panels
 The shipped default config SHALL have these sidebar panels, in this order: Search, Directions,
 Layers, Legend, Basemaps. dojo-sidebar's order (Search, Directions, Legend) is kept, with the new
-panels around it.
+panels around it. Each of these entries SHALL state `"placement": "panel"` explicitly, so the
+shipped config shows where every component goes.
 
 #### Scenario: Default panels with a key
 - **GIVEN** the app was built with an API key
@@ -341,3 +351,22 @@ panels around it.
 - **GIVEN** the app was built without an API key
 - **WHEN** the app starts with the shipped default config
 - **THEN** the sidebar icons are Search, Layers, Legend, Basemaps (Playwright; skipped when a key is configured)
+
+#### Scenario: Placement stated in the shipped config
+- **WHEN** the shipped default config is read
+- **THEN** every entry in `components` has a `placement` setting, and the five panel entries have `"placement": "panel"` (Vitest, reading `public/config/viewer.json`)
+
+### Requirement: The location marker can be removed from its popup
+The marker that a `locate` or `track` component puts on the map SHALL open a popup with a
+"Remove" action. Pressing it SHALL remove the marker from the map and close the popup, without
+errors. Pressing the Locate button again SHALL put a new marker on the map.
+
+#### Scenario: Remove the location marker
+- **GIVEN** the browser reports longitude -105.0, latitude 40.0, the user has pressed the Locate button, and the location marker is on the map
+- **WHEN** the user clicks the marker and presses the popup's "Remove" action
+- **THEN** the marker is no longer on the map, the popup is closed, and no error is logged to the console (Playwright, fake geolocation)
+
+#### Scenario: Locate again after removing
+- **GIVEN** the location marker was removed from its popup
+- **WHEN** the user presses the Locate button again
+- **THEN** the location marker is on the map again (Playwright, fake geolocation)

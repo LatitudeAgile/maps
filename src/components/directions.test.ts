@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { addRouteKeyScope, directionsKeyless, isArcGISRoutingHost } from "./directions.ts";
+import { addRouteKeyScope, directionsKeyless, directionsSearchProperties, isArcGISRoutingHost } from "./directions.ts";
+import { DEFAULT_GEOCODER_URL } from "./geocoder.ts";
 
 const WORLD = "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World";
 const SAMPLE = "https://sampleserver6.arcgisonline.com/arcgis/rest/services/NetworkAnalysis/SanDiego/NAServer/Route";
@@ -29,3 +30,17 @@ describe("directions (design D4)", () => {
     expect(directionsKeyless({ routeServiceUrl: SAMPLE, unit: "miles" })).toEqual({ keep: { routeServiceUrl: SAMPLE, unit: "miles" } });
   });
 });
+
+describe("directions stop search (design D3)", () => {
+  test("only the keyless geocoder: the portal's default source is turned off with the core Search property", () => {
+    const props = directionsSearchProperties();
+    expect(props.includeDefaultSources).toBe(false);
+    expect(props).not.toHaveProperty("includeDefaultSourcesDisabled");
+    expect(props.sources).toEqual([expect.objectContaining({ url: DEFAULT_GEOCODER_URL })]);
+    // Directions' own defaults, restated because setting searchProperties replaces them.
+    expect(props).toMatchObject({ popupEnabled: false, resultGraphicEnabled: false });
+    // With more than one source, a search covers all of them (D16).
+    expect(props.searchAllEnabled).toBe(true);
+  });
+});
+

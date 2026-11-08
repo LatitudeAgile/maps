@@ -1,8 +1,15 @@
+import type { Theme } from "../ui/theme.ts";
+import type { GeocodingConfig } from "./geocoding.ts";
+
 /** The viewer's runtime configuration, after defaults are applied. */
 export interface ViewerConfig {
   app: {
-    /** Browser document title. */
+    /** Browser document title, and the text of the title box (branding). */
     title: string;
+    /** Show the title box on the map. Default true. */
+    titleVisible: boolean;
+    /** Colors for the icon bar and the title box; absent means Calcite's defaults. */
+    theme?: Theme;
   };
   portal: {
     /** Absolute https URL of the ArcGIS portal (Online, Enterprise, or Location Platform). */
@@ -29,6 +36,8 @@ export interface ViewerConfig {
   layers: LayerConfig[];
   /** Components, created in config order after layers settle (map-components). */
   components: ComponentConfig[];
+  /** Search sources shared by Search and Directions (geocoding). */
+  geocoding: GeocodingConfig;
   /** Exposes the app model as `window.app` and logs error-channel reports. Default false. */
   debug: boolean;
   /** SDK request settings (proxy). */
@@ -62,6 +71,10 @@ export interface LayerConfig {
   visible?: boolean;
   opacity?: number;
   popupEnabled?: boolean;
+  /** `map-image` only: sublayer ids to turn on once loaded, groups above them included. */
+  showSublayers?: number[];
+  /** `map-image` only: sublayer ids to turn off once loaded. */
+  hideSublayers?: number[];
   options: Record<string, unknown>;
   hooks: { preLoad?: string; onLoad?: string };
 }
@@ -105,13 +118,13 @@ export interface ConfigProblem {
 
 /** Defaults for optional settings. Required settings (`map.basemap`, `map.center`, `map.zoom`) have none. */
 export const DEFAULTS = {
-  app: { title: "ArcGIS Sidebar Viewer" },
+  app: { title: "ArcGIS Sidebar Viewer", titleVisible: true },
   portal: { url: "https://www.arcgis.com" },
   map: { fallbackBasemap: "osm" },
 } as const;
 
 /** Top-level sections the viewer recognizes. */
-export const KNOWN_SECTIONS = ["app", "portal", "map", "services", "layers", "components", "debug", "request"] as const;
+export const KNOWN_SECTIONS = ["app", "portal", "map", "services", "layers", "components", "geocoding", "debug", "request"] as const;
 
 /** Keys that look like credentials and are never allowed in the config, at any depth. */
 export const CREDENTIAL_KEYS = ["apiKey", "token", "clientSecret"] as const;

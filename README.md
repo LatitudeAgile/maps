@@ -8,9 +8,9 @@ This project replaces [dojo-sidebar](https://github.com/DavidSpriggs/dojo-sideba
 which was built on the retired ArcGIS API for JavaScript 3.x and Dojo. It is a rewrite,
 not an in-place upgrade. dojo-sidebar is kept unchanged as a reference.
 
-> **Status:** early migration. The viewer shows a config-driven map with layers, Home and
-> Locate buttons, a basemap toggle, and a collapsible sidebar with Search, Directions, Layers,
-> Legend, and Basemaps panels. Optional organization sign-in is still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
+> **Status:** early migration. The viewer shows a config-driven map with layers, Home, Locate
+> and zoom buttons at the bottom right, and a collapsible sidebar with Search, Directions,
+> Layers, Legend, and Basemaps panels. Optional organization sign-in is still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
 > [`openspec/`](openspec/).
 
 ## Requirements
@@ -52,10 +52,11 @@ through copying, registering, and testing it.
 
 ## API key
 
-ArcGIS basemap styles such as `arcgis/streets`, and Esri's world route service for Directions,
-need an API key. The viewer reads one at build time from `VITE_ARCGIS_API_KEY` and sends it
-**only** to the basemap styles service and, for Directions, to Esri's route service. Search
-never sends it.
+ArcGIS basemap styles such as `arcgis/streets`, Esri's world route service for Directions, and
+optional Places search need an API key. The viewer reads one at build time from
+`VITE_ARCGIS_API_KEY` and sends it **only** to the basemap styles service, to Esri's route
+service for Directions, and, when `geocoding.places` is configured, to the Places service. It
+never sends it to a geocoder.
 
 1. Sign in to your portal:
    - **ArcGIS Location Platform** (the free tier is enough): sign in at
@@ -68,9 +69,10 @@ never sends it.
 2. Click **Content** > **My content** > **New item** > **Developer credentials** >
    **API key credentials**, then **Next**.
 3. Choose **Public application**, then **No item access**.
-4. Under **Privileges**, check only **Location services** > **Basemaps** and **Routing**.
-   Routing is for the Directions panel; a key without it still shows ArcGIS basemaps, but
-   Directions can't load Esri's route service.
+4. Under **Privileges**, check only **Location services** > **Basemaps** and **Routing**, plus
+   **Places** if you configure Places search. Routing is for the Directions panel; a key
+   without it still shows ArcGIS basemaps, but Directions can't load Esri's route service.
+   Places requests are billed per request that returns results.
 5. Set **Referrer URLs** to the sites that will serve the viewer, for example
    `http://localhost:5173`, `http://localhost:4173`, and your production URL. A key in a
    browser app is visible to anyone who opens it; referrers stop other sites from using it.
@@ -95,10 +97,13 @@ in it.
 Running without a key is supported. If `map.basemap` is a `provider/style` ID and no key is
 configured, the viewer uses `map.fallbackBasemap` (OpenStreetMap by default) without a notice,
 writes one line to the browser console, and sends no request to the basemap styles service.
-The default basemap toggle switches between that basemap and `hybrid`, Esri's imagery with
-roads and place names from its public tile services, which need no key.
 
-The other panels work without a key too, with one exception:
+The same fallback applies when a key is configured but the basemap styles service refuses it,
+for example because the key is invalid, has expired, lacks the basemap styles privilege, or is
+restricted to other sites. The map shows `map.fallbackBasemap` instead of staying empty, and
+the browser console names the basemap that failed, so check the key if you see that warning.
+
+The sidebar panels work without a key too, with one exception:
 - **Search** always uses Esri's public geocoder, `geocode.arcgis.com`, which needs no key.
 - **Basemaps** offers the five free basemaps (`osm`, `hybrid`, `satellite`, `light`, `dark`);
   the ArcGIS styles appear only with a key.
