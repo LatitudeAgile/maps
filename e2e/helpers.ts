@@ -284,3 +284,38 @@ export async function failGeolocation(page: Page, code: number): Promise<void> {
     geo.clearWatch = () => {};
   }, code);
 }
+
+/**
+ * Answer a geocoding service's suggest and findAddressCandidates requests from fixtures, at any
+ * host matching `pattern`. Queries mentioning Petco or Balboa get San Diego places; anything
+ * else gets Denver. Returns the request URLs it answered, for assertions.
+ */
+export async function serveGeocoder(page: Page, pattern: string | RegExp = /\/GeocodeServer\//): Promise<string[]> {
+  const seen: string[] = [];
+  await page.route(pattern, (route) => {
+    const req = route.request();
+    const url = new URL(req.url());
+    const op = url.pathname.endsWith("/suggest") ? "suggest" : url.pathname.endsWith("/findAddressCandidates") ? "candidates" : undefined;
+    if (!op) return route.fallback();
+    seen.push(req.url());
+    const query = `${url.search} ${req.postData() ?? ""}`.toLowerCase();
+    const place = query.includes("petco") ? "petco" : query.includes("balboa") ? "balboa" : "denver";
+    return route.fulfill({ status: 200, contentType: "application/json", body: fixture(`geocode-${place}-${op}.json`) });
+  });
+  return seen;
+}
+
+/**
+ * Answer a route service's description, travel modes, and solve requests from fixtures captured
+ * from Esri's San Diego sample service (a 1.82-mile route). Returns the request URLs answered.
+ */
+export async function serveRoute(page: Page, serviceUrl: string): Promise<string[]> {
+  const seen: string[] = [];
+  await page.route((u) => u.href.startsWith(serviceUrl), (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const file = path.endsWith("/solve") ? "route-solve.json" : path.endsWith("/retrieveTravelModes") ? "route-travelmodes.json" : "route-service.json";
+    seen.push(route.request().url());
+    return route.fulfill({ status: 200, contentType: "application/json", body: fixture(file) });
+  });
+  return seen;
+}

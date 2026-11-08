@@ -1,0 +1,63 @@
+# custom-components Specification
+
+## Purpose
+
+Defines how developers add their own component types to the viewer: registering a type so it is
+configured, validated, and placed like a built-in one, the hello-world component that serves as
+a working template, and the guide that explains how to write a component.
+
+## Requirements
+
+### Requirement: Developers can add their own component types
+A developer SHALL be able to add a component type by adding its source to the repository and
+registering it under a type name, without changing the component stage, validation, or the
+sidebar. A registered custom type SHALL be configured like a built-in one: by `type`,
+`placement`, `options`, and `panel` in the `components` config, with the same option validation
+and the same corner, `none`, and `panel` placements (P-38).
+
+#### Scenario: Custom type in a corner and in a panel
+- **GIVEN** the `hello-world` type is registered
+- **WHEN** the config places one `hello-world` component `top-right` and another in `panel`
+- **THEN** the first shows in the map's top-right corner, the second gets a sidebar icon and panel with the type's default heading and icon, and both show the map's center (Playwright)
+
+#### Scenario: Custom type options are validated
+- **WHEN** a `hello-world` component has `"options": { "greeting": 5 }`
+- **THEN** validation fails with an error at `components[0].options.greeting` saying a string is expected (Vitest)
+
+#### Scenario: Unregistered custom type
+- **WHEN** a component entry has `"type": "my-widget"` and no such type is registered
+- **THEN** validation fails with an error at `components[0].type` that lists the registered types, including `hello-world` (Vitest)
+
+### Requirement: The hello-world component is a working template
+The repository SHALL include a `hello-world` component type that a developer can copy as the
+starting point for their own. It SHALL show the text of its `greeting` option (default
+"Hello, world"), and the map's current center and scale, which update as the map moves. It SHALL
+find the map whether it is placed in a map corner or in the sidebar, and SHALL stop following the
+map when removed from the page.
+
+#### Scenario: Greeting from config
+- **WHEN** a `hello-world` component has `"options": { "greeting": "Hi from the team" }`
+- **THEN** it shows "Hi from the team" (Playwright)
+
+#### Scenario: Default greeting
+- **WHEN** a `hello-world` component has no `greeting` option
+- **THEN** validation passes, its `greeting` is "Hello, world", and it shows "Hello, world" (Vitest for the default; Playwright for the text)
+
+#### Scenario: Follows the map
+- **GIVEN** a `hello-world` component in a sidebar panel that is open
+- **WHEN** the map is panned to longitude -104.99, latitude 39.74
+- **THEN** within 2 seconds after the map is stationary, the component shows that center to two decimal places (Playwright)
+
+#### Scenario: Stops following when removed
+- **GIVEN** a `hello-world` component is showing the map's center
+- **WHEN** the element is removed from the page and the map is then panned
+- **THEN** no error is reported and the removed element's text doesn't change (Playwright)
+
+### Requirement: A guide explains how to write a component
+A guide SHALL explain how to copy `hello-world`, rename it, register it, and add options. The
+template SHALL use Calcite components and design tokens only, so a copy starts within the
+project's UI rules.
+
+#### Scenario: Guide matches the template
+- **WHEN** a developer follows `docs/custom-components.md` to copy `hello-world` as `my-component`
+- **THEN** the copy builds, passes typecheck, and shows in a sidebar panel (named manual check, recorded in the change notes)

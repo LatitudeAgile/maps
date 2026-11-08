@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { ComponentConfig } from "../config/types.ts";
-import { chooseBasemap, leaveOutKeyedToggles } from "./chooseBasemap.ts";
+import { chooseBasemap } from "./chooseBasemap.ts";
 
 const config = (basemap: string, fallbackBasemap = "osm") => ({
   map: { basemap, fallbackBasemap, center: [0, 0] as [number, number], zoom: 5 },
@@ -28,27 +27,3 @@ describe("chooseBasemap", () => {
   });
 });
 
-describe("leaveOutKeyedToggles (design D5)", () => {
-  const toggle = (id: string, nextBasemap: string): ComponentConfig => ({
-    id,
-    type: "basemap-toggle",
-    placement: "top-right",
-    options: { nextBasemap },
-  });
-  const home: ComponentConfig = { id: "home", type: "home", placement: "top-left", options: {} };
-
-  test("without a key, a toggle to a basemap styles style is left out; others are kept", () => {
-    const { kept, leftOut } = leaveOutKeyedToggles(
-      [home, toggle("styled", "arcgis/imagery/standard"), toggle("free", "hybrid"), toggle("osm", "osm")],
-      false,
-    );
-    expect(kept.map((c) => c.id)).toEqual(["home", "free", "osm"]);
-    expect(leftOut.map((c) => c.id)).toEqual(["styled"]);
-  });
-
-  test("with a key, every toggle is kept", () => {
-    const { kept, leftOut } = leaveOutKeyedToggles([home, toggle("styled", "arcgis/imagery/standard")], true);
-    expect(kept).toHaveLength(2);
-    expect(leftOut).toEqual([]);
-  });
-});

@@ -9,8 +9,8 @@ which was built on the retired ArcGIS API for JavaScript 3.x and Dojo. It is a r
 not an in-place upgrade. dojo-sidebar is kept unchanged as a reference.
 
 > **Status:** early migration. The viewer shows a config-driven map with layers, Home and
-> Locate buttons, a basemap toggle, and a collapsible sidebar with a legend. More components
-> (search, directions) are still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
+> Locate buttons, a basemap toggle, and a collapsible sidebar with Search, Directions, Layers,
+> Legend, and Basemaps panels. Optional organization sign-in is still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
 > [`openspec/`](openspec/).
 
 ## Requirements
@@ -44,10 +44,18 @@ after deployment without rebuilding. Every setting is described in
 The shipped config includes a **sample layer** (a public Esri demo service) so the sidebar's
 Legend has something to show. Replace it with your own layers before deploying.
 
+## Write your own component
+
+Add your own component types next to the built-in ones and configure them the same way. Start
+from the `hello-world` template; [docs/custom-components.md](docs/custom-components.md) walks
+through copying, registering, and testing it.
+
 ## API key
 
-ArcGIS basemap styles such as `arcgis/streets` need an API key. The viewer reads one at
-build time from `VITE_ARCGIS_API_KEY` and sends it **only** to the basemap styles service.
+ArcGIS basemap styles such as `arcgis/streets`, and Esri's world route service for Directions,
+need an API key. The viewer reads one at build time from `VITE_ARCGIS_API_KEY` and sends it
+**only** to the basemap styles service and, for Directions, to Esri's route service. Search
+never sends it.
 
 1. Sign in to your portal:
    - **ArcGIS Location Platform** (the free tier is enough): sign in at
@@ -60,7 +68,9 @@ build time from `VITE_ARCGIS_API_KEY` and sends it **only** to the basemap style
 2. Click **Content** > **My content** > **New item** > **Developer credentials** >
    **API key credentials**, then **Next**.
 3. Choose **Public application**, then **No item access**.
-4. Under **Privileges**, check only **Location services** > **Basemaps**.
+4. Under **Privileges**, check only **Location services** > **Basemaps** and **Routing**.
+   Routing is for the Directions panel; a key without it still shows ArcGIS basemaps, but
+   Directions can't load Esri's route service.
 5. Set **Referrer URLs** to the sites that will serve the viewer, for example
    `http://localhost:5173`, `http://localhost:4173`, and your production URL. A key in a
    browser app is visible to anyone who opens it; referrers stop other sites from using it.
@@ -87,6 +97,13 @@ configured, the viewer uses `map.fallbackBasemap` (OpenStreetMap by default) wit
 writes one line to the browser console, and sends no request to the basemap styles service.
 The default basemap toggle switches between that basemap and `hybrid`, Esri's imagery with
 roads and place names from its public tile services, which need no key.
+
+The other panels work without a key too, with one exception:
+- **Search** always uses Esri's public geocoder, `geocode.arcgis.com`, which needs no key.
+- **Basemaps** offers the five free basemaps (`osm`, `hybrid`, `satellite`, `light`, `dark`);
+  the ArcGIS styles appear only with a key.
+- **Directions** is left out: Esri's world route service needs a key with the Routing
+  privilege. Point `routeServiceUrl` at a route service that needs none to keep it.
 
 OpenStreetMap's public tile servers have a
 [usage policy](https://operations.osmfoundation.org/policies/tiles/) that does not allow

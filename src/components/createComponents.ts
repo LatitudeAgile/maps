@@ -2,7 +2,7 @@ import type Layer from "@arcgis/core/layers/Layer.js";
 import type { AppModel } from "../app/AppModel.ts";
 import { errorText } from "../app/errors.ts";
 import type { ComponentConfig } from "../config/types.ts";
-import { COMPONENT_TYPES, type ComponentType } from "./registry.ts";
+import { COMPONENT_TYPES, type ComponentContext, type ComponentType, type ConfigurableElement, type OptionKind } from "./registry.ts";
 import { resolveBasemap } from "../map/freeBasemaps.ts";
 
 /** The parts of an element the stage touches. Real DOM elements satisfy it. */
@@ -39,6 +39,10 @@ export interface CreateComponentsOptions {
    * device's position (design D3), after the error is reported to the error channel.
    */
   onLocationError?: (code: number) => void;
+  /** The map, for `configure` hooks (design D2). */
+  map?: ComponentContext["map"];
+  /** The build's API key, for `configure` hooks that need it. */
+  apiKey?: string;
 }
 
 /**
@@ -72,8 +76,21 @@ export async function createComponents(options: CreateComponentsOptions): Promis
     const type = types[entry.type];
     const element = createElement(type.tag);
     element.setAttribute("data-component-id", entry.id);
-    for (const [name, value] of Object.entries(entry.options)) {
-      (element as unknown as Record<string, unknown>)[name] = resolveOption(type.options[name], value, app);
+    if (type.configure) {
+      if (!options.map) {
+        app.errors.report({ source: `component:${entry.id}`, message: `The "${entry.type}" component needs the map, which isn't available.` });
+        continue;
+      }
+      try {
+        await type.configure(element as unknown as ConfigurableElement, entry.options, { map: options.map, app, apiKey: options.apiKey });
+      } catch (err) {
+        app.errors.report({ source: `component:${entry.id}`, message: `The "${entry.id}" component could not be set up.`, detail: errorText(err) });
+        continue;
+      }
+    } else {
+      for (const [name, value] of Object.entries(entry.options)) {
+        (element as unknown as Record<string, unknown>)[name] = resolveOption(type.options[name], value, app);
+      }
     }
     app.addComponent({ entry, element: element as unknown as HTMLElement });
     if (type.reportsLocationErrors) {
@@ -112,7 +129,7 @@ export async function createComponents(options: CreateComponentsOptions): Promis
  * Layer-reference options become the created layers, and basemap IDs become the built-in free
  * basemap where there is one (design D4); everything else passes as is.
  */
-function resolveOption(kind: string | undefined, value: unknown, app: AppModel): unknown {
+function resolveOption(kind: OptionKind | undefined, value: unknown, app: AppModel): unknown {
   const layer = (id: string): Layer | undefined => app.getLayer(id)?.layer;
   if (kind === "layer") return layer(value as string);
   if (kind === "layer[]") return (value as string[]).map(layer).filter((l): l is Layer => l !== undefined);

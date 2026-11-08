@@ -1,0 +1,32 @@
+{
+ "spatialReference": {
+  "wkid": 102100,
+  "latestWkid": 3857
+ },
+ "candidates": [
+  {
+   "address": "Denver, Colorado",
+   "location": {
+    "x": -11686860.37696668,
+    "y": 4828007.4565260215
+   },
+   "score": 100,
+   "attributes": {
+    "Match_addr": "Denver, Colorado",
+    "LongLabel": "Denver, CO, USA",
+    "ShortLabel": "Denver",
+    "Addr_type": "Locality",
+    "Type": "City",
+    "City": "Denver",
+    "Region": "Colorado",
+    "Country": "USA"
+   },
+   "extent": {
+    "xmin": -11711461.984431993,
+    "ymin": 4796065.656573411,
+    "xmax": -11662258.769501366,
+    "ymax": 4860051.848207254
+   }
+  }
+ ]
+}

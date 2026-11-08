@@ -10,7 +10,8 @@ import { applyRequest } from "./config/applyRequest.ts";
 import { loadConfig } from "./config/load.ts";
 import { validateConfig } from "./config/validate.ts";
 import { applyApiKey, readApiKey } from "./credentials/apiKey.ts";
-import { chooseBasemap, leaveOutKeyedToggles } from "./map/chooseBasemap.ts";
+import { chooseBasemap } from "./map/chooseBasemap.ts";
+import { applyKeyless, leftOutWarning } from "./components/keyless.ts";
 import { createMap } from "./map/createMap.ts";
 import { addLayers } from "./layers/addLayers.ts";
 import { createComponents, type CreateComponentsOptions } from "./components/createComponents.ts";
@@ -59,10 +60,9 @@ async function start(): Promise<void> {
   if (choice.fellBack) {
     console.info(`[viewer] No API key is configured, so "${choice.basemap}" is shown instead of "${config.map.basemap}". Set VITE_ARCGIS_API_KEY to use ArcGIS basemaps.`);
   }
-  const { kept: components, leftOut } = leaveOutKeyedToggles(config.components, hasKey);
-  for (const c of leftOut) {
-    console.warn(`[viewer] components "${c.id}": the basemap toggle is left out because its next basemap "${String(c.options.nextBasemap)}" needs an API key. Set VITE_ARCGIS_API_KEY, or use a basemap that needs no key, such as "hybrid".`);
-  }
+  // Without a key, leave out or trim components that would need one (design D2).
+  const { kept: components, leftOut } = applyKeyless(config.components, hasKey);
+  for (const c of leftOut) console.warn(leftOutWarning(c));
 
   const shell = document.querySelector("calcite-shell");
   if (!shell) throw new Error("index.html is missing calcite-shell");
@@ -99,6 +99,8 @@ async function start(): Promise<void> {
     mapElement: mapEl as unknown as CreateComponentsOptions["mapElement"],
     app,
     onLocationError: showLocationError,
+    map,
+    apiKey,
   });
   const sidebar = createSidebar({ shell, panels });
   // The sidebar floats over the map: pad the view, and inset corner UI and notices (design D4).

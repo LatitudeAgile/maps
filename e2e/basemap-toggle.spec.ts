@@ -27,7 +27,7 @@ test.describe("basemap toggle (P-32)", () => {
     const back = await settled(page, (s) => s.basemapId !== "hybrid");
     expect(back.basemapId).toBe(start.basemapId);
     expect(back.basemapStyleId).toBe(start.basemapStyleId);
-    await expect(page.locator("calcite-notice")).toHaveCount(0);
+    await expect(page.locator("#notices calcite-notice")).toHaveCount(0);
     await expect(page.locator(".esri-identity-modal")).toHaveCount(0);
   });
 

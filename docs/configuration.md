@@ -52,7 +52,11 @@ The shipped default (`public/config/viewer.json`):
     { "id": "home", "type": "home", "placement": "top-left" },
     { "id": "locate", "type": "locate", "placement": "top-left" },
     { "id": "basemap-toggle", "type": "basemap-toggle", "placement": "top-right", "options": { "nextBasemap": "hybrid" } },
-    { "id": "legend", "type": "legend" }
+    { "id": "search", "type": "search" },
+    { "id": "directions", "type": "directions" },
+    { "id": "layers", "type": "layer-list" },
+    { "id": "legend", "type": "legend" },
+    { "id": "basemaps", "type": "basemap-gallery" }
   ]
 }
 ```
@@ -73,8 +77,8 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `portal` | object | `{}` | Optional section. |
 | `portal.url` | string | `"https://www.arcgis.com"` | Absolute `https` URL of your ArcGIS Online organization, ArcGIS Enterprise portal (for example `https://gis.example.org/portal`), or Location Platform portal. A trailing `/` is removed. |
 | `map` | object | none | **Required.** |
-| `map.basemap` | string | none | **Required**, non-empty. A basemap styles ID in `provider/style` form (for example `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`), which needs an API key, or a basemap that needs none: `osm` (OpenStreetMap) or `hybrid` (Esri imagery with roads and place names, from Esri's public tile services). Legacy IDs such as `streets-vector` are accepted with a warning that suggests the `provider/style` equivalent. |
-| `map.fallbackBasemap` | string | `"osm"` | Non-empty, and must not be a `provider/style` ID, for example `osm` or `hybrid`. Used instead of `map.basemap` when that basemap needs an API key and none is configured. |
+| `map.basemap` | string | none | **Required**, non-empty. A basemap styles ID in `provider/style` form (for example `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`), which needs an API key, or a basemap that needs none: `osm` (OpenStreetMap), or one of Esri's public tile services: `hybrid` (imagery with roads and place names), `satellite` (imagery), `light` (light gray), or `dark` (dark gray). Legacy IDs such as `streets-vector` are accepted with a warning that suggests the `provider/style` equivalent. |
+| `map.fallbackBasemap` | string | `"osm"` | Non-empty, and must not be a `provider/style` ID: `osm`, `hybrid`, `satellite`, `light`, or `dark`. Used instead of `map.basemap` when that basemap needs an API key and none is configured. |
 | `map.center` | `[number, number]` | none | **Required.** `[longitude, latitude]` in degrees. `map.center[0]` (longitude) must be between -180 and 180; `map.center[1]` (latitude) must be between -90 and 90. |
 | `map.zoom` | number | none | 0 or greater. A zoom level of the basemap's tiling scheme. Set exactly one of `map.zoom` or `map.scale`. |
 | `map.scale` | number | none | Greater than 0. The map scale denominator, for example `18489298` for 1:18,489,298. Set exactly one of `map.zoom` or `map.scale`. |
@@ -156,6 +160,11 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `locate` | A button that finds the device's location, marks it on the map, and zooms to it. Panel default: "Locate", `gps-off` icon. | `scale` (number greater than 0): the scale to zoom to; the SDK chooses one when omitted. The map snaps to the basemap's nearest zoom level outward, so `10000` shows at about 1:18,056 on ArcGIS and OpenStreetMap basemaps. `icon` (string): a Calcite icon name. `popupDisabled` (boolean, default `false`): don't open a popup on the location. |
 | `track` | A toggle button that keeps the map centered on the device as it moves. Press it again to stop. Panel default: "Track", `compass-north-circle` icon. | `scale` (number greater than 0): the scale to zoom to. `icon` (string): a Calcite icon name. `rotationDisabled` (boolean, default `false`): don't rotate the map to the direction of travel. |
 | `basemap-toggle` | A button that switches between the map's basemap and a second one; pressing it again switches back. Panel default: "Basemap", `layer-basemap` icon. | `nextBasemap` (basemap ID, default `hybrid`): the basemap to switch to, in the same forms as `map.basemap`. A legacy ID such as `satellite` works, with a warning suggesting its basemap styles ID. `showTitle` (boolean, default `false`): show the next basemap's name. |
+| `search` | Finds addresses and places as you type and zooms to the chosen result. Works without an API key: it uses Esri's public geocoder, and the key is never sent to it. Panel default: "Search", `search` icon. | `geocoderUrl` (https URL, default `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer`): the geocoding service. `maxSuggestions` (whole number 1 to 10): how many suggestions to show. `popupDisabled` (boolean, default `false`): don't open a popup on the result. |
+| `directions` | Routes between stops and lists turn-by-turn directions, with a button that clears the route. Esri's world route service needs an API key with the Routing privilege; without a key, a Directions panel that uses it is left out and the browser console says why. A public route service on another host works without a key. Panel default: "Directions", `car` icon. | `routeServiceUrl` (https URL, default `https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World`): the route service. The API key is sent only to `route-api.arcgis.com` or `route.arcgis.com`. `unit` (default `miles`): one of `miles`, `kilometers`, `meters`, `feet`, `yards`, `nautical-miles`, `us-feet`, `inches`, `millimeters`, `centimeters`, `decimeters`, `metric`, `imperial`. |
+| `layer-list` | Lists the map's operational layers by title, each with a checkbox that turns it on and off. Panel default: "Layers", `layers` icon. | `visibilityAppearance` (`checkbox` or `default`, default `checkbox`): `default` shows the SDK's eye icon instead. `showFilter` (boolean, default `false`): show a box that filters the list by title. |
+| `basemap-gallery` | Thumbnails of basemaps to choose from; the current one is marked. Without an API key, basemaps that need one are left out of the gallery (and the gallery is left out if none is left). Panel default: "Basemaps", `basemap` icon. | `basemaps` (list of basemap IDs, at least one): the basemaps to offer, in the same forms as `map.basemap`. Default: `osm`, `hybrid`, `satellite`, `light`, `dark`, `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`, `arcgis/light-gray`, `arcgis/dark-gray`. |
+| `hello-world` | A template for your own component types: shows its greeting and the map's center and scale, updating as the map moves. Not in the default config. See [custom-components.md](custom-components.md). Panel default: "Hello", `code` icon. | `greeting` (string, default `"Hello, world"`): the heading it shows. |
 
 **Location components need HTTPS.** Browsers only share the device's location with pages
 served over HTTPS (or from `localhost` during development). If the user denies access, or

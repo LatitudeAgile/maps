@@ -1,6 +1,6 @@
 import type { Request } from "@playwright/test";
 import { test, expect, hasApiKey, buildApiKey } from "./fixtures.ts";
-import { drawnFeatureCount, geojsonLayer, hostOf, isBasemapStyleRequest, mapReady, serveGeoJSON, serveModifiedConfig, settled } from "./helpers.ts";
+import { drawnFeatureCount, geojsonLayer, hostOf, isBasemapStyleRequest, mapReady, serveGeocoder, serveGeoJSON, serveModifiedConfig, settled, sidebarAction } from "./helpers.ts";
 
 test.skip(!hasApiKey(), "No VITE_ARCGIS_API_KEY configured");
 
@@ -17,12 +17,16 @@ test("API key present: ArcGIS Streets is shown with no notice", async ({ page })
   await mapReady(page);
   const s = await settled(page);
   expect(s.basemapStyleId).toBe("arcgis/streets");
-  await expect(page.locator("calcite-notice")).toHaveCount(0);
+  await expect(page.locator("#notices calcite-notice")).toHaveCount(0);
 });
 
-test("Requests to other hosts carry no key (with an external layer and the Home component)", async ({ page, log }) => {
-  // An operational layer on another https host must not receive the basemap key.
+/** ArcGIS routing and geocoding hosts, which Directions may send the key to (service-credentials). */
+const ARCGIS_ROUTING_OR_GEOCODING = /(^|\.)(route|route-api|geocode|geocode-api)\.arcgis\.com$/;
+
+test("Requests to other hosts carry no key (default config, an external layer, and a search)", async ({ page, log }) => {
+  // An operational layer on another https host must not receive the key.
   await serveGeoJSON(page, "https://data.example.com/sites.geojson");
+  await serveGeocoder(page);
   await serveModifiedConfig(page, (c) => {
     c.layers = [{ id: "sites", type: "geojson", url: "https://data.example.com/sites.geojson" }];
   });
@@ -30,8 +34,18 @@ test("Requests to other hosts carry no key (with an external layer and the Home 
   await mapReady(page);
   await expect(page.locator('[data-component-id="home"]')).toBeVisible();
   expect(await drawnFeatureCount(page, "sites")).toBe(3);
+
+  // Search for an address, and open Directions so it loads its route service.
+  await sidebarAction(page, "search").click();
+  const input = page.locator("arcgis-search input").first();
+  await input.fill("Denv");
+  await expect(page.getByRole("option", { name: /^Denver, CO, USA/ }).filter({ visible: true }).first()).toBeVisible({ timeout: 15_000 });
+  await input.press("ArrowDown");
+  await input.press("Enter");
+  await sidebarAction(page, "directions").click();
   await settled(page);
   await page.waitForLoadState("networkidle");
+  expect(log.requests.some((r) => r.url().includes("/GeocodeServer/findAddressCandidates"))).toBe(true);
   expect(log.requests.some((r) => r.url().startsWith("https://data.example.com/"))).toBe(true);
 
   const keyed = log.requests.filter((r) => carriesKey(r, key()));
@@ -41,10 +55,14 @@ test("Requests to other hosts carry no key (with an external layer and the Home 
   // Report offenders by host and path only, so a failure never prints the key.
   const offenders = [
     ...new Set(
-      keyed.filter((r) => !isBasemapStyleRequest(r.url())).map((r) => `${hostOf(r.url())}${new URL(r.url()).pathname}`),
+      keyed
+        .filter((r) => !isBasemapStyleRequest(r.url()) && !ARCGIS_ROUTING_OR_GEOCODING.test(hostOf(r.url())))
+        .map((r) => `${hostOf(r.url())}${new URL(r.url()).pathname}`),
     ),
   ];
-  expect(offenders, "requests outside the basemap styles service that carried the key").toEqual([]);
+  expect(offenders, "requests outside ArcGIS basemap styles, routing, and geocoding that carried the key").toEqual([]);
+  // Search's geocoder is keyless: none of its requests carry the key.
+  expect(keyed.filter((r) => r.url().includes("/GeocodeServer/")).map((r) => new URL(r.url()).pathname)).toEqual([]);
 
   // The key must actually reach the basemap styles service itself.
   expect(keyed.some((r) => hostOf(r.url()) === "basemapstyles-api.arcgis.com")).toBe(true);

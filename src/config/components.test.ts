@@ -8,6 +8,9 @@ import { validateComponents } from "./components.ts";
 const TYPES: Record<string, ComponentTypeSchema> = {
   ...COMPONENT_TYPES,
   "test-legend": { options: { layers: "layer[]", focus: "layer", count: "number", on: "boolean" } },
+  "test-kinds": {
+    options: { site: "url", basemaps: "basemap[]", unit: { oneOf: ["miles", "kilometers"] }, max: { integer: [1, 10] } },
+  },
 };
 
 function run(raw: unknown, layerIds: string[] = ["parcels", "roads"]) {
@@ -202,9 +205,9 @@ describe("legend and layer-info[] (P-33)", () => {
 describe("map controls: locate, track, basemap-toggle (P-31, P-32)", () => {
   const entry = (type: string, options?: Record<string, unknown>) => ({ id: "c", type, placement: "top-left", ...(options ? { options } : {}) });
 
-  test("Unknown component type lists all five registered types", () => {
+  test("Unknown component type lists every registered type", () => {
     const { errors } = run([entry("compass")]);
-    for (const t of ["home", "legend", "locate", "track", "basemap-toggle"]) expect(errors[0].message).toContain(t);
+    for (const t of ["home", "legend", "locate", "track", "basemap-toggle", "search", "directions", "layer-list", "basemap-gallery", "hello-world"]) expect(errors[0].message).toContain(t);
   });
 
   test("locate and track accept their options", () => {
@@ -238,12 +241,12 @@ describe("map controls: locate, track, basemap-toggle (P-31, P-32)", () => {
   });
 
   test("Legacy next basemap: one warning suggesting the basemap styles ID", () => {
-    const { errors, warnings, components } = run([entry("basemap-toggle", { nextBasemap: "satellite" })]);
+    const { errors, warnings, components } = run([entry("basemap-toggle", { nextBasemap: "streets-vector" })]);
     expect(errors).toEqual([]);
     expect(warnings).toHaveLength(1);
     expect(warnings[0].path).toBe("components[0].options.nextBasemap");
-    expect(warnings[0].message).toContain("arcgis/imagery/standard");
-    expect(components[0].options.nextBasemap).toBe("satellite");
+    expect(warnings[0].message).toContain("arcgis/streets");
+    expect(components[0].options.nextBasemap).toBe("streets-vector");
   });
 
   test.each(["", "   ", 7])("Empty next basemap %j: error at the option", (nextBasemap) => {
@@ -252,5 +255,161 @@ describe("map controls: locate, track, basemap-toggle (P-31, P-32)", () => {
 
   test("showTitle must be true or false", () => {
     expect(run([entry("basemap-toggle", { showTitle: "yes" })]).paths).toEqual(["components[0].options.showTitle"]);
+  });
+});
+
+describe("option kinds: url, basemap[], oneOf, integer (design D1)", () => {
+  const kinds = (options: Record<string, unknown>) => run([{ id: "k", type: "test-kinds", placement: "none", options }]);
+
+  test("valid values pass with no problems", () => {
+    const { errors, warnings, components } = kinds({
+      site: "https://example.com/arcgis/rest/services/World/GeocodeServer",
+      basemaps: ["osm", "hybrid", "arcgis/streets"],
+      unit: "miles",
+      max: 10,
+    });
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+    expect(components[0].options.max).toBe(10);
+  });
+
+  test.each(["geocode", "http://example.com/x", 5, ""])("url %j: only absolute https URLs", (site) => {
+    const { paths, errors } = kinds({ site });
+    expect(paths).toEqual(["components[0].options.site"]);
+    expect(errors[0].message).toMatch(/^Expected an https URL/);
+  });
+
+  test("basemap[]: empty list and non-list are errors at the option", () => {
+    for (const basemaps of [[], "osm"]) {
+      const { paths, errors } = kinds({ basemaps });
+      expect(paths).toEqual(["components[0].options.basemaps"]);
+      expect(errors[0].message).toMatch(/at least one basemap ID/);
+    }
+  });
+
+  test("basemap[]: a bad item is an error at its index; a legacy item warns at its index", () => {
+    const { paths, warnings } = kinds({ basemaps: ["osm", "", "streets-vector"] });
+    expect(paths).toEqual(["components[0].options.basemaps[1]"]);
+    expect(warnings.map((w) => w.path)).toEqual(["components[0].options.basemaps[2]"]);
+    expect(warnings[0].message).toContain("arcgis/streets");
+  });
+
+  test("oneOf: a value outside the list is an error listing the choices", () => {
+    const { paths, errors } = kinds({ unit: "furlongs" });
+    expect(paths).toEqual(["components[0].options.unit"]);
+    expect(errors[0].message).toBe("Expected one of: miles, kilometers.");
+  });
+
+  test.each([0, 11, 2.5, "3"])("integer %j: whole numbers in range only", (max) => {
+    const { paths, errors } = kinds({ max });
+    expect(paths).toEqual(["components[0].options.max"]);
+    expect(errors[0].message).toBe("Expected a whole number from 1 to 10.");
+  });
+});
+
+describe("search (P-34)", () => {
+  const search = (options?: Record<string, unknown>) => run([{ id: "s", type: "search", ...(options ? { options } : {}) }]);
+
+  test("geocoderUrl defaults to the keyless public geocoder", () => {
+    const { errors, components } = search();
+    expect(errors).toEqual([]);
+    expect(components[0].options.geocoderUrl).toBe("https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer");
+  });
+
+  test("Invalid geocoder URL: an https URL is expected", () => {
+    const { paths, errors } = search({ geocoderUrl: "geocode" });
+    expect(paths).toEqual(["components[0].options.geocoderUrl"]);
+    expect(errors[0].message).toMatch(/^Expected an https URL/);
+  });
+
+  test("maxSuggestions is a whole number from 1 to 10; popupDisabled is true or false", () => {
+    expect(search({ maxSuggestions: 6, popupDisabled: true }).errors).toEqual([]);
+    expect(search({ maxSuggestions: 0 }).paths).toEqual(["components[0].options.maxSuggestions"]);
+    expect(search({ popupDisabled: "no" }).paths).toEqual(["components[0].options.popupDisabled"]);
+  });
+});
+
+describe("directions (P-35)", () => {
+  const directions = (options?: Record<string, unknown>) => run([{ id: "d", type: "directions", ...(options ? { options } : {}) }]);
+
+  test("defaults: Esri's world route service, in miles", () => {
+    const { errors, components } = directions();
+    expect(errors).toEqual([]);
+    expect(components[0].options).toEqual({
+      routeServiceUrl: "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World",
+      unit: "miles",
+    });
+  });
+
+  test("Invalid unit: the error lists the supported units", () => {
+    const { paths, errors } = directions({ unit: "furlongs" });
+    expect(paths).toEqual(["components[0].options.unit"]);
+    expect(errors[0].message).toMatch(/^Expected one of: miles, kilometers, .*imperial\.$/);
+  });
+
+  test("routeServiceUrl must be an https URL", () => {
+    expect(directions({ routeServiceUrl: "http://example.com/NAServer/Route" }).paths).toEqual(["components[0].options.routeServiceUrl"]);
+  });
+});
+
+describe("layer-list (P-36)", () => {
+  const list = (options?: Record<string, unknown>) => run([{ id: "l", type: "layer-list", ...(options ? { options } : {}) }]);
+
+  test("Checkbox by default", () => {
+    const { errors, components } = list();
+    expect(errors).toEqual([]);
+    expect(components[0].options).toEqual({ visibilityAppearance: "checkbox" });
+  });
+
+  test("Invalid appearance: lists checkbox and default", () => {
+    const { paths, errors } = list({ visibilityAppearance: "toggle" });
+    expect(paths).toEqual(["components[0].options.visibilityAppearance"]);
+    expect(errors[0].message).toBe("Expected one of: checkbox, default.");
+  });
+
+  test("showFilter is true or false", () => {
+    expect(list({ showFilter: true }).errors).toEqual([]);
+    expect(list({ showFilter: "yes" }).paths).toEqual(["components[0].options.showFilter"]);
+  });
+});
+
+describe("basemap-gallery (P-37)", () => {
+  const gallery = (options?: Record<string, unknown>) => run([{ id: "g", type: "basemap-gallery", ...(options ? { options } : {}) }]);
+
+  test("default list: the five free basemaps, then five ArcGIS styles", () => {
+    const { errors, components } = gallery();
+    expect(errors).toEqual([]);
+    expect(components[0].options.basemaps).toEqual([
+      "osm", "hybrid", "satellite", "light", "dark",
+      "arcgis/streets", "arcgis/topographic", "arcgis/imagery", "arcgis/light-gray", "arcgis/dark-gray",
+    ]);
+  });
+
+  test("Empty basemap list: at least one basemap ID is expected", () => {
+    const { paths, errors } = gallery({ basemaps: [] });
+    expect(paths).toEqual(["components[0].options.basemaps"]);
+    expect(errors[0].message).toMatch(/at least one basemap ID/);
+  });
+});
+
+describe("custom components: hello-world (P-38)", () => {
+  const hello = (options?: Record<string, unknown>) => run([{ id: "h", type: "hello-world", ...(options ? { options } : {}) }]);
+
+  test("Default greeting: Hello, world", () => {
+    const { errors, components } = hello();
+    expect(errors).toEqual([]);
+    expect(components[0].options).toEqual({ greeting: "Hello, world" });
+  });
+
+  test("Custom type options are validated: greeting must be a string", () => {
+    const { paths, errors } = hello({ greeting: 5 });
+    expect(paths).toEqual(["components[0].options.greeting"]);
+    expect(errors[0].message).toBe("Expected a string.");
+  });
+
+  test("Unregistered custom type: the error lists the registered types, including hello-world", () => {
+    const { paths, errors } = run([{ id: "m", type: "my-widget" }]);
+    expect(paths).toEqual(["components[0].type"]);
+    expect(errors[0].message).toContain("hello-world");
   });
 });

@@ -31,6 +31,34 @@ describe("built-in free basemaps (design D4)", () => {
     }
   });
 
+  test("Free basemap layers: satellite, light, and dark", () => {
+    const layers = (id: string) => {
+      const b = freeBasemap(id)!;
+      return { b, base: b.baseLayers.toArray() as WebTileLayer[], reference: b.referenceLayers.toArray() as WebTileLayer[] };
+    };
+    const satellite = layers("satellite");
+    expect([satellite.base.length, satellite.reference.length]).toEqual([1, 0]);
+    expect(satellite.base[0].urlTemplate).toContain("/World_Imagery/MapServer/tile/");
+    for (const [id, service] of [["light", "Light_Gray"], ["dark", "Dark_Gray"]]) {
+      const { base, reference } = layers(id);
+      expect([base.length, reference.length]).toEqual([1, 1]);
+      expect(base[0].urlTemplate).toContain(`/Canvas/World_${service}_Base/MapServer/tile/`);
+      expect(reference[0].urlTemplate).toContain(`/Canvas/World_${service}_Reference/MapServer/tile/`);
+    }
+    for (const id of ["satellite", "light", "dark"]) {
+      const { b, base, reference } = layers(id);
+      expect(b.id).toBe(id);
+      expect(b.title).toBeTruthy();
+      expect(b.thumbnailUrl).toMatch(/^https:\/\/services\.arcgisonline\.com\/.*\/MapServer\/tile\/4\/6\/3$/);
+      for (const layer of [...base, ...reference]) {
+        expect(layer.type).toBe("web-tile");
+        expect(host(layer.urlTemplate!)).toBe("services.arcgisonline.com");
+        expect(layer.copyright).toBeTruthy();
+      }
+    }
+    expect(FREE_BASEMAP_IDS).toEqual(["hybrid", "satellite", "light", "dark"]);
+  });
+
   test("each call returns a new basemap, so the map and a toggle never share one", () => {
     expect(freeBasemap("hybrid")).not.toBe(freeBasemap("hybrid"));
   });

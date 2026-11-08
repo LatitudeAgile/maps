@@ -18,7 +18,7 @@ test("No API key: OpenStreetMap fallback, no notice, no sign-in dialog, and no b
   const styleRequests = log.requests.map((r) => r.url()).filter((u) => BASEMAP_STYLES_HOSTS.test(hostOf(u)));
   expect(styleRequests).toEqual([]);
   await expect(page.locator(".esri-identity-modal")).toHaveCount(0);
-  await expect(page.locator("calcite-notice")).toHaveCount(0);
+  await expect(page.locator("#notices calcite-notice")).toHaveCount(0);
 });
 
 test("Configured basemap needs no credential: osm shows with no notice", async ({ page }) => {
@@ -27,7 +27,7 @@ test("Configured basemap needs no credential: osm shows with no notice", async (
   await mapReady(page);
   const s = await settled(page);
   expect(s.basemapId).toBe("osm");
-  await expect(page.locator("calcite-notice")).toHaveCount(0);
+  await expect(page.locator("#notices calcite-notice")).toHaveCount(0);
 });
 
 test("Basemap service unreachable: an error appears within 15 seconds", async ({ page }) => {
@@ -43,7 +43,8 @@ test("Hybrid without a key: imagery and both reference layers from services.arcg
   // Hybrid needs no key, so this holds in the keyed suite too; it runs in both.
   await serveModifiedConfig(page, (c) => {
     c.map.basemap = "hybrid";
-    c.components = c.components.filter((e: { type: string }) => e.type !== "basemap-toggle");
+    // No components: the toggle and gallery load their own basemaps, some of them keyed.
+    c.components = [];
   });
   await page.goto("./");
   await mapReady(page);
@@ -60,5 +61,28 @@ test("Hybrid without a key: imagery and both reference layers from services.arcg
   }
   expect(tiles.every((u) => hostOf(u) === "services.arcgisonline.com")).toBe(true);
   expect(urls.filter((u) => BASEMAP_STYLES_HOSTS.test(hostOf(u)))).toEqual([]);
-  await expect(page.locator("calcite-notice")).toHaveCount(0);
+  await expect(page.locator("#notices calcite-notice")).toHaveCount(0);
+});
+
+test("Light gray without a key: base and reference tiles from services.arcgisonline.com only", async ({ page, log }) => {
+  // Light gray needs no key, so this holds in the keyed suite too; it runs in both.
+  await serveModifiedConfig(page, (c) => {
+    c.map.basemap = "light";
+    // No components: the toggle and gallery load their own basemaps, some of them keyed.
+    c.components = [];
+  });
+  await page.goto("./");
+  await mapReady(page);
+  const s = await settled(page);
+  expect(s.basemapId).toBe("light");
+
+  await page.waitForLoadState("networkidle");
+  const urls = log.requests.map((r) => r.url());
+  const tiles = urls.filter((u) => /\/MapServer\/tile\/\d+\/\d+\/\d+/.test(u));
+  for (const service of ["/Canvas/World_Light_Gray_Base/", "/Canvas/World_Light_Gray_Reference/"]) {
+    expect(tiles.some((u) => u.includes(service)), service).toBe(true);
+  }
+  expect(tiles.every((u) => hostOf(u) === "services.arcgisonline.com")).toBe(true);
+  expect(urls.filter((u) => BASEMAP_STYLES_HOSTS.test(hostOf(u)))).toEqual([]);
+  await expect(page.locator("#notices calcite-notice")).toHaveCount(0);
 });

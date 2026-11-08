@@ -91,3 +91,26 @@ legacy basemap ID.
 #### Scenario: Hybrid layers
 - **WHEN** the `hybrid` basemap is created
 - **THEN** it has one base layer and two reference layers, each a tile layer on `services.arcgisonline.com`, a title, a thumbnail, and a copyright on every layer (Vitest)
+
+### Requirement: Satellite, light gray, and dark gray basemaps that need no key are built in
+The basemap IDs `satellite`, `light`, and `dark` SHALL mean basemaps drawn from Esri's public
+tile services on `services.arcgisonline.com`, needing no API key:
+- `satellite`: `World_Imagery` alone;
+- `light`: `Canvas/World_Light_Gray_Base` with `Canvas/World_Light_Gray_Reference` on top;
+- `dark`: `Canvas/World_Dark_Gray_Base` with `Canvas/World_Dark_Gray_Reference` on top.
+
+They SHALL be accepted wherever a basemap ID is, like `hybrid`. `satellite` SHALL NOT be treated
+as a legacy basemap ID.
+
+#### Scenario: Free basemap layers
+- **WHEN** the `satellite`, `light`, and `dark` basemaps are created
+- **THEN** `satellite` has one base layer and no reference layers, `light` and `dark` each have one base and one reference layer, every layer is a tile layer on `services.arcgisonline.com` with a copyright, and each basemap has a title and a thumbnail (Vitest)
+
+#### Scenario: Light gray without a key
+- **GIVEN** the app was built without an API key
+- **WHEN** the map opens with `map.basemap` set to `light`
+- **THEN** every tile request goes to `services.arcgisonline.com`, no request goes to the basemap styles service, and no notice appears (Playwright, network log)
+
+#### Scenario: Satellite is not a legacy ID
+- **WHEN** `map.basemap` is `satellite`
+- **THEN** validation passes with no warning (Vitest)

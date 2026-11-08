@@ -21,14 +21,15 @@ configured.
 - **THEN** the viewer treats no key as configured and uses the basemap fallback
 
 ### Requirement: API key is sent only to the basemap styles service
-In this version the viewer SHALL attach the API key only to requests for the ArcGIS basemap
-styles service. It SHALL NOT attach the key to portal, feature, map, or any other service
-requests.
+The viewer SHALL attach the API key only to requests for ArcGIS location services that need it:
+the basemap styles service, and, for a `directions` component, ArcGIS routing services and the
+geocoding requests Directions makes. It SHALL NOT attach the key to portal, feature, map, or any
+other service requests, including a route service or geocoder on any other host.
 
 #### Scenario: Requests to other hosts carry no key
 - **GIVEN** the app was built with an API key
-- **WHEN** the map has loaded
-- **THEN** the key appears as a token only on requests to the basemap styles service, and on no request to any other URL (Playwright, network log; skipped when no key is configured)
+- **WHEN** the map has loaded with the shipped default config, and the user has searched for an address
+- **THEN** the key appears as a token only on requests to the basemap styles service and ArcGIS routing and geocoding hosts, and on no request to any other URL (Playwright, network log; skipped when no key is configured)
 
 ### Requirement: Credentials stay out of source control and logs
 The repository SHALL NOT contain a real API key. Local keys SHALL live in a gitignored

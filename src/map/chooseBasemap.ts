@@ -1,4 +1,4 @@
-import type { ComponentConfig, ViewerConfig } from "../config/types.ts";
+import type { ViewerConfig } from "../config/types.ts";
 import { isBasemapStyleId } from "./basemapIds.ts";
 
 export interface BasemapChoice {
@@ -21,17 +21,3 @@ export function chooseBasemap(config: Pick<ViewerConfig, "map">, hasKey: boolean
   return { basemap, fellBack: false };
 }
 
-/**
- * Without a key, leave out basemap toggles whose next basemap is a basemap styles style. The
- * toggle loads its next basemap at startup for its thumbnail, and a keyless request there makes
- * the SDK open a sign-in dialog over the map (design D5). Returns the components to create and
- * the ones left out.
- */
-export function leaveOutKeyedToggles(
-  components: readonly ComponentConfig[],
-  hasKey: boolean,
-): { kept: ComponentConfig[]; leftOut: ComponentConfig[] } {
-  const needsKey = (c: ComponentConfig) =>
-    !hasKey && c.type === "basemap-toggle" && typeof c.options.nextBasemap === "string" && isBasemapStyleId(c.options.nextBasemap);
-  return { kept: components.filter((c) => !needsKey(c)), leftOut: components.filter(needsKey) };
-}

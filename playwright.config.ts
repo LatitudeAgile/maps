@@ -22,7 +22,8 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] }, grepInvert: /@timing/ },
+    // Tests tagged @live use real ArcGIS services; set E2E_OFFLINE=1 to skip them.
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, grepInvert: process.env.E2E_OFFLINE ? /@timing|@live/ : /@timing/ },
     // Tests that assert a wall-clock bound (tagged @timing) run after everything else, so
     // parallel workers competing for CPU don't eat into the bound being tested.
     { name: "chromium-timing", use: { ...devices["Desktop Chrome"] }, grep: /@timing/, dependencies: ["chromium"] },

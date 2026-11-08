@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { AppModel } from "../app/AppModel.ts";
 import type { ComponentConfig } from "../config/types.ts";
 import { createComponents, type ComponentElement } from "./createComponents.ts";
-import type { ComponentType } from "./registry.ts";
+import { COMPONENT_TYPES, type ComponentType, type ConfigurableElement } from "./registry.ts";
 
 class FakeElement implements ComponentElement {
   slot = "";
@@ -44,10 +44,29 @@ const TYPES: Record<string, ComponentType> = {
     options: { nextBasemap: "basemap" },
     panel: { heading: "Basemap", icon: "layer-basemap" },
   },
+  configured: {
+    tag: "x-configured",
+    load: async () => undefined,
+    options: { label: "string" },
+    panel: { heading: "C", icon: "c" },
+    configure: (element, options, context) => {
+      element.text = `${String(options.label)} with key ${context.apiKey ?? "none"}`;
+      element.mapTitle = (context.map as unknown as { title: string }).title;
+    },
+  },
+  throws: {
+    tag: "x-throws",
+    load: async () => undefined,
+    options: {},
+    panel: { heading: "T", icon: "t" },
+    configure: () => {
+      throw new Error("bad setup");
+    },
+  },
   broken: { tag: "x-broken", load: () => Promise.reject(new Error("chunk failed")), options: {}, panel: { heading: "B", icon: "x" } },
 };
 
-function setup(entries: ComponentConfig[]) {
+function setup(entries: ComponentConfig[], withMap = true) {
   const app = new AppModel();
   const appended: FakeElement[] = [];
   const reports: string[] = [];
@@ -62,6 +81,8 @@ function setup(entries: ComponentConfig[]) {
       mapElement,
       createElement: (tag) => new FakeElement(tag),
       onLocationError: (code) => locationErrors.push(code),
+      map: withMap ? ({ title: "the map" } as never) : undefined,
+      apiKey: "KEY",
     });
   return { app, appended, reports, locationErrors, run, mapElement };
 }
@@ -205,5 +226,46 @@ describe("basemap options (design D4)", () => {
     expect((free.nextBasemap as { id?: string }).id).toBe("hybrid");
     expect(typeof free.nextBasemap).toBe("object");
     expect(styled.nextBasemap).toBe("arcgis/imagery/standard");
+  });
+});
+
+describe("configure hook (design D2)", () => {
+  test("configure replaces property assignment and gets the map and key", async () => {
+    const s = setup([component("c", { type: "configured", options: { label: "Hi" } })]);
+    await s.run();
+    const [el] = s.appended;
+    expect(el.text).toBe("Hi with key KEY");
+    expect(el.mapTitle).toBe("the map");
+    expect(el.label).toBeUndefined();
+  });
+
+  test("a configure that throws is reported, and the component is not created", async () => {
+    const s = setup([component("t", { type: "throws" }), component("home")]);
+    await s.run();
+    expect(s.appended.map((e) => e.attributes["data-component-id"])).toEqual(["home"]);
+    expect(s.reports).toEqual(['component:t: The "t" component could not be set up.']);
+  });
+
+  test("without the map, a configured type is reported and skipped", async () => {
+    const s = setup([component("c", { type: "configured", options: { label: "Hi" } })], false);
+    await s.run();
+    expect(s.appended).toEqual([]);
+    expect(s.reports[0]).toContain("needs the map");
+  });
+});
+
+describe("search configure (design D3)", () => {
+  test("uses only the configured geocoder, never the portal's default source, and no key", async () => {
+    const el = {} as ConfigurableElement;
+    await COMPONENT_TYPES.search.configure!(el, { geocoderUrl: "https://geo.example.com/GeocodeServer", maxSuggestions: 4 }, {
+      map: {} as never,
+      app: new AppModel(),
+      apiKey: "KEY",
+    });
+    expect(el.includeDefaultSourcesDisabled).toBe(true);
+    expect(el.sources).toEqual([expect.objectContaining({ url: "https://geo.example.com/GeocodeServer", singleLineFieldName: "SingleLine" })]);
+    expect(JSON.stringify(el.sources)).not.toContain("KEY");
+    expect(el.maxSuggestions).toBe(4);
+    expect(el.popupDisabled).toBeUndefined();
   });
 });

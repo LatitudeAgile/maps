@@ -154,6 +154,17 @@ function checkOption(
   warnings: ConfigProblem[],
 ): boolean {
   const unknownLayer = (id: unknown) => `"${String(id)}" is not a configured layer. Use an id from layers.`;
+  if (typeof kind === "object") {
+    if ("oneOf" in kind) {
+      if (typeof value === "string" && kind.oneOf.includes(value)) return true;
+      errors.push({ path, message: `Expected one of: ${kind.oneOf.join(", ")}.` });
+      return false;
+    }
+    const [min, max] = kind.integer;
+    if (typeof value === "number" && Number.isInteger(value) && value >= min && value <= max) return true;
+    errors.push({ path, message: `Expected a whole number from ${min} to ${max}.` });
+    return false;
+  }
   switch (kind) {
     case "string":
       if (typeof value === "string") return true;
@@ -167,14 +178,22 @@ function checkOption(
       if (typeof value === "number" && Number.isFinite(value) && value > 0) return true;
       errors.push({ path, message: "Expected a number greater than 0." });
       return false;
-    case "basemap": {
-      if (typeof value !== "string" || value.trim() === "") {
-        errors.push({ path, message: 'Expected a non-empty basemap ID, such as "hybrid", "osm", or "arcgis/imagery/standard".' });
+    case "url":
+      if (isHttpsUrl(value)) return true;
+      errors.push({ path, message: "Expected an https URL, such as https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer." });
+      return false;
+    case "basemap":
+      return checkBasemapId(value, path, errors, warnings);
+    case "basemap[]": {
+      if (!Array.isArray(value) || value.length === 0) {
+        errors.push({ path, message: 'Expected a list of at least one basemap ID, such as ["osm", "hybrid"].' });
         return false;
       }
-      const modern = Object.hasOwn(LEGACY_BASEMAP_IDS, value) ? LEGACY_BASEMAP_IDS[value] : undefined;
-      if (modern) warnings.push({ path, message: `"${value}" is a legacy basemap ID. Use the basemap styles ID "${modern}" instead.` });
-      return true;
+      let ok = true;
+      value.forEach((id, j) => {
+        if (!checkBasemapId(id, `${path}[${j}]`, errors, warnings)) ok = false;
+      });
+      return ok;
     }
     case "boolean":
       if (typeof value === "boolean") return true;
@@ -223,4 +242,25 @@ function checkOption(
       return ok;
     }
   }
+}
+
+/** An absolute URL with the https scheme. */
+function isHttpsUrl(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/** A non-empty basemap ID; a legacy ID is accepted with a warning naming its replacement. */
+function checkBasemapId(value: unknown, path: string, errors: ConfigProblem[], warnings: ConfigProblem[]): boolean {
+  if (typeof value !== "string" || value.trim() === "") {
+    errors.push({ path, message: 'Expected a non-empty basemap ID, such as "hybrid", "osm", or "arcgis/imagery/standard".' });
+    return false;
+  }
+  const modern = Object.hasOwn(LEGACY_BASEMAP_IDS, value) ? LEGACY_BASEMAP_IDS[value] : undefined;
+  if (modern) warnings.push({ path, message: `"${value}" is a legacy basemap ID. Use the basemap styles ID "${modern}" instead.` });
+  return true;
 }

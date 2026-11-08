@@ -10,8 +10,9 @@ created.
 
 ### Requirement: Components are created from config
 The viewer SHALL create one component for each entry of the `components` config array, using the
-entry's `type`. Only registered component types SHALL be accepted. This version registers five:
-`home` (returns the map to its initial view), `legend`, `locate`, `track`, and `basemap-toggle`.
+entry's `type`. Only registered component types SHALL be accepted. This version registers ten:
+`home`, `legend`, `locate`, `track`, `basemap-toggle`, `search`, `directions`, `layer-list`,
+`basemap-gallery`, and the `hello-world` template.
 
 #### Scenario: Home component returns to the initial view
 - **GIVEN** the config has a `home` component placed `top-left`
@@ -178,8 +179,8 @@ SHALL show the next basemap's name.
 - **THEN** validation passes, and the component's `nextBasemap` is `hybrid` (Vitest)
 
 #### Scenario: Legacy next basemap
-- **WHEN** a `basemap-toggle` component has `"options": { "nextBasemap": "satellite" }`
-- **THEN** validation passes with one warning at `components[0].options.nextBasemap` suggesting `arcgis/imagery/standard` (Vitest)
+- **WHEN** a `basemap-toggle` component has `"options": { "nextBasemap": "streets-vector" }`
+- **THEN** validation passes with one warning at `components[0].options.nextBasemap` suggesting `arcgis/streets` (Vitest)
 
 #### Scenario: Empty next basemap
 - **WHEN** a `basemap-toggle` component has `"options": { "nextBasemap": "" }`
@@ -199,3 +200,144 @@ appears.
 - **GIVEN** the app was built without an API key
 - **WHEN** a `basemap-toggle` component has `"options": { "nextBasemap": "arcgis/imagery/standard" }`
 - **THEN** no basemap toggle is shown, a console warning names `arcgis/imagery/standard`, no sign-in dialog appears, and no request goes to the basemap styles service (Playwright, network log; skipped when a key is configured)
+
+### Requirement: Search finds addresses and places without a key
+A `search` component SHALL find addresses and places as the user types, offer suggestions, and
+zoom the map to the chosen result (P-34). It SHALL use the geocoding service at its
+`geocoderUrl` option, which SHALL default to Esri's public World Geocoding Service at
+`geocode.arcgis.com`, and SHALL work with or without an API key. The API key SHALL NOT be sent
+to its geocoder. `maxSuggestions` (a whole number from 1 to 10) and `popupDisabled` (true or
+false) SHALL be applied.
+
+#### Scenario: Search and zoom
+- **GIVEN** the geocoder answers suggestions and a candidate for "Denver" at longitude -104.98, latitude 39.74 (request fixture)
+- **WHEN** the user types "Denv" in the Search panel and chooses the "Denver" suggestion
+- **THEN** the map settles within 0.05° of that location, and every geocoder request went to the configured geocoder URL with no `token` parameter (Playwright, run in both suites)
+
+#### Scenario: Live geocoder without a key
+- **GIVEN** the app was built without an API key
+- **WHEN** the user searches for "Denver, CO"
+- **THEN** the map moves to Denver (Playwright, live network; tagged so it can be skipped offline)
+
+#### Scenario: Invalid geocoder URL
+- **WHEN** a `search` component has `"options": { "geocoderUrl": "geocode" }`
+- **THEN** validation fails with an error at `components[0].options.geocoderUrl` saying an `https` URL is expected (Vitest)
+
+### Requirement: Directions routes between stops
+A `directions` component SHALL let the user add stops, solve a route, and read turn-by-turn
+directions, with a button that clears the route (P-35). The route service SHALL come from its
+`routeServiceUrl` option, which SHALL default to Esri's world route service. Distances SHALL be
+shown in miles unless its `unit` option names another length unit. Stops SHALL be found with the
+same keyless geocoder as Search.
+
+#### Scenario: Route between two stops
+- **GIVEN** a `directions` component whose `routeServiceUrl` is answered by request fixtures captured from Esri's San Diego sample service, with a two-stop route of 1.82 miles
+- **WHEN** the user enters two stops and the route solves
+- **THEN** the route is drawn on the map and the directions list shows the total distance in miles (Playwright, run in both suites)
+
+#### Scenario: World route service with a key
+- **GIVEN** the app was built with an API key that has the Routing privilege, and the shipped default config
+- **WHEN** the user routes between two addresses in Denver
+- **THEN** a route is drawn and its directions are listed (Playwright, live network; skipped when no key is configured)
+
+#### Scenario: Invalid unit
+- **WHEN** a `directions` component has `"options": { "unit": "furlongs" }`
+- **THEN** validation fails with an error at `components[0].options.unit` that lists the supported units (Vitest)
+
+### Requirement: Directions sends the key only to ArcGIS routing
+When an API key is configured and a `directions` component's route service is an ArcGIS routing
+service, the key SHALL be sent with its routing requests. The key SHALL NOT be sent to a route
+service on any other host.
+
+#### Scenario: Key goes only to ArcGIS routing
+- **GIVEN** the app was built with an API key, and `routeServiceUrl` is on a host other than an ArcGIS routing host (request fixture)
+- **WHEN** a route is solved
+- **THEN** no request to that host carries the key (Playwright, network log; skipped when no key is configured)
+
+### Requirement: A Directions panel that needs a key is left out without one
+When no API key is configured and a `directions` component's route service is an ArcGIS
+routing service that requires a key, the viewer SHALL leave that component out and SHALL write a
+warning naming it to the console. No request SHALL go to that route service, and no sign-in
+dialog SHALL appear. A `directions` component whose route service is on another host SHALL be
+created without a key.
+
+#### Scenario: Default config without a key
+- **GIVEN** the app was built without an API key
+- **WHEN** the app starts with the shipped default config
+- **THEN** the sidebar has no Directions icon, a console warning names the `directions` component, no request goes to an ArcGIS routing host, and no sign-in dialog appears (Playwright, network log; skipped when a key is configured)
+
+#### Scenario: Public route service without a key
+- **GIVEN** the app was built without an API key
+- **WHEN** a `directions` component has `routeServiceUrl` set to a route service on another host (request fixture)
+- **THEN** the Directions panel is available and a route between two stops solves (Playwright)
+
+### Requirement: The layer list shows layers with visibility checkboxes
+A `layer-list` component SHALL list the map's operational layers by title, each with a control
+that turns the layer on and off. The control SHALL be a checkbox unless its
+`visibilityAppearance` option is `default`. Its `showFilter` option (true or false) SHALL show a
+filter box (P-36).
+
+#### Scenario: Turn a layer off and on
+- **GIVEN** the config has two titled layers, both visible, and a `layer-list` panel
+- **WHEN** the user opens the panel and clears the checkbox for "Road works", then checks it again
+- **THEN** the `roads` layer is hidden after the first click and visible after the second, and the other layer stays visible (Playwright)
+
+#### Scenario: Checkbox by default
+- **WHEN** a `layer-list` component has no `visibilityAppearance` option
+- **THEN** validation passes, its `visibilityAppearance` is `checkbox`, and each layer row shows a checkbox (Vitest for the default; Playwright for the checkbox)
+
+#### Scenario: Invalid appearance
+- **WHEN** a `layer-list` component has `"options": { "visibilityAppearance": "toggle" }`
+- **THEN** validation fails with an error at `components[0].options.visibilityAppearance` that lists `checkbox` and `default` (Vitest)
+
+### Requirement: The basemap gallery offers basemaps that work
+A `basemap-gallery` component SHALL show a thumbnail and title for each basemap in its
+`basemaps` option and SHALL switch the map's basemap when one is chosen, marking the current one
+(P-37). `basemaps` SHALL accept the same IDs as `map.basemap`, and legacy IDs with the same
+warning. It SHALL default to `osm`, `hybrid`, `satellite`, `light`, and `dark`, followed by
+`arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`, `arcgis/light-gray`, and
+`arcgis/dark-gray`.
+
+#### Scenario: Choose a basemap
+- **GIVEN** the map shows its starting basemap
+- **WHEN** the user opens the Basemaps panel and chooses "Light gray"
+- **THEN** the map shows the `light` basemap and the gallery marks it as current (Playwright, run in both suites)
+
+#### Scenario: Gallery with a key
+- **GIVEN** the app was built with an API key
+- **WHEN** the user opens the Basemaps panel of the shipped default config and chooses "Topographic"
+- **THEN** it lists ten basemaps, and the map shows the `arcgis/topographic` style (Playwright; skipped when no key is configured)
+
+#### Scenario: Empty basemap list
+- **WHEN** a `basemap-gallery` component has `"options": { "basemaps": [] }`
+- **THEN** validation fails with an error at `components[0].options.basemaps` saying at least one basemap ID is expected (Vitest)
+
+### Requirement: Without a key, the basemap gallery lists only basemaps that need none
+When no API key is configured, a `basemap-gallery` component SHALL leave out every ID in its
+`basemaps` option that needs a key, and no request SHALL go to the basemap styles service. If
+no ID is left, the component SHALL be left out, with a console warning naming it.
+
+#### Scenario: Gallery without a key
+- **GIVEN** the app was built without an API key
+- **WHEN** the user opens the Basemaps panel of the shipped default config
+- **THEN** it lists exactly the five free basemaps, no request goes to the basemap styles service, and no sign-in dialog appears (Playwright, network log; skipped when a key is configured)
+
+#### Scenario: Only keyed basemaps, without a key
+- **GIVEN** the app was built without an API key
+- **WHEN** a `basemap-gallery` component has `"options": { "basemaps": ["arcgis/streets"] }`
+- **THEN** no Basemaps panel is created, and a console warning names the component (Playwright; skipped when a key is configured)
+
+### Requirement: The default sidebar matches dojo-sidebar and adds the new panels
+The shipped default config SHALL have these sidebar panels, in this order: Search, Directions,
+Layers, Legend, Basemaps. dojo-sidebar's order (Search, Directions, Legend) is kept, with the new
+panels around it.
+
+#### Scenario: Default panels with a key
+- **GIVEN** the app was built with an API key
+- **WHEN** the app starts with the shipped default config
+- **THEN** the sidebar icons are, from top to bottom, Search, Directions, Layers, Legend, Basemaps (Playwright; skipped when no key is configured)
+
+#### Scenario: Default panels without a key
+- **GIVEN** the app was built without an API key
+- **WHEN** the app starts with the shipped default config
+- **THEN** the sidebar icons are Search, Layers, Legend, Basemaps (Playwright; skipped when a key is configured)

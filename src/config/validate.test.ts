@@ -238,6 +238,13 @@ describe("tolerated and unknown settings", () => {
     expect(validateConfig(raw).warnings).toEqual([]);
   });
 
+  test("Satellite is not a legacy ID: the built-in free imagery validates with no warning", () => {
+    const raw = { map: { ...minimal().map, basemap: "satellite" } };
+    const { errors, warnings } = validateConfig(raw);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+  });
+
   test("Hybrid is not a legacy ID: the built-in free basemap validates with no warning", () => {
     const raw = { map: { ...minimal().map, basemap: "hybrid", fallbackBasemap: "hybrid" } };
     const { config, errors, warnings } = validateConfig(raw);
@@ -266,8 +273,24 @@ describe("shipped default config", () => {
       { id: "home", type: "home", placement: "top-left", options: {} },
       { id: "locate", type: "locate", placement: "top-left", options: {} },
       { id: "basemap-toggle", type: "basemap-toggle", placement: "top-right", options: { nextBasemap: "hybrid" } },
-      // Placement omitted in the file: defaults to a sidebar panel.
+      // Placement omitted in the file: defaults to a sidebar panel. Defaults fill the options.
+      { id: "search", type: "search", placement: "panel", options: { geocoderUrl: "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer" } },
+      {
+        id: "directions",
+        type: "directions",
+        placement: "panel",
+        options: { routeServiceUrl: "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World", unit: "miles" },
+      },
+      { id: "layers", type: "layer-list", placement: "panel", options: { visibilityAppearance: "checkbox" } },
       { id: "legend", type: "legend", placement: "panel", options: {} },
+      {
+        id: "basemaps",
+        type: "basemap-gallery",
+        placement: "panel",
+        options: {
+          basemaps: ["osm", "hybrid", "satellite", "light", "dark", "arcgis/streets", "arcgis/topographic", "arcgis/imagery", "arcgis/light-gray", "arcgis/dark-gray"],
+        },
+      },
     ]);
     expect(config?.layers.map((l) => [l.id, l.type])).toEqual([["usa", "map-image"]]);
   });

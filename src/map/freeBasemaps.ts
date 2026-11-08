@@ -6,11 +6,12 @@ import WebTileLayer from "@arcgis/core/layers/WebTileLayer.js";
  * original public tile services, which also served these IDs in ArcGIS JS 3.x. Layers use URL
  * templates, so loading a basemap sends no service metadata request.
  *
- * The basemap gallery will add `satellite`, `light`, and `dark` from the same services.
+ * `satellite` and `hybrid` are the IDs these services had in 3.x.
  */
 export const ESRI_TILES = "https://services.arcgisonline.com/ArcGIS/rest/services/";
 
 const IMAGERY_COPYRIGHT = "Esri, Maxar, Earthstar Geographics, and the GIS User Community";
+const CANVAS_COPYRIGHT = "Esri, HERE, Garmin, © OpenStreetMap contributors, and the GIS user community";
 
 const esriLayer = (service: string, copyright: string) =>
   new WebTileLayer({ urlTemplate: `${ESRI_TILES}${service}/MapServer/tile/{level}/{row}/{col}`, copyright });
@@ -28,6 +29,29 @@ const FACTORIES: Readonly<Record<string, () => Basemap>> = {
         esriLayer("Reference/World_Transportation", "Esri"),
         esriLayer("Reference/World_Boundaries_and_Places", "Esri"),
       ],
+    }),
+  satellite: () =>
+    new Basemap({
+      id: "satellite",
+      title: "Satellite",
+      thumbnailUrl: esriThumbnail("World_Imagery"),
+      baseLayers: [esriLayer("World_Imagery", IMAGERY_COPYRIGHT)],
+    }),
+  light: () =>
+    new Basemap({
+      id: "light",
+      title: "Light gray",
+      thumbnailUrl: esriThumbnail("Canvas/World_Light_Gray_Base"),
+      baseLayers: [esriLayer("Canvas/World_Light_Gray_Base", CANVAS_COPYRIGHT)],
+      referenceLayers: [esriLayer("Canvas/World_Light_Gray_Reference", CANVAS_COPYRIGHT)],
+    }),
+  dark: () =>
+    new Basemap({
+      id: "dark",
+      title: "Dark gray",
+      thumbnailUrl: esriThumbnail("Canvas/World_Dark_Gray_Base"),
+      baseLayers: [esriLayer("Canvas/World_Dark_Gray_Base", CANVAS_COPYRIGHT)],
+      referenceLayers: [esriLayer("Canvas/World_Dark_Gray_Reference", CANVAS_COPYRIGHT)],
     }),
 };
 

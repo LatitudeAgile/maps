@@ -21,6 +21,10 @@
     { "id": "home", "type": "home", "placement": "top-left" },
     { "id": "locate", "type": "locate", "placement": "top-left" },
     { "id": "basemap-toggle", "type": "basemap-toggle", "placement": "top-right", "options": { "nextBasemap": "hybrid" } },
-    { "id": "legend", "type": "legend" }
+    { "id": "search", "type": "search" },
+    { "id": "directions", "type": "directions" },
+    { "id": "layers", "type": "layer-list" },
+    { "id": "legend", "type": "legend" },
+    { "id": "basemaps", "type": "basemap-gallery" }
   ]
 }
