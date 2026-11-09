@@ -10,7 +10,7 @@ not an in-place upgrade. dojo-sidebar is kept unchanged as a reference.
 
 > **Status:** early migration. The viewer shows a config-driven map with layers, Home, Locate
 > and zoom buttons at the bottom right, and a collapsible sidebar with Search, Directions,
-> Layers, Legend, and Basemaps panels. Optional organization sign-in is still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
+> Layers, Legend, Basemaps, Sketch, and Print panels. Optional organization sign-in is still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
 > [`openspec/`](openspec/).
 
 ## Requirements

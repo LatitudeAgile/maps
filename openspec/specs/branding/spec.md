@@ -100,19 +100,26 @@ warning naming it.
 
 ### Requirement: The theme colors the icon bar and the title box
 When `app.theme` is set, the sidebar's icon bar and the title box SHALL have `color` as their
-background at `opacity`. The opacity SHALL apply to the background only: icons and title text
-SHALL be drawn in the text color at full opacity. This SHALL hold on wide screens and in the
-phone bottom bar. Open panels SHALL keep the default panel colors.
+background. While no panel is open, both SHALL be at `opacity`. While a panel is open, the icon
+bar SHALL be `color` fully opaque, and the title box SHALL stay at `opacity`. The opacity SHALL
+apply to the background only: icons and title text SHALL be drawn in the text color at full
+opacity. This SHALL hold on wide screens and in the phone bottom bar. Open panels SHALL keep the
+default panel colors.
 
 #### Scenario: Themed on a wide screen
 - **GIVEN** a 1280×800 viewport and `app.theme` `{ "color": "#1f6f8b", "opacity": 0.85, "textColor": "#ffffff" }`
-- **WHEN** the app starts
-- **THEN** the icon bar's and the title box's computed background is `rgba(31, 111, 139, 0.85)`, the title text and the icons are `rgb(255, 255, 255)` with an opacity of 1, and an open panel's background is unchanged from an unthemed viewer (Playwright, reading computed styles)
+- **WHEN** the app starts, and then the user opens the Legend panel
+- **THEN** before the panel opens, the icon bar's computed background is `rgba(31, 111, 139, 0.85)`; with it open, the icon bar's is `rgb(31, 111, 139)` and the title box's is still `rgba(31, 111, 139, 0.85)`; the title text and the icons are `rgb(255, 255, 255)` with an opacity of 1, and the open panel's background is unchanged from an unthemed viewer (Playwright, reading computed styles)
 
 #### Scenario: Themed bottom bar on a phone
 - **GIVEN** a 375×667 viewport and the same theme
-- **WHEN** the app starts
-- **THEN** the bottom icon bar's computed background is `rgba(31, 111, 139, 0.85)` (Playwright, reading computed styles)
+- **WHEN** the app starts, and then the user opens the Legend panel
+- **THEN** the bottom icon bar's computed background is `rgba(31, 111, 139, 0.85)` at first, and `rgb(31, 111, 139)` with the panel open (Playwright, reading computed styles)
+
+#### Scenario: Translucent again when the sidebar closes
+- **GIVEN** a 1280×800 viewport, the same theme, and the Legend panel open
+- **WHEN** the user presses Escape
+- **THEN** the icon bar's computed background and edge color are `rgba(31, 111, 139, 0.85)` again (Playwright, reading computed styles)
 
 #### Scenario: No theme
 - **WHEN** the config has no `app.theme`

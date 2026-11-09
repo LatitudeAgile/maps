@@ -53,12 +53,16 @@ export function resolveTextColor(color: string): "#ffffff" | "#000000" {
 /**
  * Theme the icon bar and the title box (design D4): set `--viewer-theme-*` on `root` and mark it
  * `themed`; `style.css` maps these onto Calcite's action-bar and action tokens. The opacity goes
- * into the background color's alpha only, so icons and text stay fully opaque.
+ * into the background color's alpha only, so icons and text stay fully opaque. It applies while
+ * the sidebar is collapsed; with a panel open, the icon bar is solid.
  */
 export function applyTheme(root: HTMLElement, theme: Theme): void {
   const [r, g, b] = parseHex(theme.color)!;
   root.classList.add("themed");
   root.style.setProperty("--viewer-theme-background", `rgb(${r} ${g} ${b} / ${theme.opacity})`);
+  // The icon bar while a panel is open: the same color, solid, so the bar and the panel read as
+  // one block (add-print-and-sketch-panels D13).
+  root.style.setProperty("--viewer-theme-solid", `rgb(${r} ${g} ${b})`);
   root.style.setProperty("--viewer-theme-text", theme.textColor);
   // The open panel's icon: the theme color darkened, opaque, so it stands out on any map.
   root.style.setProperty("--viewer-theme-pressed", `color-mix(in srgb, ${theme.color} 75%, black)`);

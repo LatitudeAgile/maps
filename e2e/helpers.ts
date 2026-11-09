@@ -305,6 +305,63 @@ export async function serveGeocoder(page: Page, pattern: string | RegExp = /\/Ge
   return seen;
 }
 
+/** The print component's default service (SDK 5.2), observed in a probe on 2026-11-07. */
+export const DEFAULT_PRINT_SERVICE = "https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer";
+/** Where the print fixture says the exported file is; answered with a 1x1 PNG. */
+const PRINT_OUTPUT_HOST = "https://print-output.fixture.test/";
+
+export interface PrintExport {
+  /** The export request's URL. */
+  url: string;
+  /** Its `Web_Map_as_JSON`, parsed. */
+  webMap: Record<string, any>;
+  format: string | null;
+}
+
+/**
+ * Answer a print service's metadata, layout-template and export requests from fixtures captured
+ * from the default service (design D11). `gpServer` is the GPServer URL, without a task. The
+ * component also asks print.arcgis.com for layout templates, so that host is answered too,
+ * keeping tests offline. Returns the export requests, for assertions on the web map sent.
+ */
+export async function servePrint(page: Page, gpServer: string = DEFAULT_PRINT_SERVICE): Promise<PrintExport[]> {
+  const exports: PrintExport[] = [];
+  const isPrint = (u: URL) => u.href.startsWith(gpServer) || (u.host === "print.arcgis.com" && u.pathname.includes("/GPServer"));
+  await page.context().route(isPrint, (route) => {
+    const req = route.request();
+    const url = new URL(req.url());
+    const path = decodeURIComponent(url.pathname);
+    const json = (file: string) => route.fulfill({ status: 200, contentType: "application/json", body: fixture(file) });
+    if (/\/Export Web Map Task\/(execute|submitJob)$/.test(path)) {
+      const params = new URLSearchParams(req.method() === "POST" ? (req.postData() ?? "") : url.search);
+      exports.push({ url: req.url(), webMap: JSON.parse(params.get("Web_Map_as_JSON") ?? "{}"), format: params.get("Format") });
+      return json("print-export.json");
+    }
+    if (path.endsWith("/Get Layout Templates Info Task/execute")) return json("print-templates.json");
+    if (path.endsWith("/Get Layout Templates Info Task")) return json("print-templates-task.json");
+    if (path.endsWith("/Export Web Map Task")) return json("print-export-task.json");
+    return json("print-service.json");
+  });
+  await page.context().route(`${PRINT_OUTPUT_HOST}**`, (route) =>
+    route.fulfill({ status: 200, contentType: "image/png", body: readFileSync(new URL("./fixtures/print-output.png", import.meta.url)) }),
+  );
+  return exports;
+}
+
+/** Open the Print panel's export and press Export; resolves once an export is recorded. */
+export async function exportPrint(page: Page, exports: PrintExport[], panelId = "print"): Promise<PrintExport> {
+  if (!(await openPanels(page)).includes(panelId)) await sidebarAction(page, panelId).click();
+  const before = exports.length;
+  // The Layout and Map only tabs each have an Export button; press the one showing.
+  await page.locator("arcgis-print").getByRole("button", { name: /^export$/i }).filter({ visible: true }).first().click();
+  const deadline = Date.now() + 15_000;
+  while (exports.length === before) {
+    if (Date.now() > deadline) throw new Error("No export request was sent to the print service");
+    await page.waitForTimeout(100);
+  }
+  return exports[exports.length - 1];
+}
+
 /**
  * Answer a route service's description, travel modes, and solve requests from fixtures captured
  * from Esri's San Diego sample service (a 1.82-mile route). Returns the request URLs answered.

@@ -206,7 +206,7 @@ point on screen. From 768 px, the icons SHALL be in config order from top to bot
 
 #### Scenario: Icons start from the right on a phone
 - **WHEN** the viewport is 375×667 and the app starts with the shipped default config, built with an API key
-- **THEN** the bar's icons are, from right to left, Search, Directions, Layers, Legend, Basemaps, and the Search icon's right edge is within 16 px of the window's right edge (Playwright; the keyless build checks the same order without Directions)
+- **THEN** the bar's icons are, from right to left, Search, Directions, Layers, Legend, Basemaps, Sketch, Print, all within the window, and the Search icon's right edge is within 16 px of the window's right edge (Playwright; the keyless build checks the same order without Directions)
 
 #### Scenario: Arrow keys follow the screen on a phone
 - **GIVEN** a 375×667 viewport, the shipped default config built with an API key, and focus on the Search icon
@@ -216,3 +216,63 @@ point on screen. From 768 px, the icons SHALL be in config order from top to bot
 #### Scenario: Back to the top-to-bottom order on a wide screen
 - **WHEN** the viewport changes from 375×667 to 1280×800
 - **THEN** the icons are, from top to bottom, in config order again (Playwright)
+
+### Requirement: Panel components follow their panel
+The sidebar SHALL tell each panel component when its panel opens and when it closes, however
+it closes: by its icon, its close button, Escape, or switching panels. A panel component SHALL
+be able to ask the sidebar to open its panel, which SHALL then behave as if its icon was
+activated while closed.
+
+#### Scenario: Told on open and close
+- **GIVEN** a `hello-world` panel and a Legend panel, with the test recording the open and close events on the `hello-world` element
+- **WHEN** the user opens the Hello panel, switches to Legend, opens Hello again and presses Escape
+- **THEN** the element was told open, closed, open, closed, in that order (Playwright)
+
+#### Scenario: Asking to open
+- **GIVEN** a `hello-world` panel, and the Legend panel is open
+- **WHEN** the test sends the open request from the `hello-world` element
+- **THEN** the Hello panel is open, the Legend panel is not, and the Hello icon shows as open (Playwright)
+
+#### Scenario: Corner components aren't told
+- **GIVEN** a `hello-world` component placed `top-right`, and no panel open
+- **WHEN** the test sends the open request from that element
+- **THEN** no panel opens, and no error is reported (Playwright)
+
+### Requirement: Popups open undocked and dock clear of the phone bottom bar
+Map popups SHALL open undocked, beside the feature, at every viewport width. A popup the user
+docks with its dock button SHALL dock at the top of the map below a viewport width of 768 px,
+where the sidebar is a bar along the bottom, so that neither the icon bar nor an open panel
+covers it; from 768 px it SHALL dock at the SDK's default position.
+
+#### Scenario: Undocked on a phone
+- **GIVEN** a 375×667 viewport and no panel open
+- **WHEN** the user taps a feature
+- **THEN** its popup opens undocked, and its bottom edge is above the icon bar's top edge (Playwright, comparing bounding boxes)
+
+#### Scenario: Undocked on a wide screen
+- **GIVEN** a 1280×800 viewport
+- **WHEN** the user clicks a feature
+- **THEN** its popup opens undocked (Playwright)
+
+#### Scenario: Docked by the user on a phone
+- **GIVEN** a 375×667 viewport, the Legend panel open, and a feature's popup open
+- **WHEN** the user presses the popup's dock button
+- **THEN** the popup is docked at the top, and its bottom edge is above the panel's top edge (Playwright, comparing bounding boxes)
+
+#### Scenario: Docked by the user on a wide screen
+- **WHEN** the viewport is 1280×800
+- **THEN** the popup's dock position is the SDK's default, `auto` (Playwright)
+
+### Requirement: Escape closes a panel's dialog or popover first
+While a dialog or popover opened from a panel component is open, Escape SHALL close only that
+dialog or popover. The panel SHALL stay open, and a further Escape SHALL close it as before.
+
+#### Scenario: Escape in a popover
+- **GIVEN** the Sketch panel is open with its Area fill popover open
+- **WHEN** the user presses Escape, and then Escape again
+- **THEN** the first Escape closes the popover and the panel stays open; the second closes the panel and returns focus to its icon (Playwright)
+
+#### Scenario: Escape in a dialog
+- **GIVEN** the Sketch panel is open and the note dialog is asking for a new note's text
+- **WHEN** the user presses Escape
+- **THEN** the dialog closes as Cancel does, no note is left, and the Sketch panel is still open (Playwright)

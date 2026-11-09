@@ -29,6 +29,8 @@
     { "id": "directions", "type": "directions", "placement": "panel" },
     { "id": "layers", "type": "layer-list", "placement": "panel" },
     { "id": "legend", "type": "legend", "placement": "panel" },
-    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" }
+    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" },
+    { "id": "sketch", "type": "sketch", "placement": "panel" },
+    { "id": "print", "type": "print", "placement": "panel" }
   ]
 }

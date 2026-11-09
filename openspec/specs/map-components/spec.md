@@ -10,9 +10,9 @@ created.
 
 ### Requirement: Components are created from config
 The viewer SHALL create one component for each entry of the `components` config array, using the
-entry's `type`. Only registered component types SHALL be accepted. This version registers eleven:
-`home`, `zoom`, `legend`, `locate`, `track`, `basemap-toggle`, `search`, `directions`,
-`layer-list`, `basemap-gallery`, and the `hello-world` template.
+entry's `type`. Only registered component types SHALL be accepted. This version registers
+thirteen: `home`, `zoom`, `legend`, `locate`, `track`, `basemap-toggle`, `search`, `directions`,
+`layer-list`, `basemap-gallery`, `print`, `sketch`, and the `hello-world` template.
 
 #### Scenario: Home component returns to the initial view
 - **GIVEN** the config has a `home` component placed `top-left`
@@ -21,7 +21,7 @@ entry's `type`. Only registered component types SHALL be accepted. This version 
 
 #### Scenario: Unknown component type
 - **WHEN** a component entry has `"type": "compass"`
-- **THEN** validation fails with an error at `components[0].type` that lists the supported types (Vitest)
+- **THEN** validation fails with an error at `components[0].type` that lists the supported types, including `print` and `sketch` (Vitest)
 
 #### Scenario: Duplicate component ID
 - **WHEN** two component entries have the `id` `home`
@@ -338,23 +338,24 @@ no ID is left, the component SHALL be left out, with a console warning naming it
 
 ### Requirement: The default sidebar matches dojo-sidebar and adds the new panels
 The shipped default config SHALL have these sidebar panels, in this order: Search, Directions,
-Layers, Legend, Basemaps. dojo-sidebar's order (Search, Directions, Legend) is kept, with the new
-panels around it. Each of these entries SHALL state `"placement": "panel"` explicitly, so the
-shipped config shows where every component goes.
+Layers, Legend, Basemaps, Sketch, Print. dojo-sidebar's order (Search, Directions, Legend) is
+kept, with the new panels around it, and Sketch comes just before Print so marking up a map
+leads to printing it. Each of these entries SHALL state `"placement": "panel"` explicitly, so
+the shipped config shows where every component goes.
 
 #### Scenario: Default panels with a key
 - **GIVEN** the app was built with an API key
 - **WHEN** the app starts with the shipped default config
-- **THEN** the sidebar icons are, from top to bottom, Search, Directions, Layers, Legend, Basemaps (Playwright; skipped when no key is configured)
+- **THEN** the sidebar icons are, from top to bottom, Search, Directions, Layers, Legend, Basemaps, Sketch, Print (Playwright; skipped when no key is configured)
 
 #### Scenario: Default panels without a key
 - **GIVEN** the app was built without an API key
 - **WHEN** the app starts with the shipped default config
-- **THEN** the sidebar icons are Search, Layers, Legend, Basemaps (Playwright; skipped when a key is configured)
+- **THEN** the sidebar icons are Search, Layers, Legend, Basemaps, Sketch, Print (Playwright; skipped when a key is configured)
 
 #### Scenario: Placement stated in the shipped config
 - **WHEN** the shipped default config is read
-- **THEN** every entry in `components` has a `placement` setting, and the five panel entries have `"placement": "panel"` (Vitest, reading `public/config/viewer.json`)
+- **THEN** every entry in `components` has a `placement` setting, and the seven panel entries have `"placement": "panel"` (Vitest, reading `public/config/viewer.json`)
 
 ### Requirement: The location marker can be removed from its popup
 The marker that a `locate` or `track` component puts on the map SHALL open a popup with a
@@ -370,3 +371,40 @@ errors. Pressing the Locate button again SHALL put a new marker on the map.
 - **GIVEN** the location marker was removed from its popup
 - **WHEN** the user presses the Locate button again
 - **THEN** the location marker is on the map again (Playwright, fake geolocation)
+
+### Requirement: Print exports the map through a print service
+A `print` component SHALL be Esri's print component as it ships: the user chooses a layout or
+map only, a title and a format, and exports the map to a file listed for download (P-60). Its
+`printServiceUrl` option, an https URL, SHALL set the print service. Without it, the viewer
+SHALL leave the component's own default service in place.
+
+#### Scenario: Export through a configured service
+- **GIVEN** a `print` panel with `printServiceUrl` set to a service answered by request fixtures
+- **WHEN** the user opens the Print panel, enters the title "Site visit" and exports
+- **THEN** the export request goes to the configured URL with "Site visit" in the web map, and the panel lists the exported file (Playwright, run in both suites)
+
+#### Scenario: Default service
+- **WHEN** a `print` component has no `printServiceUrl` option
+- **THEN** validation passes, the viewer sets no print service on the component, and its export request goes to the component's default service (Vitest for the options; Playwright with a request fixture for the request)
+
+#### Scenario: Default service without a key
+- **GIVEN** the app was built without an API key, with the shipped default config
+- **WHEN** the user exports a map image from the Print panel
+- **THEN** the panel lists the exported file, and no sign-in dialog appears (Playwright, live network; tagged so it can be skipped offline)
+
+#### Scenario: Invalid print service URL
+- **WHEN** a `print` component has `"options": { "printServiceUrl": "print" }`
+- **THEN** validation fails with an error at `components[0].options.printServiceUrl` saying an `https` URL is expected (Vitest)
+
+### Requirement: A component type can limit its placements
+A component type MAY support only some placements. An entry of that type with any other
+placement, stated or defaulted, SHALL fail validation with an error at its `placement` that
+lists the placements the type supports. The `sketch` type SHALL support only `panel`.
+
+#### Scenario: Sketch in a corner
+- **WHEN** a `sketch` component has `"placement": "top-right"`
+- **THEN** validation fails with an error at `components[0].placement` saying the `sketch` component supports only `panel` (Vitest)
+
+#### Scenario: Sketch with placement omitted
+- **WHEN** a `sketch` component entry has no `placement`
+- **THEN** validation passes, and the Sketch panel is in the sidebar (Vitest for validation; Playwright for the panel)

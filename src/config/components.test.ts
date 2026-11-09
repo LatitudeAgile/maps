@@ -9,8 +9,9 @@ const TYPES: Record<string, ComponentTypeSchema> = {
   ...COMPONENT_TYPES,
   "test-legend": { options: { layers: "layer[]", focus: "layer", count: "number", on: "boolean" } },
   "test-kinds": {
-    options: { site: "url", basemaps: "basemap[]", unit: { oneOf: ["miles", "kilometers"] }, max: { integer: [1, 10] } },
+    options: { site: "url", basemaps: "basemap[]", unit: { oneOf: ["miles", "kilometers"] }, max: { integer: [1, 10] }, palette: "color[]" },
   },
+  "test-limited": { options: {}, placements: ["panel", "none"] },
 };
 
 function run(raw: unknown, layerIds: string[] = ["parcels", "roads"]) {
@@ -207,7 +208,7 @@ describe("map controls: locate, track, basemap-toggle (P-31, P-32)", () => {
 
   test("Unknown component type lists every registered type", () => {
     const { errors } = run([entry("compass")]);
-    for (const t of ["home", "zoom", "legend", "locate", "track", "basemap-toggle", "search", "directions", "layer-list", "basemap-gallery", "hello-world"]) expect(errors[0].message).toContain(t);
+    for (const t of ["home", "zoom", "legend", "locate", "track", "basemap-toggle", "search", "directions", "layer-list", "basemap-gallery", "print", "sketch", "hello-world"]) expect(errors[0].message).toContain(t);
   });
 
   test("locate and track accept their options", () => {
@@ -307,6 +308,66 @@ describe("option kinds: url, basemap[], oneOf, integer (design D1)", () => {
   });
 });
 
+describe("option kind: color[] (add-print-and-sketch-panels D5)", () => {
+  const colors = (palette: unknown) => run([{ id: "k", type: "test-kinds", placement: "none", options: { palette } }]);
+
+  test("a valid list passes, with colors in lowercase", () => {
+    const { errors, warnings, components } = colors([{ name: "Teal", color: "#1F6F8B" }, { name: "Gold", color: "#c99700" }]);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+    expect(components[0].options.palette).toEqual([{ name: "Teal", color: "#1f6f8b" }, { name: "Gold", color: "#c99700" }]);
+  });
+
+  test.each([[[]], ["#d7263d"], [Array.from({ length: 13 }, (_, i) => ({ name: `C${i}`, color: `#0000${String(i).padStart(2, "0")}` }))]])(
+    "a list of 1 to 12 entries is required: %#",
+    (palette) => {
+      const { paths, errors } = colors(palette);
+      expect(paths).toEqual(["components[0].options.palette"]);
+      expect(errors[0].message).toMatch(/1 to 12 colors/);
+    },
+  );
+
+  test.each(["red", "#d72", "#d7263d80", 5])("Invalid color %j: a #rrggbb color is expected", (color) => {
+    const { paths, errors } = colors([{ name: "Red", color }]);
+    expect(paths).toEqual(["components[0].options.palette[0].color"]);
+    expect(errors[0].message).toMatch(/#rrggbb/);
+  });
+
+  test("a missing or empty name is an error at the name", () => {
+    expect(colors([{ color: "#d7263d" }]).paths).toEqual(["components[0].options.palette[0].name"]);
+    expect(colors([{ name: " ", color: "#d7263d" }]).paths).toEqual(["components[0].options.palette[0].name"]);
+  });
+
+  test("Duplicate color: an error at the second, whatever its case", () => {
+    const { paths, errors } = colors([{ name: "Red", color: "#d7263d" }, { name: "Also red", color: "#D7263D" }]);
+    expect(paths).toEqual(["components[0].options.palette[1].color"]);
+    expect(errors[0].message).toMatch(/unique/);
+  });
+});
+
+describe("placement limits (add-print-and-sketch-panels D2)", () => {
+  test("a placement the type doesn't support is an error that lists the supported ones", () => {
+    const { paths, errors } = run([{ id: "t", type: "test-limited", placement: "top-right" }]);
+    expect(paths).toEqual(["components[0].placement"]);
+    expect(errors[0].message).toBe('The "test-limited" component supports only: panel, none.');
+  });
+
+  test("supported placements pass, including the default panel", () => {
+    expect(run([{ id: "t", type: "test-limited" }]).errors).toEqual([]);
+    expect(run([{ id: "t", type: "test-limited", placement: "none" }]).errors).toEqual([]);
+  });
+
+  test("types without a limit take every placement", () => {
+    expect(run([home({ placement: "bottom-end" })]).errors).toEqual([]);
+  });
+
+  test("an invalid placement is reported once, as invalid, not as unsupported", () => {
+    const { errors } = run([{ id: "t", type: "test-limited", placement: "sidebar" }]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toMatch(/^Expected one of:/);
+  });
+});
+
 describe("search (P-34)", () => {
   const search = (options?: Record<string, unknown>) => run([{ id: "s", type: "search", ...(options ? { options } : {}) }]);
 
@@ -389,6 +450,28 @@ describe("basemap-gallery (P-37)", () => {
     const { paths, errors } = gallery({ basemaps: [] });
     expect(paths).toEqual(["components[0].options.basemaps"]);
     expect(errors[0].message).toMatch(/at least one basemap ID/);
+  });
+});
+
+describe("print (P-60)", () => {
+  const print = (options?: Record<string, unknown>) => run([{ id: "p", type: "print", ...(options ? { options } : {}) }]);
+
+  test("Default service: no printServiceUrl is filled in", () => {
+    const { errors, warnings, components } = print();
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+    expect(components[0].options).toEqual({});
+  });
+
+  test("a configured printServiceUrl is kept", () => {
+    const url = "https://print.example.com/arcgis/rest/services/PrintingTools/GPServer/Export%20Web%20Map%20Task";
+    expect(print({ printServiceUrl: url }).components[0].options).toEqual({ printServiceUrl: url });
+  });
+
+  test("Invalid print service URL: an https URL is expected", () => {
+    const { paths, errors } = print({ printServiceUrl: "print" });
+    expect(paths).toEqual(["components[0].options.printServiceUrl"]);
+    expect(errors[0].message).toMatch(/^Expected an https URL/);
   });
 });
 

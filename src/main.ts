@@ -13,6 +13,7 @@ import { applyApiKey, readApiKey } from "./credentials/apiKey.ts";
 import { chooseBasemap } from "./map/chooseBasemap.ts";
 import { applyKeyless, leftOutWarning } from "./components/keyless.ts";
 import { createMap } from "./map/createMap.ts";
+import { followPopupDocking } from "./map/popupDock.ts";
 import { addLayers } from "./layers/addLayers.ts";
 import { createComponents, type CreateComponentsOptions } from "./components/createComponents.ts";
 import { createSidebar } from "./sidebar/createSidebar.ts";
@@ -121,6 +122,12 @@ async function start(): Promise<void> {
   const sidebar = createSidebar({ shell, panels });
   // The sidebar floats over the map: pad the view, and inset corner UI and notices (design D4).
   if (sidebar) trackSidebarInsets(sidebar, mapEl, shell);
+  // Popups open undocked everywhere; docked by the user on a phone, they go to the top, clear
+  // of the bottom bar (add-print-and-sketch-panels D14).
+  mapEl.viewOnReady().then(
+    () => followPopupDocking(mapEl as unknown as Parameters<typeof followPopupDocking>[0]),
+    () => undefined,
+  );
 }
 
 /**

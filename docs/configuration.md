@@ -60,13 +60,15 @@ The shipped default (`public/config/viewer.json`):
     { "id": "directions", "type": "directions", "placement": "panel" },
     { "id": "layers", "type": "layer-list", "placement": "panel" },
     { "id": "legend", "type": "legend", "placement": "panel" },
-    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" }
+    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" },
+    { "id": "sketch", "type": "sketch", "placement": "panel" },
+    { "id": "print", "type": "print", "placement": "panel" }
   ]
 }
 ```
 
 The map controls sit in the bottom-right corner, within reach of a thumb on a phone: Home,
-then Locate, then the zoom buttons lowest. The five panels form the sidebar, in the order listed
+then Locate, then the zoom buttons lowest. The seven panels form the sidebar, in the order listed
 (see [Display order](#components)). There is no basemap toggle: the Basemaps panel switches
 basemaps. To add one, see the `basemap-toggle` type.
 
@@ -208,6 +210,8 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `directions` | Routes between stops and lists turn-by-turn directions, with a button that clears the route. Esri's world route service needs an API key with the Routing privilege; without a key, a Directions panel that uses it is left out and the browser console says why. A public route service on another host works without a key. Panel default: "Directions", `car` icon. | `routeServiceUrl` (https URL, default `https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World`): the route service. The API key is sent only to `route-api.arcgis.com` or `route.arcgis.com`. `unit` (default `miles`): one of `miles`, `kilometers`, `meters`, `feet`, `yards`, `nautical-miles`, `us-feet`, `inches`, `millimeters`, `centimeters`, `decimeters`, `metric`, `imperial`. |
 | `layer-list` | Lists the map's operational layers by title, each with a checkbox that turns it on and off. Panel default: "Layers", `layers` icon. | `visibilityAppearance` (`checkbox` or `default`, default `checkbox`): `default` shows the SDK's eye icon instead. `showFilter` (boolean, default `false`): show a box that filters the list by title. |
 | `basemap-gallery` | Thumbnails of basemaps to choose from; the current one is marked. Without an API key, basemaps that need one are left out of the gallery (and the gallery is left out if none is left). Panel default: "Basemaps", `basemap` icon. | `basemaps` (list of basemap IDs, at least one): the basemaps to offer, in the same forms as `map.basemap`. Default: `osm`, `hybrid`, `satellite`, `light`, `dark`, `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`, `arcgis/light-gray`, `arcgis/dark-gray`. |
+| `print` | Esri's print component as it ships: choose a layout (with a title, legend and scale bar) or the map only, a format such as PDF or JPG, and export the map to a file listed for download. Works without an API key. Panel default: "Print", `print` icon. | `printServiceUrl` (https URL): the print service's Export Web Map task, such as your ArcGIS Enterprise `.../PrintingTools/GPServer/Export%20Web%20Map%20Task`. When omitted, the viewer sets nothing and the component uses its own default, the ArcGIS Online print service. |
+| `sketch` | Draw and write on the map: points, lines, polygons, rectangles, circles and notes, with freehand and curved segments, undo and redo, and measurements while drawing. Opening the panel turns drawing on; closing it, or switching panels, ends drawing and any selection. With the panel closed, clicking a sketch opens a popup with **Edit sketch**. Sketches are saved in the browser, separately for each config (`?config=`), and come back on reload; the Layers panel lists them as **Sketches** with a checkbox. **Panel only:** any other placement fails validation. Panel default: "Sketch", `pencil` icon. | `colors` (list of 1 to 12 `{ "name": <text>, "color": "#rrggbb" }`, unique colors): the color strip, first one chosen at first. Default: Red `#d7263d`, Blue `#1f5fd1`, Green `#1a9e3f`, Orange `#f28c00`, Black `#1a1a1a`. Users can add up to six colors of their own. `fillPercent` (whole number 0 to 100, default `0`): how filled new areas are until the user changes it; 0 draws outlines only. `unit` (`imperial` or `metric`, default `imperial`): feet and miles, or meters and kilometers, in the drawing tooltips. |
 | `hello-world` | A template for your own component types: shows its greeting and the map's center and scale, updating as the map moves. Not in the default config. See [custom-components.md](custom-components.md). Panel default: "Hello", `code` icon. | `greeting` (string, default `"Hello, world"`): the heading it shows. |
 
 **The location marker:** clicking the marker that `locate` or `track` puts on the map opens a
@@ -224,6 +228,20 @@ the location times out or can't be found, a closable notice explains why. Use ei
 and hybrid with one. If `nextBasemap` is a `provider/style` ID and no key is configured, the
 toggle is left out and the browser console says why; otherwise the SDK would ask visitors to
 sign in.
+
+**Where sketches are kept.** Sketches stay in the visitor's browser (`localStorage`): nothing is
+sent anywhere while drawing, saving or clearing. They are kept per config name, so
+`?config=county` has its own. Another browser, a private window, or clearing site data starts
+empty. Two tabs on the same config each save their own copy, and the last save wins. If the
+browser refuses to save (storage full or blocked), the panel says so and the sketches stay on
+the map until the page is closed. The chosen color, added colors and fill are remembered per
+browser for every config.
+
+**What printing sends.** The print service draws the map on its own server, so Print sends it
+the map as a web map: the basemap, the operational layers that are shown, the map's extent, the
+title, and any graphics on the map, including sketches and their note text. Nothing is sent
+until the user presses Export. To keep that within your organization, set `printServiceUrl` to
+your own ArcGIS Enterprise print service.
 
 **Placements**
 
@@ -294,6 +312,9 @@ When at least one component is placed in `panel`, the viewer shows a sidebar:
 - **Phones:** below 768 px, the icons form a bar along the bottom, starting from the right: the
   first panel's icon is at the right edge, nearest your thumb, and the rest follow leftward. An
   open panel rises above the bar, covering at most 60% of the screen.
+- **Popups:** a feature's popup opens beside it, undocked, on every screen. Its dock button
+  docks it: on a phone at the top of the map, clear of the bottom bar and any open panel (it
+  covers the title box while docked); on wider screens where the SDK puts it.
 - **Keyboard:** the icon bar is one Tab stop. Tab moves into it, the arrow keys move from icon
   to icon, and Enter or Space opens the focused icon's panel. Tab again leaves the bar. Screen
   readers announce each icon by its heading and whether its panel is open. Escape closes the
@@ -357,7 +378,9 @@ When at least one component is placed in `panel`, the viewer shows a sidebar:
 - **What it colors:** the sidebar's icon bar, on wide screens and in the phone bottom bar, and
   the title box. Open panels, notices and map controls keep Calcite's colors.
 - **Opacity:** `opacity` makes the background see-through, so the map shows behind the bar.
-  The icons and the title stay fully opaque. Use 0.8 or more: the lower it is, the more the map
+  The icons and the title stay fully opaque. It applies to the icon bar only while the sidebar
+  is closed: with a panel open, the bar is `color`, solid, beside the panel. The title box keeps
+  the opacity either way. Use 0.8 or more: the lower it is, the more the map
   beneath decides how readable the text is.
 - **Text color:** without `textColor`, the viewer uses white or black, whichever has the higher
   contrast with `color`. For `#1f6f8b`, that is white.

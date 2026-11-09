@@ -117,6 +117,8 @@ test.describe("title box (P-27)", () => {
 test.describe("theme (P-28)", () => {
   const THEME = { color: "#1f6f8b", opacity: 0.85, textColor: "#ffffff" };
   const TEAL = "rgba(31, 111, 139, 0.85)";
+  /** The icon bar with a panel open: the theme color, solid. */
+  const SOLID_TEAL = "rgb(31, 111, 139)";
 
   /** Computed colors of the themed parts (the bar and icons draw inside their shadow roots). */
   const colors = (page: Page) =>
@@ -167,9 +169,13 @@ test.describe("theme (P-28)", () => {
     await serveModifiedConfig(page, (c) => (c.app.theme = THEME));
     await page.goto("./");
     await mapReady(page);
+    await expect(page.locator('calcite-action[data-panel-for="legend"]')).toBeVisible();
+    // Collapsed: the bar at the theme's opacity.
+    await expect.poll(async () => (await colors(page)).bar).toBe(TEAL);
     await openLegend(page);
     const c = await colors(page);
-    expect(c.bar).toBe(TEAL);
+    // A panel open: the bar solid; the title box keeps the opacity.
+    expect(c.bar).toBe(SOLID_TEAL);
     expect(c.title).toEqual({ bg: TEAL, color: "rgb(255, 255, 255)", opacity: "1" });
     for (const a of c.actions) {
       expect(a.color, a.id).toBe("rgb(255, 255, 255)");
@@ -185,6 +191,24 @@ test.describe("theme (P-28)", () => {
     await mapReady(page);
     await expect(page.locator('calcite-action[data-panel-for="legend"]')).toBeVisible();
     await expect.poll(async () => (await colors(page)).bar).toBe(TEAL);
+    await openLegend(page);
+    await expect.poll(async () => (await colors(page)).bar).toBe(SOLID_TEAL);
+  });
+
+  test("Solid while a panel is open: translucent again once the sidebar closes", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await serveModifiedConfig(page, (c) => (c.app.theme = THEME));
+    await page.goto("./");
+    await mapReady(page);
+    await openLegend(page);
+    await expect.poll(async () => (await colors(page)).bar).toBe(SOLID_TEAL);
+    // The edge around the bar follows, so no translucent frame shows beside it.
+    const edge = () =>
+      page.evaluate(() => getComputedStyle(document.querySelector("calcite-shell-panel > calcite-action-bar")!).borderTopColor);
+    expect(await edge()).toBe("rgb(31, 111, 139)");
+    await page.keyboard.press("Escape");
+    await expect.poll(async () => (await colors(page)).bar).toBe(TEAL);
+    expect(await edge()).toBe(TEAL);
   });
 
   test("No theme: Calcite's default foreground and text colors", async ({ page }) => {

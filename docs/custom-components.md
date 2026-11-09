@@ -66,6 +66,10 @@ such as `components[2].options.greeting`, before anything is created.
 | `"layer-info[]"` | `[{ "layer": <id>, "title": <text> }]` |
 | `{ oneOf: ["a", "b"] }` | One of the listed strings |
 | `{ integer: [1, 10] }` | A whole number in the range |
+| `"color[]"` | 1 to 12 `{ "name": <text>, "color": "#rrggbb" }` entries with unique colors, given to the component in lowercase |
+
+A type can also limit where it may be placed, with `placements: ["panel"]` for example. Any
+other placement fails validation, and the error lists the ones the type supports.
 
 By default, each option is set as a property of the same name on your element. In the template,
 `greeting` arrives through the `greeting` setter.
@@ -91,13 +95,46 @@ Watch the view with `reactiveUtils.watch` and keep the handle. Remove the handle
 `disconnectedCallback`, so a removed component stops reacting to the map. The template's
 `#generation` counter covers a component that is removed while it is still waiting for the view.
 
-## 6. Look and feel
+## 6. Following your panel
+
+A component in a sidebar panel stays on the page while its panel is closed. When it needs to
+know whether its panel is showing, for example to pause work or end an edit, it listens for
+two events on its own element:
+
+- `viewer-panel-open`: its panel has opened.
+- `viewer-panel-close`: its panel has closed, by its icon, its close button, Escape, or a switch
+  to another panel. On a switch, the panel being left gets its close before the next panel's
+  component gets its open.
+
+A component can also ask for its panel to be opened, for example from a popup action on the
+map. It dispatches `viewer-panel-request-open` from its element. The event must bubble and be
+composed, so it reaches the sidebar. If the panel is already open, nothing happens. Outside the
+sidebar, in a map corner, nothing listens, so the request is safely ignored.
+
+```ts
+import { PANEL_CLOSE, PANEL_OPEN, requestPanelOpen } from "../../../sidebar/panelEvents.ts";
+
+connectedCallback(): void {
+  this.addEventListener(PANEL_OPEN, () => this.#start());
+  this.addEventListener(PANEL_CLOSE, () => this.#stop());
+}
+
+#showMe(): void {
+  requestPanelOpen(this); // dispatches viewer-panel-request-open
+}
+```
+
+Escape inside a `calcite-dialog` or `calcite-popover` that your component opens closes only
+that dialog or popover; the panel stays open until the next Escape. The Sketch panel
+(`src/components/sketch/`) uses all of this.
+
+## 7. Look and feel
 
 Use Calcite components and Calcite design tokens (`var(--calcite-color-text-1)`,
 `var(--calcite-spacing-sm)`, and so on) only, so your component matches the viewer in light and
 dark mode. Import each Calcite component you use, as the template does with `calcite-block`.
 
-## 7. Test it
+## 8. Test it
 
 - **Vitest:** unit-test pure logic, as `format.test.ts` does. Unit tests run in Node, without a
   browser.

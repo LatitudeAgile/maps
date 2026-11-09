@@ -70,6 +70,10 @@ export function validateComponents(
     const placement = entry.placement ?? DEFAULT_PLACEMENT;
     if (typeof placement !== "string" || !(COMPONENT_PLACEMENTS as readonly string[]).includes(placement)) {
       errors.push({ path: `${at}.placement`, message: `Expected one of: ${COMPONENT_PLACEMENTS.join(", ")}.` });
+    } else if (schema?.placements && !schema.placements.includes(placement as ComponentPlacement)) {
+      // A type limited to some placements, such as the panel-only sketch (D2). Checked after
+      // defaulting, so an omitted placement counts as `panel`.
+      errors.push({ path: `${at}.placement`, message: `The "${type}" component supports only: ${schema.placements.join(", ")}.` });
     }
 
     const options: Obj = {};
@@ -84,7 +88,7 @@ export function validateComponents(
           warnings.push({ path, message: `Not supported by the "${type}" component; it is ignored.` });
           continue;
         }
-        if (checkOption(kind, value, path, context.layerIds, errors, warnings)) options[name] = value;
+        if (checkOption(kind, value, path, context.layerIds, errors, warnings)) options[name] = kind === "color[]" ? normalizeColors(value) : value;
       }
     }
     // Fill options the entry leaves out from the type's defaults (design D1).
@@ -217,6 +221,8 @@ function checkOption(
       });
       return ok;
     }
+    case "color[]":
+      return checkColors(value, path, errors);
     case "layer-info[]": {
       if (!Array.isArray(value)) {
         errors.push({ path, message: 'Expected an array of { "layer": <layer id>, "title": <text> } entries.' });
@@ -242,6 +248,49 @@ function checkOption(
       return ok;
     }
   }
+}
+
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+const MAX_COLORS = 12;
+
+/** A `color[]` option: 1 to 12 `{ name, color }` entries with unique `#rrggbb` colors. */
+function checkColors(value: unknown, path: string, errors: ConfigProblem[]): boolean {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_COLORS) {
+    errors.push({ path, message: `Expected a list of 1 to ${MAX_COLORS} colors, such as [{ "name": "Red", "color": "#d7263d" }].` });
+    return false;
+  }
+  let ok = true;
+  const seen = new Map<string, number>();
+  value.forEach((item: unknown, j) => {
+    const at = `${path}[${j}]`;
+    if (!isObject(item)) {
+      errors.push({ path: at, message: 'Expected { "name": <text>, "color": "#rrggbb" }.' });
+      ok = false;
+      return;
+    }
+    if (typeof item.name !== "string" || item.name.trim() === "") {
+      errors.push({ path: `${at}.name`, message: "Expected a non-empty string." });
+      ok = false;
+    }
+    if (typeof item.color !== "string" || !HEX_COLOR.test(item.color)) {
+      errors.push({ path: `${at}.color`, message: 'Expected a #rrggbb color, such as "#d7263d".' });
+      ok = false;
+      return;
+    }
+    const hex = item.color.toLowerCase();
+    if (seen.has(hex)) {
+      errors.push({ path: `${at}.color`, message: `Colors must be unique; ${hex} is also colors[${seen.get(hex)}].` });
+      ok = false;
+    } else {
+      seen.set(hex, j);
+    }
+  });
+  return ok;
+}
+
+/** A checked `color[]` value with its colors in lowercase. */
+function normalizeColors(value: unknown): { name: string; color: string }[] {
+  return (value as { name: string; color: string }[]).map(({ name, color }) => ({ name, color: color.toLowerCase() }));
 }
 
 /** An absolute URL with the https scheme. */

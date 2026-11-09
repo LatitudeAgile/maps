@@ -4,6 +4,8 @@ import { isBasemapStyleId } from "../map/basemapIds.ts";
 import { DEFAULT_GEOCODER_URL } from "./geocoder.ts";
 import { buildSearchSources } from "./searchSources.ts";
 import type { GeocodingConfig } from "../config/geocoding.ts";
+import type { ComponentPlacement } from "../config/types.ts";
+import { DEFAULT_SKETCH_COLORS } from "./sketch/palette.ts";
 import { basemapGalleryKeyless, configureBasemapGallery, DEFAULT_GALLERY_BASEMAPS } from "./basemapGallery.ts";
 import { configureDirections, DEFAULT_ROUTE_SERVICE_URL, DIRECTIONS_UNITS, directionsKeyless } from "./directions.ts";
 
@@ -15,6 +17,8 @@ import { configureDirections, DEFAULT_ROUTE_SERVICE_URL, DIRECTIONS_UNITS, direc
  * non-empty basemap ID; legacy IDs are accepted with a warning, as in `map.basemap`; `basemap[]`
  * is a non-empty list of them. `url` is an absolute https URL. `{ oneOf }` is one of a fixed
  * list of strings; `{ integer }` is a whole number in an inclusive range (design D1).
+ * `color[]` is a list of 1 to 12 `{ name, color }` entries with unique `#rrggbb` colors,
+ * normalized to lowercase (add-print-and-sketch-panels D5).
  */
 export type OptionKind =
   | "string"
@@ -27,6 +31,7 @@ export type OptionKind =
   | "layer"
   | "layer[]"
   | "layer-info[]"
+  | "color[]"
   | { readonly oneOf: readonly string[] }
   | { readonly integer: readonly [number, number] };
 
@@ -36,6 +41,8 @@ export interface ComponentTypeSchema {
   options: Readonly<Record<string, OptionKind>>;
   /** Values for options the config leaves out, filled in by validation (design D1). */
   defaults?: Readonly<Record<string, unknown>>;
+  /** The only placements the type supports; any other fails validation. All when absent (D2). */
+  placements?: readonly ComponentPlacement[];
 }
 
 /** A registered component type: a map component, loaded on first use. */
@@ -183,6 +190,24 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     panel: { heading: "Basemaps", icon: "basemap" },
     configure: configureBasemapGallery,
     keyless: basemapGalleryKeyless,
+  },
+  // Esri's print component as it ships (P-60, design D1). Without printServiceUrl nothing is
+  // set, so the component keeps its own default, the ArcGIS Online print service.
+  print: {
+    tag: "arcgis-print",
+    load: () => import("@arcgis/map-components/components/arcgis-print"),
+    options: { printServiceUrl: "url" },
+    panel: { heading: "Print", icon: "print" },
+  },
+  // Drawing and writing on the map, ported from StewardshipOS (P-61, design D5). Panel only: its
+  // toolbar, colors and fill need panel room, and drawing turns on and off with the panel.
+  sketch: {
+    tag: "viewer-sketch",
+    load: () => import("./sketch/index.ts"),
+    options: { colors: "color[]", fillPercent: { integer: [0, 100] }, unit: { oneOf: ["imperial", "metric"] } },
+    defaults: { colors: DEFAULT_SKETCH_COLORS.map((c) => ({ ...c })), fillPercent: 0, unit: "imperial" },
+    placements: ["panel"],
+    panel: { heading: "Sketch", icon: "pencil" },
   },
   // Custom components live in src/components/custom/ (docs/custom-components.md). This one
   // is the template to copy; it isn't in the default config (P-38, design D7).

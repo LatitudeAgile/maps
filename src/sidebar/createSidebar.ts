@@ -4,6 +4,7 @@ import "@esri/calcite-components/components/calcite-panel";
 import "@esri/calcite-components/components/calcite-shell-panel";
 
 import type { PanelComponent } from "../components/createComponents.ts";
+import { notifyPanels, PANEL_REQUEST_OPEN } from "./panelEvents.ts";
 import { SidebarState } from "./SidebarState.ts";
 import { WIDE_QUERY } from "./insets.ts";
 
@@ -44,6 +45,7 @@ export function createSidebar({ shell, panels }: CreateSidebarOptions): Sidebar 
 
   const actions = new Map<string, HTMLCalciteActionElement>();
   const calcitePanels = new Map<string, HTMLCalcitePanelElement>();
+  const components = new Map<string, EventTarget>();
 
   for (const { entry, element, heading, icon } of panels) {
     const id = entry.id;
@@ -72,8 +74,14 @@ export function createSidebar({ shell, panels }: CreateSidebarOptions): Sidebar 
       if (wasOpen) void action.setFocus();
     });
     panel.append(element as unknown as Node);
+    // A component asks for its own panel, e.g. Sketch's Edit sketch popup action (D3).
+    panel.addEventListener(PANEL_REQUEST_OPEN, (event) => {
+      event.stopPropagation();
+      state.open(id);
+    });
     shellPanel.append(panel);
     calcitePanels.set(id, panel);
+    components.set(id, element as unknown as EventTarget);
   }
 
   state.onChange((openId) => {
@@ -89,7 +97,13 @@ export function createSidebar({ shell, panels }: CreateSidebarOptions): Sidebar 
       if (open) panel.closed = false;
     }
     shellPanel.collapsed = openId === undefined;
+    // With a panel open, a themed icon bar is drawn solid (style.css, D13).
+    shellPanel.classList.toggle("panel-open", openId !== undefined);
   });
+
+  // Tell components when their panel closes and opens, once the panels show the new state: the
+  // old one first on a switch, so it can finish its work before the next one opens (D3).
+  state.onChange((openId, previousId) => notifyPanels(components, openId, previousId));
 
   // Wide: a vertical bar on the starting side. Narrow: a horizontal bar along the bottom, with
   // the panel rising above it (P-25, design D2). Moving one element keeps the open panel and
@@ -135,11 +149,13 @@ export function createSidebar({ shell, panels }: CreateSidebarOptions): Sidebar 
 
   // Escape closes the open panel and returns focus to its icon (P-26). Capture phase: a closable
   // calcite-panel handles Escape itself and closes first, which would hide which panel was open.
+  // A dialog or popover open inside the panel gets Escape first, and the panel stays (D4).
   shellPanel.addEventListener(
     "keydown",
     (event) => {
       const openId = state.openId;
       if (event.key !== "Escape" || openId === undefined) return;
+      if (inOpenPopup(event) || containsOpenPopup(components.get(openId))) return;
       event.preventDefault();
       state.close();
       void actions.get(openId)?.setFocus();
@@ -149,4 +165,32 @@ export function createSidebar({ shell, panels }: CreateSidebarOptions): Sidebar 
 
   shell.append(shellPanel);
   return { state, element: shellPanel };
+}
+
+const isOpenPopup = (node: unknown): boolean => {
+  const tag = (node as Element | null)?.tagName;
+  return (tag === "CALCITE-DIALOG" || tag === "CALCITE-POPOVER") && (node as { open?: boolean }).open === true;
+};
+
+/** Whether a key event comes from inside an open calcite-dialog or calcite-popover (D4). */
+export function inOpenPopup(event: Event): boolean {
+  return event.composedPath().some(isOpenPopup);
+}
+
+/**
+ * Whether a panel component has an open calcite-dialog or calcite-popover, in its light DOM or
+ * its shadow roots (D4). Covers Escape pressed on a popover's own button, outside the popover.
+ */
+export function containsOpenPopup(root: unknown): boolean {
+  if (!(root instanceof Element)) return false;
+  const stack: (Element | ShadowRoot)[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    if (node instanceof Element) {
+      if (isOpenPopup(node)) return true;
+      if (node.shadowRoot) stack.push(node.shadowRoot);
+    }
+    for (const child of node.children) stack.push(child);
+  }
+  return false;
 }

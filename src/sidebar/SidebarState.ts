@@ -19,6 +19,11 @@ export class SidebarState {
     this.#set(this.#openId === id ? undefined : id);
   }
 
+  /** Open this panel; a no-op if it is already open (a component's open request, D3). */
+  open(id: string): void {
+    this.#set(id);
+  }
+
   /** Collapse the sidebar. */
   close(): void {
     this.#set(undefined);

@@ -306,6 +306,24 @@ describe("shipped default config", () => {
           basemaps: ["osm", "hybrid", "satellite", "light", "dark", "arcgis/streets", "arcgis/topographic", "arcgis/imagery", "arcgis/light-gray", "arcgis/dark-gray"],
         },
       },
+      {
+        id: "sketch",
+        type: "sketch",
+        placement: "panel",
+        options: {
+          colors: [
+            { name: "Red", color: "#d7263d" },
+            { name: "Blue", color: "#1f5fd1" },
+            { name: "Green", color: "#1a9e3f" },
+            { name: "Orange", color: "#f28c00" },
+            { name: "Black", color: "#1a1a1a" },
+          ],
+          fillPercent: 0,
+          unit: "imperial",
+        },
+      },
+      // Print keeps the component's own default service: no printServiceUrl is filled in.
+      { id: "print", type: "print", placement: "panel", options: {} },
     ]);
     // The sample layer starts off; users turn it on in the Layers panel.
     expect(config?.layers.map((l) => [l.id, l.type, l.visible])).toEqual([["usa", "map-image", false]]);
@@ -316,6 +334,6 @@ describe("shipped default config", () => {
       components: { id: string; placement?: string }[];
     };
     for (const entry of raw.components) expect(entry.placement, entry.id).toBeDefined();
-    expect(raw.components.filter((e) => e.placement === "panel").map((e) => e.id)).toEqual(["search", "directions", "layers", "legend", "basemaps"]);
+    expect(raw.components.filter((e) => e.placement === "panel").map((e) => e.id)).toEqual(["search", "directions", "layers", "legend", "basemaps", "sketch", "print"]);
   });
 });

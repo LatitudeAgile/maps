@@ -7,18 +7,18 @@ const icons = (page: Page) =>
   page.locator("calcite-shell-panel calcite-action[data-panel-for]").evaluateAll((els) => els.map((e) => (e as HTMLCalciteActionElement).text));
 
 test.describe("default sidebar (dojo-sidebar order plus the new panels)", () => {
-  test("Default panels with a key: Search, Directions, Layers, Legend, Basemaps", async ({ page }) => {
+  test("Default panels with a key: Search, Directions, Layers, Legend, Basemaps, Sketch, Print", async ({ page }) => {
     test.skip(!hasApiKey(), "No VITE_ARCGIS_API_KEY configured");
     await page.goto("./");
     await mapReady(page);
-    await expect.poll(() => icons(page)).toEqual(["Search", "Directions", "Layers", "Legend", "Basemaps"]);
+    await expect.poll(() => icons(page)).toEqual(["Search", "Directions", "Layers", "Legend", "Basemaps", "Sketch", "Print"]);
   });
 
-  test("Default panels without a key: Search, Layers, Legend, Basemaps", async ({ page }) => {
+  test("Default panels without a key: Search, Layers, Legend, Basemaps, Sketch, Print", async ({ page }) => {
     test.skip(hasApiKey(), "Build has an API key; this scenario needs a keyless build");
     await page.goto("./");
     await mapReady(page);
-    await expect.poll(() => icons(page)).toEqual(["Search", "Layers", "Legend", "Basemaps"]);
+    await expect.poll(() => icons(page)).toEqual(["Search", "Layers", "Legend", "Basemaps", "Sketch", "Print"]);
   });
 
   test("Default config without a key: Directions is left out with a warning, nothing goes to ArcGIS routing", async ({ page, log }) => {

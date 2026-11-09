@@ -492,11 +492,17 @@ test.describe("narrow screens (P-25)", () => {
     await page.goto("./"); // the shipped default config
     await mapReady(page);
     await expect(sidebarAction(page, "basemaps")).toBeVisible();
-    const configOrder = hasApiKey() ? ["search", "directions", "layers", "legend", "basemaps"] : ["search", "layers", "legend", "basemaps"];
+    const configOrder = hasApiKey() ? ["search", "directions", "layers", "legend", "basemaps", "sketch", "print"] : ["search", "layers", "legend", "basemaps", "sketch", "print"];
     // Right to left = config order.
     await expect.poll(async () => (await iconsBy(page, "x")).reverse()).toEqual(configOrder);
     const search = (await sidebarAction(page, "search").boundingBox())!;
     expect(375 - (search.x + search.width)).toBeLessThanOrEqual(16);
+    // Seven icons still fit: every one is within the window.
+    for (const id of configOrder) {
+      const box = (await sidebarAction(page, id).boundingBox())!;
+      expect(box.x, id).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width, id).toBeLessThanOrEqual(375);
+    }
   });
 
   test("Arrow keys follow the screen on a phone: Left goes left, Right goes right, Tab leaves", async ({ page }) => {
