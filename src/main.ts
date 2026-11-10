@@ -6,8 +6,13 @@ import "@esri/calcite-components/components/calcite-shell";
 import esriConfig from "@arcgis/core/config.js";
 import { AppModel } from "./app/AppModel.ts";
 import { ErrorChannel } from "./app/errors.ts";
+import { loadCatalog } from "./apps/catalog.ts";
+import { AppDirectory } from "./apps/AppDirectory.ts";
+import { createAppsPanel } from "./apps/AppsPanel.ts";
+import { currentListing } from "./apps/listing.ts";
+import { endButton, endButtonLook } from "./apps/endButton.ts";
 import { applyRequest } from "./config/applyRequest.ts";
-import { loadConfig } from "./config/load.ts";
+import { configName, DEFAULT_CONFIG_NAME, loadConfig } from "./config/load.ts";
 import { validateConfig } from "./config/validate.ts";
 import { applyApiKey, readApiKey } from "./credentials/apiKey.ts";
 import { chooseBasemap } from "./map/chooseBasemap.ts";
@@ -15,22 +20,31 @@ import { applyKeyless, leftOutWarning } from "./components/keyless.ts";
 import { createMap } from "./map/createMap.ts";
 import { followPopupDocking } from "./map/popupDock.ts";
 import { addLayers } from "./layers/addLayers.ts";
-import { createComponents, type CreateComponentsOptions } from "./components/createComponents.ts";
+import { createComponents, panelSlot, type CreateComponentsOptions } from "./components/createComponents.ts";
 import { createSidebar } from "./sidebar/createSidebar.ts";
+import { trackAttribution } from "./map/attribution.ts";
 import { trackSidebarInsets } from "./sidebar/insets.ts";
 import { showConfigError, showLayerErrors, showLocationError, showMapError } from "./ui/notices.ts";
 import { createTitleBox, trackTitleInset } from "./ui/titleBox.ts";
-import { applyTheme } from "./ui/theme.ts";
+import { applyMode, applyTheme } from "./ui/theme.ts";
+import { readChoice } from "./settings/modeChoice.ts";
+import { createSettingsSection } from "./settings/SettingsSection.ts";
 
 // Kept for add-location-services-auth (optional OAuth sign-in):
 // import { configureOAuth } from "./auth/configureOAuth.ts";
 
-/** Startup: load config → validate → credentials and proxy → map → layers → components → sidebar. */
+/**
+ * Startup: load config → validate → credentials and proxy → sidebar (empty panels) → map →
+ * layers → components → fill the sidebar's panels.
+ */
 async function start(): Promise<void> {
   const apiKey = readApiKey(import.meta.env.VITE_ARCGIS_API_KEY);
   // Created first so every later stage can report errors; the key is redacted from reports.
   const app = new AppModel(new ErrorChannel([apiKey]));
 
+  // The catalog is fetched alongside the config and awaited before the sidebar is built, so the
+  // bar never changes after first paint (add-app-selector D2).
+  const catalogLoad = loadCatalog();
   const loaded = await loadConfig();
   if (!loaded.ok) {
     showConfigError("The viewer could not load its configuration", [loaded.message]);
@@ -53,7 +67,10 @@ async function start(): Promise<void> {
   document.title = config.app.title;
   const shell = document.querySelector("calcite-shell");
   if (!shell) throw new Error("index.html is missing calcite-shell");
-  // Before anything themed is created, so the title box and icon bar never flash unthemed.
+  // Before anything themed is created, so the title box and icon bar never flash unthemed, or
+  // in the wrong mode (add-color-mode D2). The user's stored choice beats `app.mode`
+  // (add-settings D3).
+  applyMode(readChoice() ?? config.app.mode);
   if (config.app.theme) applyTheme(shell, config.app.theme);
   esriConfig.portalUrl = config.portal.url;
 
@@ -76,6 +93,25 @@ async function start(): Promise<void> {
   const { kept: components, leftOut } = applyKeyless(config.components, hasKey);
   for (const c of leftOut) console.warn(leftOutWarning(c));
 
+  // The sidebar comes first, from config alone, so the map, title box, corner controls and
+  // notices are laid out for it from the start and don't move later (show-sidebar-at-startup
+  // D1, D6). Its panels show a loader until the component stage fills them.
+  const slots = components.filter((c) => c.placement === "panel").map((c) => panelSlot(c));
+  const catalogResult = await catalogLoad;
+  for (const w of catalogResult.warnings) console.warn(`[viewer] ${w}`);
+  // The Apps and settings button (add-app-selector D3, D4; add-settings D4). The current name is
+  // the one loadConfig used.
+  const currentName = configName(location.search) ?? DEFAULT_CONFIG_NAME;
+  let end: Parameters<typeof createSidebar>[0]["end"];
+  let apps: AppDirectory | undefined;
+  const button = endButton(catalogResult.catalog, currentName, config.app);
+  if (button) {
+    // Listings are read only when the apps list is shown.
+    if (button.apps) apps = new AppDirectory({ names: catalogResult.catalog!.names, currentName, current: currentListing(config) });
+    const settings = button.settings ? createSettingsSection({ appMode: config.app.mode, heading: button.apps }) : undefined;
+    end = { id: ":apps", ...endButtonLook(button), element: createAppsPanel({ directory: apps, settings }) };
+  }
+  const sidebar = createSidebar({ shell, slots, end });
 
   const mapEl = createMap({
     config,
@@ -86,6 +122,9 @@ async function start(): Promise<void> {
       showMapError(reason);
     },
   });
+  // The sidebar floats over the map: pad the view, and inset corner UI and notices (design D4).
+  // Started before the title box, so the box is placed beside the sidebar from its first paint.
+  if (sidebar) trackSidebarInsets(sidebar, mapEl, shell);
   // Shown at once, not after layers settle, and first in the top-left corner (design D3).
   if (config.app.titleVisible) {
     const titleBox = createTitleBox(mapEl, config.app.title);
@@ -95,7 +134,11 @@ async function start(): Promise<void> {
 
   // The view becomes ready on its own schedule; layers don't wait for it.
   mapEl.viewOnReady().then(
-    () => (app.view = mapEl.view),
+    () => {
+      app.view = mapEl.view;
+      // Full-width attribution, with the sidebar stopping above it (src/map/attribution.ts).
+      trackAttribution(mapEl, shell);
+    },
     () => undefined, // reported by createMap's failure detection
   );
 
@@ -105,6 +148,10 @@ async function start(): Promise<void> {
   const map = mapEl.map;
   if (!map) {
     app.errors.report({ source: "map", message: "The map component did not create a map." });
+    // No component stage: every panel says it couldn't be loaded, rather than loading forever.
+    sidebar?.fill([]);
+    // Startup stops here, but the Apps panel still works, so the user can switch apps.
+    apps?.load();
     return;
   }
   const { failed } = await addLayers({ entries: config.layers, map, app });
@@ -119,9 +166,10 @@ async function start(): Promise<void> {
     apiKey,
     geocoding,
   });
-  const sidebar = createSidebar({ shell, panels });
-  // The sidebar floats over the map: pad the view, and inset corner UI and notices (design D4).
-  if (sidebar) trackSidebarInsets(sidebar, mapEl, shell);
+  // Panels whose component failed are missing from `panels`; their panels say so (D5).
+  sidebar?.fill(panels);
+  // Startup is done: read the other apps' listings now, if the Apps panel hasn't already (D5).
+  apps?.load();
   // Popups open undocked everywhere; docked by the user on a phone, they go to the top, clear
   // of the bottom bar (add-print-and-sketch-panels D14).
   mapEl.viewOnReady().then(

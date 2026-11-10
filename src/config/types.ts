@@ -10,6 +10,18 @@ export interface ViewerConfig {
     titleVisible: boolean;
     /** Colors for the icon bar and the title box; absent means Calcite's defaults. */
     theme?: Theme;
+    /** One line under the app's title in the Apps panel (app-selector). */
+    summary?: string;
+    /** Plain text for the app's detail page; blank lines separate paragraphs. */
+    description?: string;
+    /** Calcite icon name for the app's icon tile; the panel uses `map` when absent. */
+    icon?: string;
+    /** Show the apps list (in the Apps and settings panel) in this app. Default true. */
+    selectorVisible: boolean;
+    /** Show the Settings section (add-settings D7). Default true. */
+    settingsVisible: boolean;
+    /** Light or dark mode; `"auto"` (the default) follows the system (branding). */
+    mode: ColorMode;
   };
   portal: {
     /** Absolute https URL of the ArcGIS portal (Online, Enterprise, or Location Platform). */
@@ -55,6 +67,10 @@ export interface RequestConfig {
   proxyUrl?: string;
   proxyRules: ProxyRule[];
 }
+
+/** `app.mode` values: `"auto"` follows the system's light or dark mode (branding). */
+export const COLOR_MODES = ["auto", "light", "dark"] as const;
+export type ColorMode = (typeof COLOR_MODES)[number];
 
 /** Supported layer types (map-layers). */
 export const LAYER_TYPES = ["feature", "map-image", "vector-tile", "tile", "geojson", "imagery"] as const;
@@ -118,7 +134,7 @@ export interface ConfigProblem {
 
 /** Defaults for optional settings. Required settings (`map.basemap`, `map.center`, `map.zoom`) have none. */
 export const DEFAULTS = {
-  app: { title: "ArcGIS Sidebar Viewer", titleVisible: true },
+  app: { title: "ArcGIS Sidebar Viewer", titleVisible: true, selectorVisible: true, settingsVisible: true, mode: "auto" },
   portal: { url: "https://www.arcgis.com" },
   map: { fallbackBasemap: "osm" },
 } as const;

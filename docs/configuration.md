@@ -1,37 +1,105 @@
 # Configuration
 
-The viewer reads its settings at startup from `config/viewer.json`, resolved against the
-app's base URL. In the source tree the file is `public/config/viewer.json`; after
-`npm run build` it is `dist/config/viewer.json`. Edit the deployed file and reload the page
-to change the viewer: no rebuild is needed.
+Each app is a config file in the `apps/` folder. With no URL parameter, the viewer reads the
+default app, `apps/default.json`, resolved against the app's base URL. In the source tree the
+folder is `public/apps/`; after `npm run build` it is `dist/apps/`. Edit a deployed file and
+reload the page to change that app: no rebuild is needed.
 
 If the file can't be fetched, isn't valid JSON, or fails validation, the viewer shows an
 error that names each problem and does not create the map. Warnings (such as unknown
 settings) are written to the browser console and startup continues.
 
-## Choosing a config by URL
+## Choosing an app by URL
 
-One deployment can hold several configs. Add `?config=<name>` to the viewer's URL to load
-`config/<name>.json` instead of `config/viewer.json`. For example, `?config=county` loads
-`config/county.json` from the same folder.
+One deployment can hold several apps. Add `?app=<name>` to the viewer's URL to load
+`apps/<name>.json` instead of `apps/default.json`. For example, `?app=county` loads
+`apps/county.json` from the same folder. `?app=default` opens the default app, the same as no
+parameter.
 
 The name must be 1 to 64 letters, digits, hyphens, or underscores. Paths (`../x`,
 `configs/x`) and URLs are refused, and the viewer shows an error instead of loading anything,
 so a link can't point the viewer at a config on another site.
 
-If a named config doesn't exist, most servers answer 404 and the error says so. Some hosts
-(and `vite preview`) instead answer missing files with the app's `index.html`. Then the error
-says the config "is not valid JSON" and quotes `<!doctype`. That also means the file isn't
-there.
+If a named app doesn't exist, most servers answer 404 and the error says so. The viewer asks
+for config files as JSON, which keeps the Vite dev and preview servers from answering with the
+app's page instead. Some hosts still answer every missing file with the app's `index.html`.
+Then the error says the config "is not valid JSON" and quotes `<!doctype`. That also means the
+file isn't there. On such a host, a missing `apps/index.json` gives a console warning instead
+of none.
+
+**Moving from `config/`:** earlier versions read `config/viewer.json` and chose another config
+with `?config=<name>`. Move the files to `apps/`, rename `viewer.json` to `default.json`, and
+change links to `?app=<name>`. The viewer ignores `?config=`, so an old link opens the default
+app. Sketches saved in the default app before the move were kept under the name `viewer`, and
+no longer show.
+
+## Apps
+
+To let users browse a deployment's apps and switch between them, list them in
+`apps/index.json`, next to the apps (`public/apps/index.json` in the source tree):
+
+```json
+{ "apps": ["default", "county", "parks"] }
+```
+
+- **What users see:** the button at the end of the sidebar's icon bar (the bottom of the bar on
+  wide screens, the left end of the phone bottom bar) becomes **Apps and settings**. It opens a
+  panel listing the apps in the order of `apps`, followed by the
+  [Settings section](#the-settings-section). Opening an app loads the page with `?app=<name>`
+  (no parameter for `default`), so the browser's Back button returns to the previous app.
+- **When the list shows:** when `apps` lists at least one app other than the one open. An app
+  that isn't in the list still shows the list, so a hidden app can offer the listed ones.
+  Without the list, the button is a gear labelled **Settings**, holding only the Settings
+  section.
+- **Names** follow the `?app=` rule above. A name that doesn't, or a repeat, is skipped with a
+  console warning; the rest are kept.
+- **No catalog:** without `apps/index.json` there is no apps list, and nothing is logged: the
+  button is the **Settings** gear. If the file can't be read, isn't valid JSON, or has no `apps`
+  list, there is no apps list either, and the console says why. The open app starts normally in
+  every case.
+- **Not an app:** `?app=index` loads the catalog as an app's config, which fails validation.
+  Don't name an app `index`.
+
+Each app describes itself in its own config's `app` section. The Apps panel reads only that
+section from the other apps' configs, after the open app has finished starting:
+
+```json
+"app": {
+  "title": "Parks & Trails",
+  "summary": "Trailheads and routes",
+  "description": "Find a trailhead near you and plan a route.\n\nTrail data is updated weekly.",
+  "icon": "tree",
+  "theme": { "color": "#2e7d32" }
+}
+```
+
+- **The list:** each app shows its icon, `title` and `summary`, with an **Open** button. The open
+  app is marked **Current**.
+- **The icon:** `icon` (default `map`) drawn on a rounded tile in `theme.color`, in
+  `theme.textColor` or the higher-contrast of white and black. Without a theme, the tile is
+  neutral.
+- **The app's page:** selecting an app shows a larger icon, the summary, an **Open app** button,
+  `description`, and **Copy link**, which copies the app's address. The description is plain
+  text: a blank line (`\n\n` in JSON) starts a new paragraph, and HTML shows as typed.
+- **An app that can't be read:** if its config is missing, isn't valid JSON, or has no
+  `app.title`, it is listed as **Unavailable**, its page says why, and the console names its
+  URL. Other mistakes in that config don't hide it; they show when it is opened.
+- **Hide the apps list or the settings in an app:** set `"selectorVisible": false` in that
+  app's `app` section to hide the apps list, or `"settingsVisible": false` to hide the Settings
+  section. The button then holds only the other one, as **Settings** (gear) or **Apps**. With
+  both `false`, there is no button.
 
 ## Example
 
-The shipped default (`public/config/viewer.json`):
+The shipped default app (`public/apps/default.json`):
 
 ```json
 {
   "app": {
     "title": "ArcGIS Sidebar Viewer",
+    "summary": "Every panel: search, directions, layers, print and more",
+    "description": "The full viewer, with every built-in panel: ...",
+    "icon": "map",
     "theme": { "color": "#1f6f8b", "opacity": 0.85 }
   },
   "portal": { "url": "https://www.arcgis.com" },
@@ -94,6 +162,12 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `app.theme.color` | string | none | **Required** in `app.theme`. A hex color, `#rgb` or `#rrggbb`, such as `#1f6f8b`: the background of the icon bar and the title box. |
 | `app.theme.opacity` | number | `1` | From 0 to 1. Applies to the background only: icons and the title stay fully opaque. |
 | `app.theme.textColor` | string | white or black | A hex color for the icons and the title. Without it, the viewer picks white or black, whichever contrasts more with `color`. |
+| `app.summary` | string | none | Non-empty. One line under the app's title in the Apps panel. See [Apps](#apps). |
+| `app.description` | string | none | Plain text for the app's page in the Apps panel. A blank line starts a new paragraph. HTML is shown as text. |
+| `app.icon` | string | `"map"` | Non-empty. A [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/) name for the app's icon in the Apps panel, drawn on a tile in `app.theme.color`. An unknown name shows an empty tile. |
+| `app.selectorVisible` | boolean | `true` | `true` or `false`. `false` hides the apps list in this app, for example in a kiosk. See [Apps](#apps). |
+| `app.settingsVisible` | boolean | `true` | `true` or `false`. `false` hides the Settings section in this app. See [The Settings section](#the-settings-section). |
+| `app.mode` | string | `"auto"` | `"auto"`, `"light"` or `"dark"`: the mode the app starts in. `"auto"` follows the user's system light or dark mode. The user's own choice in the Settings section beats it. See [Light and dark mode](#light-and-dark-mode). |
 | `portal` | object | `{}` | Optional section. |
 | `portal.url` | string | `"https://www.arcgis.com"` | Absolute `https` URL of your ArcGIS Online organization, ArcGIS Enterprise portal (for example `https://gis.example.org/portal`), or Location Platform portal. A trailing `/` is removed. |
 | `map` | object | none | **Required.** |
@@ -211,7 +285,7 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `layer-list` | Lists the map's operational layers by title, each with a checkbox that turns it on and off. Panel default: "Layers", `layers` icon. | `visibilityAppearance` (`checkbox` or `default`, default `checkbox`): `default` shows the SDK's eye icon instead. `showFilter` (boolean, default `false`): show a box that filters the list by title. |
 | `basemap-gallery` | Thumbnails of basemaps to choose from; the current one is marked. Without an API key, basemaps that need one are left out of the gallery (and the gallery is left out if none is left). Panel default: "Basemaps", `basemap` icon. | `basemaps` (list of basemap IDs, at least one): the basemaps to offer, in the same forms as `map.basemap`. Default: `osm`, `hybrid`, `satellite`, `light`, `dark`, `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`, `arcgis/light-gray`, `arcgis/dark-gray`. |
 | `print` | Esri's print component as it ships: choose a layout (with a title, legend and scale bar) or the map only, a format such as PDF or JPG, and export the map to a file listed for download. Works without an API key. Panel default: "Print", `print` icon. | `printServiceUrl` (https URL): the print service's Export Web Map task, such as your ArcGIS Enterprise `.../PrintingTools/GPServer/Export%20Web%20Map%20Task`. When omitted, the viewer sets nothing and the component uses its own default, the ArcGIS Online print service. |
-| `sketch` | Draw and write on the map: points, lines, polygons, rectangles, circles and notes, with freehand and curved segments, undo and redo, and measurements while drawing. Opening the panel turns drawing on; closing it, or switching panels, ends drawing and any selection. With the panel closed, clicking a sketch opens a popup with **Edit sketch**. Sketches are saved in the browser, separately for each config (`?config=`), and come back on reload; the Layers panel lists them as **Sketches** with a checkbox. **Panel only:** any other placement fails validation. Panel default: "Sketch", `pencil` icon. | `colors` (list of 1 to 12 `{ "name": <text>, "color": "#rrggbb" }`, unique colors): the color strip, first one chosen at first. Default: Red `#d7263d`, Blue `#1f5fd1`, Green `#1a9e3f`, Orange `#f28c00`, Black `#1a1a1a`. Users can add up to six colors of their own. `fillPercent` (whole number 0 to 100, default `0`): how filled new areas are until the user changes it; 0 draws outlines only. `unit` (`imperial` or `metric`, default `imperial`): feet and miles, or meters and kilometers, in the drawing tooltips. |
+| `sketch` | Draw and write on the map: points, lines, polygons, rectangles, circles and notes, with freehand and curved segments, undo and redo, and measurements while drawing. Opening the panel turns drawing on; closing it, or switching panels, ends drawing and any selection. With the panel closed, clicking a sketch opens a popup with **Edit sketch**. Sketches are saved in the browser, separately for each app (`?app=`), and come back on reload; the Layers panel lists them as **Sketches** with a checkbox. **Panel only:** any other placement fails validation. Panel default: "Sketch", `pencil` icon. | `colors` (list of 1 to 12 `{ "name": <text>, "color": "#rrggbb" }`, unique colors): the color strip, first one chosen at first. Default: Red `#d7263d`, Blue `#1f5fd1`, Green `#1a9e3f`, Orange `#f28c00`, Black `#1a1a1a`. Users can add up to six colors of their own. `fillPercent` (whole number 0 to 100, default `0`): how filled new areas are until the user changes it; 0 draws outlines only. `unit` (`imperial` or `metric`, default `imperial`): feet and miles, or meters and kilometers, in the drawing tooltips. |
 | `hello-world` | A template for your own component types: shows its greeting and the map's center and scale, updating as the map moves. Not in the default config. See [custom-components.md](custom-components.md). Panel default: "Hello", `code` icon. | `greeting` (string, default `"Hello, world"`): the heading it shows. |
 
 **The location marker:** clicking the marker that `locate` or `track` puts on the map opens a
@@ -230,12 +304,12 @@ toggle is left out and the browser console says why; otherwise the SDK would ask
 sign in.
 
 **Where sketches are kept.** Sketches stay in the visitor's browser (`localStorage`): nothing is
-sent anywhere while drawing, saving or clearing. They are kept per config name, so
-`?config=county` has its own. Another browser, a private window, or clearing site data starts
-empty. Two tabs on the same config each save their own copy, and the last save wins. If the
+sent anywhere while drawing, saving or clearing. They are kept per app name, so
+`?app=county` has its own. Another browser, a private window, or clearing site data starts
+empty. Two tabs on the same app each save their own copy, and the last save wins. If the
 browser refuses to save (storage full or blocked), the panel says so and the sketches stay on
 the map until the page is closed. The chosen color, added colors and fill are remembered per
-browser for every config.
+browser for every app.
 
 **What printing sends.** The print service draws the map on its own server, so Print sends it
 the map as a web map: the basemap, the operational layers that are shown, the map's extent, the
@@ -306,8 +380,9 @@ When at least one component is placed in `panel`, the viewer shows a sidebar:
   viewer's notices move out from under the sidebar.
 - **Width:** from 768 px wide, the sidebar sits on the left. With a panel open, it is 305 px
   wide, 390 px from 992 px, and 460 px from 1200 px.
-- **Height:** from 768 px wide, the icon bar and an open panel both run the full height of the
-  map, however few icons or however little content there is. A panel whose content is taller
+- **Height:** from 768 px wide, the icon bar and an open panel both run from the top of the map
+  to just above the map's attribution line, however few icons or however little content there
+  is. The attribution runs the full width of the map, under the sidebar. A panel whose content is taller
   scrolls inside the panel.
 - **Phones:** below 768 px, the icons form a bar along the bottom, starting from the right: the
   first panel's icon is at the right edge, nearest your thumb, and the rest follow leftward. An
@@ -319,7 +394,12 @@ When at least one component is placed in `panel`, the viewer shows a sidebar:
   to icon, and Enter or Space opens the focused icon's panel. Tab again leaves the bar. Screen
   readers announce each icon by its heading and whether its panel is open. Escape closes the
   panel and returns focus to its icon.
-- **No sidebar:** with no panel components, there is no sidebar at all.
+- **Apps and settings:** an **Apps and settings** button follows the panel icons, at the end of
+  the bar, or a **Settings** gear when the deployment lists no other apps (see [Apps](#apps)
+  and [The Settings section](#the-settings-section)).
+- **No sidebar:** with no panel components, the bar holds that button alone. There is no
+  sidebar at all only when there is no button either: `app.settingsVisible` is `false` and no
+  apps list is shown.
 
 ### Geocoding
 
@@ -376,7 +456,8 @@ When at least one component is placed in `panel`, the viewer shows a sidebar:
 ```
 
 - **What it colors:** the sidebar's icon bar, on wide screens and in the phone bottom bar, and
-  the title box. Open panels, notices and map controls keep Calcite's colors.
+  the title box. Open panels, notices and map controls keep Calcite's colors, which follow
+  the [light or dark mode](#light-and-dark-mode).
 - **Opacity:** `opacity` makes the background see-through, so the map shows behind the bar.
   The icons and the title stay fully opaque. It applies to the icon bar only while the sidebar
   is closed: with a panel open, the bar is `color`, solid, beside the panel. The title box keeps
@@ -391,6 +472,55 @@ When at least one component is placed in `panel`, the viewer shows a sidebar:
   on `#3a9fc0`. The ratio is measured against the opaque `color`.
 - **The open panel's icon** is drawn in a darker shade of `color`, so you can see which panel
   is open.
+
+### Light and dark mode
+
+```json
+"app": {
+  "title": "Corporate Maps",
+  "mode": "dark",
+  "theme": { "color": "#1f6f8b", "opacity": 0.85 }
+}
+```
+
+- **Default:** with no `mode`, or `"auto"`, the viewer follows the user's system light or dark
+  setting: the page, the title box, the icon bar, panels, notices and map controls. If the
+  user changes the system setting while the viewer is open, it switches at once, without a
+  reload. The loading page and any configuration error already match the system.
+- **Starting mode:** `"light"` or `"dark"` starts the app in that mode whatever the system is
+  set to. `"light"` brings back the always-light look of earlier versions. Each app has its
+  own mode, so opening another app from the Apps panel shows it in that app's mode.
+- **The user's choice wins:** once a user picks an appearance in the
+  [Settings section](#the-settings-section), every app opens in it, whatever its `mode`.
+- **The basemap doesn't change:** the viewer shows `map.basemap` in both modes. A dark sidebar
+  over a bright basemap is the author's choice; a neutral basemap such as `arcgis/light-gray`
+  or `arcgis/dark-gray` suits both modes.
+- **Theme colors are the same in both modes:** `app.theme` colors the icon bar and the title
+  box the same way in light and dark mode, and its contrast warning is unchanged. Open panels
+  use the current mode's colors.
+- **A grid behind the map:** wherever the map draws nothing (before tiles load, past the poles,
+  in an app with no basemap) the page shows a faint grid, dark lines in light mode and light
+  lines in dark mode.
+
+### The Settings section
+
+The **Apps and settings** panel ends with a Settings section, and the **Settings** gear opens it
+on its own.
+
+- **Appearance:** System, Light or Dark. The pick applies at once, without a reload. System
+  follows the system's light or dark setting, live. With nothing picked, the control shows the
+  app's `app.mode`.
+- **The user's choice beats `app.mode`:** the order is the user's choice, then `app.mode`, then
+  the system. A stored System beats an app's forced `"light"` or `"dark"`.
+- **Remembered for the whole site:** the choice is stored in the browser for this viewer
+  deployment, so every app it serves opens in it, after reloads and in new tabs. Two
+  deployments at different paths on one host keep separate choices. It is applied before the
+  page is first drawn, so a user who picked Dark never sees a light page while the config loads.
+- **Use each app's default:** shown once a choice is stored. It forgets the choice, so each app
+  opens in its own `app.mode` again.
+- **No storage:** in a private window or with site data blocked, the control still changes the
+  mode for the open page; nothing is remembered and no notice is shown.
+- **Hide it:** set `"settingsVisible": false` in an app's `app` section.
 
 ### Zoom or scale
 

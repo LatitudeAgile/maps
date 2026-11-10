@@ -8,18 +8,18 @@ reports problems. Deployers can then reconfigure the viewer without rebuilding i
 ## Requirements
 
 ### Requirement: Config is loaded at startup from a deployable file
-The viewer SHALL read its configuration at startup from `config/viewer.json`, resolved against
+The viewer SHALL read its configuration at startup from `apps/default.json`, resolved against
 the app's base URL, before creating the map. Changing that file in a deployed build SHALL
 change the viewer's behavior without a rebuild.
 
 #### Scenario: Default config file is used
-- **WHEN** the app starts and `config/viewer.json` contains a valid configuration
+- **WHEN** the app starts and `apps/default.json` contains a valid configuration
 - **THEN** the map is created with the basemap, center, and scale from that file
 
 #### Scenario: Deployed config is edited without rebuilding
 - **GIVEN** a production build is being served
-- **WHEN** `map.scale` in the served `config/viewer.json` is changed and the page is reloaded
-- **THEN** the map opens at the new scale (Playwright, against `vite preview`)
+- **WHEN** `map.scale` in the served `apps/default.json` is changed and the page is reloaded
+- **THEN** the map opens at the new scale
 
 ### Requirement: Initial view is set by zoom or by scale
 The config SHALL set the map's initial view with exactly one of `map.zoom` (a zoom level of
@@ -28,19 +28,19 @@ than 0). A config that sets both, or neither, SHALL fail validation.
 
 #### Scenario: Scale instead of zoom
 - **WHEN** the config sets `map.scale` to 18489298 and does not set `map.zoom`
-- **THEN** validation passes and the map opens at that scale (Vitest for the validator, Playwright for the view)
+- **THEN** validation passes and the map opens at that scale
 
 #### Scenario: Both set
 - **WHEN** the config sets both `map.zoom` and `map.scale`
-- **THEN** validation fails with an error at `map` saying to set either `map.zoom` or `map.scale`, not both (Vitest)
+- **THEN** validation fails with an error at `map` saying to set either `map.zoom` or `map.scale`, not both
 
 #### Scenario: Neither set
 - **WHEN** the config sets neither `map.zoom` nor `map.scale`
-- **THEN** validation fails with an error at `map` saying `map.zoom` or `map.scale` is required (Vitest)
+- **THEN** validation fails with an error at `map` saying `map.zoom` or `map.scale` is required
 
 #### Scenario: Invalid scale
 - **WHEN** `map.scale` is 0
-- **THEN** validation fails with an error naming `map.scale` as a number that must be greater than 0 (Vitest)
+- **THEN** validation fails with an error naming `map.scale` as a number that must be greater than 0
 
 ### Requirement: Missing optional settings receive documented defaults
 The viewer SHALL apply these defaults when a setting is absent:
@@ -53,7 +53,7 @@ The viewer SHALL apply these defaults when a setting is absent:
 
 #### Scenario: Minimal config
 - **WHEN** the config contains only `map.basemap`, `map.center`, and `map.zoom`
-- **THEN** the viewer starts with the default title, the title box shown, no theme, the default portal URL, and the default fallback basemap (Vitest)
+- **THEN** the viewer starts with the default title, the title box shown, no theme, the default portal URL, and the default fallback basemap
 
 ### Requirement: Invalid config stops startup with a readable error
 The viewer SHALL validate the config before creating the map. When validation fails, it SHALL
@@ -70,7 +70,7 @@ setting by its path (for example `map.center[1]`) and says what was expected.
 
 #### Scenario: Multiple problems are reported together
 - **WHEN** both `map.basemap` is empty and `portal.url` is not an absolute `https` URL
-- **THEN** the error lists both settings (Vitest for the validator, Playwright for the displayed message)
+- **THEN** the error lists both settings
 
 ### Requirement: Unreadable config is reported
 When the config file cannot be fetched or is not valid JSON, the viewer SHALL show an error
@@ -78,7 +78,7 @@ message in the page that includes the config URL and the failure reason. It SHAL
 the map.
 
 #### Scenario: Config file missing
-- **WHEN** `config/viewer.json` returns HTTP 404
+- **WHEN** `apps/default.json` returns HTTP 404
 - **THEN** the page shows an error that includes the config URL and the 404 status
 
 #### Scenario: Malformed JSON
@@ -108,11 +108,11 @@ one console warning that names the setting, and SHALL continue starting.
 
 #### Scenario: All recognized settings present
 - **WHEN** the config sets every recognized top-level setting with valid values
-- **THEN** the viewer starts normally and logs no config warning (Playwright)
+- **THEN** the viewer starts normally and logs no config warning
 
 #### Scenario: Unknown setting
 - **WHEN** the config includes `"colour": "blue"` at the top level
-- **THEN** the viewer starts normally and logs one warning naming `colour` (Playwright)
+- **THEN** the viewer starts normally and logs one warning naming `colour`
 
 ### Requirement: Debug setting is a boolean
 The `debug` setting SHALL be `true` or `false` and SHALL default to `false`. Any other value
@@ -120,25 +120,34 @@ SHALL fail validation.
 
 #### Scenario: Wrong type
 - **WHEN** the config has `"debug": "yes"`
-- **THEN** validation fails with an error at `debug` saying it must be `true` or `false` (Vitest)
+- **THEN** validation fails with an error at `debug` saying it must be `true` or `false`
 
 ### Requirement: An alternate config can be chosen by URL
-When the page URL has a `config` query parameter, the viewer SHALL load `config/<name>.json`,
-resolved against the app's base URL, instead of `config/viewer.json` (P-18). The name SHALL be
+When the page URL has an `app` query parameter, the viewer SHALL load `apps/<name>.json`,
+resolved against the app's base URL, instead of `apps/default.json` (P-18). The name SHALL be
 1 to 64 letters, digits, hyphens, or underscores. For any other value, the viewer SHALL show an
-error naming the parameter, SHALL NOT request any config, and SHALL NOT create the map.
+error naming the parameter, SHALL NOT request any config, and SHALL NOT create the map. The
+viewer SHALL ignore a `config` query parameter.
 
 #### Scenario: Named config
-- **WHEN** the page is opened with `?config=county`
-- **THEN** the viewer requests `config/county.json` and opens the map it describes (Playwright, route interception)
+- **WHEN** the page is opened with `?app=county`
+- **THEN** the viewer requests `apps/county.json` and opens the map it describes
+
+#### Scenario: Default app by name
+- **WHEN** the page is opened with `?app=default`
+- **THEN** the viewer requests `apps/default.json` and opens the same map as with no parameter
 
 #### Scenario: Path or URL rejected
-- **WHEN** the page is opened with `?config=../secrets` or `?config=https://example.com/viewer.json`
-- **THEN** the page shows an error naming the `config` parameter, no config request is made, and no map is created (Playwright)
+- **WHEN** the page is opened with `?app=../secrets` or `?app=https://example.com/default.json`
+- **THEN** the page shows an error naming the `app` parameter, no config request is made, and no map is created
 
 #### Scenario: Named config missing
-- **WHEN** the page is opened with `?config=nothere` and that file returns HTTP 404
-- **THEN** the page shows an error that includes the `config/nothere.json` URL and the 404 status (Playwright)
+- **WHEN** the page is opened with `?app=nothere` and that file returns HTTP 404
+- **THEN** the page shows an error that includes the `apps/nothere.json` URL and the 404 status
+
+#### Scenario: Old parameter ignored
+- **WHEN** the page is opened with `?config=county`
+- **THEN** the viewer requests `apps/default.json`, not `config/county.json` or `apps/county.json`, and opens the default app
 
 ### Requirement: Requests can be routed through a proxy
 The `request` setting SHALL accept a `proxyUrl` and a `proxyRules` list of `urlPrefix` and
@@ -149,8 +158,8 @@ absolute https URL or a path on the viewer's own site.
 #### Scenario: Proxy rule applied
 - **GIVEN** a proxy rule with `urlPrefix` `https://services.example.com/` and `proxyUrl` `proxy/forward`
 - **WHEN** a configured layer's URL starts with `https://services.example.com/`
-- **THEN** the layer's requests go to `proxy/forward` on the viewer's site, carrying the original URL (Playwright, route interception)
+- **THEN** the layer's requests go to `proxy/forward` on the viewer's site, carrying the original URL
 
 #### Scenario: Invalid proxy URL
 - **WHEN** `request.proxyRules[0].proxyUrl` is `ftp://proxy.example.com`
-- **THEN** validation fails with an error at `request.proxyRules[0].proxyUrl` (Vitest)
+- **THEN** validation fails with an error at `request.proxyRules[0].proxyUrl`

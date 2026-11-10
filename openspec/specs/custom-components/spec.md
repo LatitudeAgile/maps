@@ -18,15 +18,15 @@ and the same corner, `none`, and `panel` placements (P-38).
 #### Scenario: Custom type in a corner and in a panel
 - **GIVEN** the `hello-world` type is registered
 - **WHEN** the config places one `hello-world` component `top-right` and another in `panel`
-- **THEN** the first shows in the map's top-right corner, the second gets a sidebar icon and panel with the type's default heading and icon, and both show the map's center (Playwright)
+- **THEN** the first shows in the map's top-right corner, the second gets a sidebar icon and panel with the type's default heading and icon, and both show the map's center
 
 #### Scenario: Custom type options are validated
 - **WHEN** a `hello-world` component has `"options": { "greeting": 5 }`
-- **THEN** validation fails with an error at `components[0].options.greeting` saying a string is expected (Vitest)
+- **THEN** validation fails with an error at `components[0].options.greeting` saying a string is expected
 
 #### Scenario: Unregistered custom type
 - **WHEN** a component entry has `"type": "my-widget"` and no such type is registered
-- **THEN** validation fails with an error at `components[0].type` that lists the registered types, including `hello-world` (Vitest)
+- **THEN** validation fails with an error at `components[0].type` that lists the registered types, including `hello-world`
 
 ### Requirement: The hello-world component is a working template
 The repository SHALL include a `hello-world` component type that a developer can copy as the
@@ -37,21 +37,21 @@ map when removed from the page.
 
 #### Scenario: Greeting from config
 - **WHEN** a `hello-world` component has `"options": { "greeting": "Hi from the team" }`
-- **THEN** it shows "Hi from the team" (Playwright)
+- **THEN** it shows "Hi from the team"
 
 #### Scenario: Default greeting
 - **WHEN** a `hello-world` component has no `greeting` option
-- **THEN** validation passes, its `greeting` is "Hello, world", and it shows "Hello, world" (Vitest for the default; Playwright for the text)
+- **THEN** validation passes, its `greeting` is "Hello, world", and it shows "Hello, world"
 
 #### Scenario: Follows the map
 - **GIVEN** a `hello-world` component in a sidebar panel that is open
 - **WHEN** the map is panned to longitude -104.99, latitude 39.74
-- **THEN** within 2 seconds after the map is stationary, the component shows that center to two decimal places (Playwright)
+- **THEN** within 2 seconds after the map is stationary, the component shows that center to two decimal places
 
 #### Scenario: Stops following when removed
 - **GIVEN** a `hello-world` component is showing the map's center
 - **WHEN** the element is removed from the page and the map is then panned
-- **THEN** no error is reported and the removed element's text doesn't change (Playwright)
+- **THEN** no error is reported and the removed element's text doesn't change
 
 ### Requirement: A guide explains how to write a component
 A guide SHALL explain how to copy `hello-world`, rename it, register it, and add options. The
@@ -60,4 +60,4 @@ project's UI rules.
 
 #### Scenario: Guide matches the template
 - **WHEN** a developer follows `docs/custom-components.md` to copy `hello-world` as `my-component`
-- **THEN** the copy builds, passes typecheck, and shows in a sidebar panel (named manual check, recorded in the change notes)
+- **THEN** the copy builds, passes typecheck, and shows in a sidebar panel

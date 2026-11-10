@@ -73,7 +73,14 @@ export function trackSidebarInsets(sidebar: Sidebar, mapElement: HTMLArcgisMapEl
     if (!frame) frame = requestAnimationFrame(measure);
   };
 
-  const observer = new ResizeObserver(schedule);
+  // Size changes are measured in the observer's callback, which runs after layout and before
+  // paint, so the insets land in the same frame as the change: the title box and corner UI are
+  // never drawn under a bar that has just appeared (add-settings D8). Other triggers wait for
+  // the next frame, when the change has been laid out.
+  const observer = new ResizeObserver(() => {
+    if (frame) cancelAnimationFrame(frame);
+    measure();
+  });
   const observeAll = () => {
     observer.disconnect();
     observer.observe(sidebar.element);

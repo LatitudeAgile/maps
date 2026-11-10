@@ -32,12 +32,17 @@ npm run check     # type-check
 ## Configure
 
 The map, its layers, and its components (including sidebar panels) come from
-`public/config/viewer.json`, which is copied to `dist/config/viewer.json` and can be edited
+`public/apps/default.json`, which is copied to `dist/apps/default.json` and can be edited
 after deployment without rebuilding. Every setting is described in
 [docs/configuration.md](docs/configuration.md).
 
 The shipped config includes a **sample layer** (a public Esri demo service) so the sidebar's
 Legend has something to show. Replace it with your own layers before deploying.
+
+**Apps:** each file in `public/apps/` is an app, opened with `?app=<name>`, and
+`public/apps/index.json` lists the apps users can switch between from the sidebar's Apps
+button. The shipped `index.json` and its second app, `field-notes.json`, are **samples**:
+replace them with your own apps, or delete `index.json` for a single-app viewer. See [Apps](docs/configuration.md#apps).
 
 ## Write your own component
 
@@ -83,7 +88,7 @@ never sends it to a geocoder.
 8. Restart `npm run dev`, or rebuild with `npm run build`. The key is baked into the build,
    so rebuild after changing it.
 
-Never commit a key, and never put one in `config/viewer.json`: the config is served to every
+Never commit a key, and never put one in an app's config (`apps/*.json`): the config is served to every
 visitor and the viewer refuses to start if it finds an `apiKey`, `token`, or `clientSecret`
 in it.
 

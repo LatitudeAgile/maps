@@ -1,0 +1,32 @@
+{
+  "app": {
+    "title": "Field Notes",
+    "summary": "Find a place and mark it up",
+    "description": "A smaller app for marking up the map: search for a place, then draw shapes and write notes on it. Sketches are kept in this browser, separately from the other apps.\n\nThis is a sample app. Replace it, or remove it from apps/index.json.",
+    "icon": "pencil",
+    "theme": { "color": "#7b3fa0", "opacity": 0.85 }
+  },
+  "map": {
+    "basemap": "arcgis/topographic",
+    "fallbackBasemap": "osm",
+    "center": [-98.579404, 39.828127],
+    "scale": 18489298
+  },
+  "layers": [
+    {
+      "id": "usa",
+      "type": "map-image",
+      "url": "https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer",
+      "title": "USA (sample layer: replace with your own)",
+      "visible": false,
+      "opacity": 0.8
+    }
+  ],
+  "components": [
+    { "id": "home", "type": "home", "placement": "bottom-right" },
+    { "id": "zoom", "type": "zoom", "placement": "bottom-right" },
+    { "id": "search", "type": "search", "placement": "panel" },
+    { "id": "sketch", "type": "sketch", "placement": "panel" },
+    { "id": "layers", "type": "layer-list", "placement": "panel" }
+  ]
+}

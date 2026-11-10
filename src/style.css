@@ -1,17 +1,43 @@
-/* One corner radius for the floating sidebar and the title box (branding), so they match. */
+/*
+ * One corner radius for the floating sidebar and the title box (branding), so they match.
+ * --viewer-chrome-size is the title box's height.
+ */
 :root {
   --viewer-chrome-radius: var(--calcite-corner-radius-round, 4px);
+  --viewer-chrome-size: 40px;
 }
 
 html,
 body {
-  background-color: var(--calcite-color-background);
   height: 100%;
   margin: 0;
   overflow: hidden;
 }
 
+/*
+ * Page background (add-background-grid, P-07): Calcite's background color with a faint grid,
+ * thin lines every 16 px and stronger ones every 80 px. It shows wherever the map draws
+ * nothing. light-dark() follows the color-scheme the calcite-mode-* class sets (design D1).
+ * Only html paints it: body stays transparent so it doesn't cover the grid (design D2).
+ */
+html {
+  --viewer-grid-minor: light-dark(rgb(0 0 0 / 4%), rgb(255 255 255 / 4%));
+  --viewer-grid-major: light-dark(rgb(0 0 0 / 10%), rgb(255 255 255 / 10%));
+  background-color: var(--calcite-color-background);
+  background-image:
+    linear-gradient(to right, var(--viewer-grid-minor) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--viewer-grid-minor) 1px, transparent 1px),
+    linear-gradient(to right, var(--viewer-grid-major) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--viewer-grid-major) 1px, transparent 1px);
+  background-size: 16px 16px, 16px 16px, 80px 80px, 80px 80px;
+}
+
+/*
+ * Calcite paints the shell's host in foreground-1, which would cover the page's grid. Let the
+ * html background show through (add-background-grid D4).
+ */
 calcite-shell {
+  background-color: transparent;
   height: 100%;
   width: 100%;
 }
@@ -65,12 +91,14 @@ arcgis-map {
   font-family: var(--calcite-font-family);
   font-size: var(--calcite-font-size-lg, 18px);
   font-weight: var(--calcite-font-weight-medium, 500);
-  line-height: 1.5;
+  /* Exactly --viewer-chrome-size tall, the text centered in it. */
+  block-size: var(--viewer-chrome-size);
+  line-height: var(--viewer-chrome-size);
   margin: 0;
   /* The map's width, less the sidebar and a gutter on each side. */
   max-width: calc(100vw - var(--sidebar-inset-start, 0px) - 2 * var(--calcite-spacing-lg, 16px));
   overflow: hidden;
-  padding: var(--calcite-spacing-xs, 4px) var(--calcite-spacing-md, 12px);
+  padding: 0 var(--calcite-spacing-md, 12px);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -145,8 +173,22 @@ calcite-shell.themed calcite-shell-panel.sidebar > calcite-action-bar calcite-ac
 
 /* Wide screens: the floating sidebar's corners match the title box's (the phone bar is flush). */
 @media (min-width: 768px) {
+  /*
+   * The sidebar stops above the map's attribution, which runs the full width of the map under
+   * it (src/map/attribution.ts); Calcite's floating margin leaves the gap between them.
+   */
   calcite-shell-panel.sidebar {
     --calcite-shell-panel-corner-radius: var(--viewer-chrome-radius);
+    padding-block-end: var(--attribution-height, 0px);
+  }
+
+  /*
+   * A slimmer icon bar: 6 px around the icons instead of Calcite's 8, so the bar is 45 px wide.
+   * Calcite has no public property for the bar's padding at the default scale, only this
+   * internal one; the gap between icons is unchanged. The panel widths below allow for it.
+   */
+  calcite-shell-panel.sidebar > calcite-action-bar {
+    --calcite-internal-action-bar-padding: 6px;
   }
 
   /*
@@ -211,27 +253,27 @@ calcite-shell.themed calcite-shell-panel.sidebar > calcite-action-bar calcite-ac
 /*
  * Sidebar widths (P-25): icons plus open panel are 305, 390, and 460 px wide at dojo-sidebar's
  * 768 / 992 / 1200 px breakpoints. The custom properties size the panel, so each value is the
- * total minus Calcite's action bar (49 px).
+ * total minus the icon bar (45 px, see the bar padding above).
  */
 @media (min-width: 768px) {
   calcite-shell-panel.sidebar {
-    --calcite-shell-panel-width: 256px;
-    --calcite-shell-panel-max-width: 256px;
-    --calcite-shell-panel-min-width: 256px;
+    --calcite-shell-panel-width: 260px;
+    --calcite-shell-panel-max-width: 260px;
+    --calcite-shell-panel-min-width: 260px;
   }
 }
 @media (min-width: 992px) {
   calcite-shell-panel.sidebar {
-    --calcite-shell-panel-width: 341px;
-    --calcite-shell-panel-max-width: 341px;
-    --calcite-shell-panel-min-width: 341px;
+    --calcite-shell-panel-width: 345px;
+    --calcite-shell-panel-max-width: 345px;
+    --calcite-shell-panel-min-width: 345px;
   }
 }
 @media (min-width: 1200px) {
   calcite-shell-panel.sidebar {
-    --calcite-shell-panel-width: 411px;
-    --calcite-shell-panel-max-width: 411px;
-    --calcite-shell-panel-min-width: 411px;
+    --calcite-shell-panel-width: 415px;
+    --calcite-shell-panel-max-width: 415px;
+    --calcite-shell-panel-min-width: 415px;
   }
 }
 
@@ -249,7 +291,126 @@ calcite-shell-panel.sidebar calcite-panel > [data-component-id] {
   width: 100%;
 }
 
+/*
+ * A panel opened before its component is ready shows a loader (show-sidebar-at-startup D3).
+ * On phones the panel is only as tall as its content, so give the loader room.
+ */
+calcite-shell-panel.sidebar calcite-panel > .panel-loader {
+  min-height: calc(4 * var(--calcite-space-3xl, 2rem));
+}
+
+/* A panel whose component couldn't be loaded (D5): the notice keeps off the panel's edges. */
+calcite-shell-panel.sidebar calcite-panel > .panel-failed {
+  margin: var(--calcite-spacing-md, 12px);
+}
+
 /* The search box has no inner margin of its own; keep it off the panel's edges. */
 calcite-shell-panel.sidebar calcite-panel > arcgis-search {
   padding: var(--calcite-spacing-md, 12px);
+}
+
+/*
+ * App icon tiles in the Apps panel (src/apps/tile.ts, add-app-selector D7): the app's glyph on
+ * a tile in its theme color, with corners rounded like an app icon (about 22% of the size),
+ * not Calcite's small radius. Without a theme, the panel's own neutral colors.
+ */
+.app-tile {
+  --app-tile-size: 40px;
+  align-items: center;
+  background-color: var(--app-tile-color, var(--calcite-color-foreground-3));
+  block-size: var(--app-tile-size);
+  border-radius: calc(var(--app-tile-size) * 0.22);
+  color: var(--app-tile-glyph, var(--calcite-color-text-2));
+  display: inline-flex;
+  flex: none;
+  inline-size: var(--app-tile-size);
+  justify-content: center;
+}
+
+.app-tile--detail {
+  --app-tile-size: 72px;
+}
+
+.app-tile calcite-loader {
+  margin: 0;
+}
+
+/* An app's page in the Apps panel (src/apps/AppsPanel.ts, add-app-selector D8). */
+.app-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--calcite-spacing-lg, 16px);
+  padding: var(--calcite-spacing-lg, 16px);
+}
+
+.app-detail-header {
+  align-items: center;
+  display: flex;
+  gap: var(--calcite-spacing-lg, 16px);
+}
+
+.app-detail-title {
+  color: var(--calcite-color-text-1);
+  font-size: var(--calcite-font-size-2, 1.25rem);
+  font-weight: var(--calcite-font-weight-medium, 500);
+  margin: 0;
+}
+
+.app-detail-summary,
+.app-detail-note {
+  color: var(--calcite-color-text-2);
+  font-size: var(--calcite-font-size--1, 0.875rem);
+  margin: var(--calcite-spacing-xxs, 4px) 0 0;
+}
+
+.app-detail-note {
+  margin: 0;
+}
+
+.app-detail-about {
+  color: var(--calcite-color-text-1);
+  font-size: var(--calcite-font-size-0, 1rem);
+  font-weight: var(--calcite-font-weight-medium, 500);
+  margin: 0;
+}
+
+/* Plain text: single line breaks are kept; blank lines are already separate paragraphs. */
+.app-detail-description {
+  color: var(--calcite-color-text-2);
+  font-size: var(--calcite-font-size--1, 0.875rem);
+  line-height: 1.5;
+  margin-block-start: calc(-1 * var(--calcite-spacing-sm, 8px));
+  white-space: pre-line;
+}
+
+.app-detail-description p {
+  margin: 0 0 var(--calcite-spacing-sm, 8px);
+}
+
+/*
+ * Settings section (add-settings D5), after the apps list in the Apps and settings panel, or on
+ * its own in the Settings panel.
+ */
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--calcite-spacing-md, 12px);
+  padding: var(--calcite-spacing-lg, 16px);
+}
+
+/* In the combined panel, a rule separates it from the apps list. */
+.apps-list-page calcite-list + .settings-section {
+  border-block-start: 1px solid var(--calcite-color-border-3);
+}
+
+.settings-heading {
+  color: var(--calcite-color-text-1);
+  font-size: var(--calcite-font-size-0, 1rem);
+  font-weight: var(--calcite-font-weight-medium, 500);
+  margin: 0;
+}
+
+.settings-reset {
+  align-self: flex-start;
+  font-size: var(--calcite-font-size--1, 0.875rem);
 }

@@ -1,10 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="calcite-mode-auto">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ArcGIS Sidebar Viewer</title>
     <link rel="icon" href="data:;base64,=" />
+    <script>
+      // The user's stored Appearance choice, applied before first paint (add-settings D2).
+      // Same key and values as src/settings/modeChoice.ts: keep the two in step.
+      try {
+        var mode = localStorage.getItem("arcgis-sidebar-viewer:mode:" + new URL(".", location.href).pathname);
+        if (mode === "auto" || mode === "light" || mode === "dark") document.documentElement.classList.replace("calcite-mode-auto", "calcite-mode-" + mode);
+      } catch (e) {}
+    </script>
   </head>
 
   <body>

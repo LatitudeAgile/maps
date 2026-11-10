@@ -45,7 +45,7 @@ Add an entry to `COMPONENT_TYPES` in [`src/components/registry.ts`](../src/compo
 - **`panel`** sets the sidebar heading and [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/)
   used when the component is placed in `panel` without its own `panel` settings.
 
-Then use it in `public/config/viewer.json`:
+Then use it in an app's config, such as `public/apps/default.json`:
 
 ```json
 { "id": "mine", "type": "my-component", "options": { "greeting": "Hi" } }
@@ -105,6 +105,11 @@ two events on its own element:
 - `viewer-panel-close`: its panel has closed, by its icon, its close button, Escape, or a switch
   to another panel. On a switch, the panel being left gets its close before the next panel's
   component gets its open.
+
+The sidebar is shown, and its panels can be opened, before components are created, which
+happens once the map's layers have settled. A panel opened before then shows a loader. If your
+component is put into a panel that is already open, it gets `viewer-panel-open` right after it
+is attached, so it can start as it would on a normal open.
 
 A component can also ask for its panel to be opened, for example from a popup action on the
 map. It dispatches `viewer-panel-request-open` from its element. The event must bubble and be

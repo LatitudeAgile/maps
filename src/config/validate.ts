@@ -8,8 +8,10 @@ import { validateGeocoding } from "./geocoding.ts";
 import { COMPONENT_TYPES, type ComponentTypeSchema } from "../components/registry.ts";
 import {
   isCredentialKey,
+  COLOR_MODES,
   DEFAULTS,
   KNOWN_SECTIONS,
+  type ColorMode,
   type ConfigProblem,
   type ViewerConfig,
 } from "./types.ts";
@@ -109,6 +111,38 @@ export function validateConfig(raw: unknown, context: ValidationContext = {}): V
     else errors.push({ path: "app.titleVisible", message: "Expected true or false." });
   }
   const theme = validateTheme(app.theme, errors, warnings);
+  // App listing settings (add-app-selector D10).
+  let summary: string | undefined;
+  if (app.summary !== undefined) {
+    if (isNonEmptyString(app.summary)) summary = app.summary;
+    else errors.push({ path: "app.summary", message: "Expected a non-empty string." });
+  }
+  let description: string | undefined;
+  if (app.description !== undefined) {
+    if (typeof app.description === "string") description = app.description;
+    else errors.push({ path: "app.description", message: "Expected a string." });
+  }
+  let icon: string | undefined;
+  if (app.icon !== undefined) {
+    if (isNonEmptyString(app.icon)) icon = app.icon;
+    else errors.push({ path: "app.icon", message: "Expected a non-empty string: a Calcite icon name." });
+  }
+  let selectorVisible: boolean = DEFAULTS.app.selectorVisible;
+  if (app.selectorVisible !== undefined) {
+    if (typeof app.selectorVisible === "boolean") selectorVisible = app.selectorVisible;
+    else errors.push({ path: "app.selectorVisible", message: "Expected true or false." });
+  }
+  let settingsVisible: boolean = DEFAULTS.app.settingsVisible;
+  if (app.settingsVisible !== undefined) {
+    if (typeof app.settingsVisible === "boolean") settingsVisible = app.settingsVisible;
+    else errors.push({ path: "app.settingsVisible", message: "Expected true or false." });
+  }
+  // Light or dark mode (add-color-mode D3).
+  let mode: ColorMode = DEFAULTS.app.mode;
+  if (app.mode !== undefined) {
+    if ((COLOR_MODES as readonly unknown[]).includes(app.mode)) mode = app.mode as ColorMode;
+    else errors.push({ path: "app.mode", message: 'Expected "auto", "light" or "dark".' });
+  }
 
   // portal
   const portal = section(raw, "portal", errors);
@@ -231,7 +265,17 @@ export function validateConfig(raw: unknown, context: ValidationContext = {}): V
 
   return {
     config: {
-      app: { title, titleVisible, ...(theme ? { theme } : {}) },
+      app: {
+        title,
+        titleVisible,
+        selectorVisible,
+        settingsVisible,
+        mode,
+        ...(theme ? { theme } : {}),
+        ...(summary !== undefined ? { summary } : {}),
+        ...(description !== undefined ? { description } : {}),
+        ...(icon !== undefined ? { icon } : {}),
+      },
       portal: { url: portalUrl },
       map: { basemap, fallbackBasemap, center, ...view },
       services,

@@ -1,7 +1,8 @@
 /**
  * Theme colors for the sidebar's icon bar and the title box (branding, P-28, design D4, D5).
- * The color helpers are pure, so validation and tests use them without a DOM.
+ * The color helpers are pure, so validation uses them without a DOM.
  */
+import { COLOR_MODES, type ColorMode } from "../config/types.ts";
 
 /** A validated theme: `color` and `textColor` as lowercase `#rrggbb`, `opacity` from 0 to 1. */
 export interface Theme {
@@ -68,6 +69,17 @@ export function applyTheme(root: HTMLElement, theme: Theme): void {
   root.style.setProperty("--viewer-theme-pressed", `color-mix(in srgb, ${theme.color} 75%, black)`);
   // Hover: a light wash of the text color over the bar.
   root.style.setProperty("--viewer-theme-hover", `color-mix(in srgb, ${theme.textColor} 15%, transparent)`);
+}
+
+/**
+ * Put the page in light, dark or the system's mode (add-color-mode D1, D2): swap the
+ * `calcite-mode-*` class on `<html>`. `index.html` starts with `calcite-mode-auto`, so the page
+ * matches the system until this runs. Calcite's tokens pick their light or dark value from it,
+ * and map components and the viewer's CSS use those tokens.
+ */
+export function applyMode(mode: ColorMode, root: HTMLElement = document.documentElement): void {
+  root.classList.remove(...COLOR_MODES.map((m) => `calcite-mode-${m}`));
+  root.classList.add(`calcite-mode-${mode}`);
 }
 
 /** A contrast ratio for messages, rounded down to one decimal so 4.46 never reads as 4.5. */

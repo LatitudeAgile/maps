@@ -23,6 +23,27 @@ export interface PanelComponent {
   icon: string;
 }
 
+/** A sidebar panel known from config alone, before its component exists. */
+export interface PanelSlot {
+  /** The component entry's id. */
+  id: string;
+  heading: string;
+  icon: string;
+}
+
+/**
+ * A `panel` entry's heading and icon: its own `panel` settings, else its type's defaults. Used
+ * for the sidebar at startup and by the component stage, so the two always agree.
+ */
+export function panelSlot(entry: ComponentConfig, types: Readonly<Record<string, ComponentType>> = COMPONENT_TYPES): PanelSlot {
+  const type = types[entry.type];
+  return {
+    id: entry.id,
+    heading: entry.panel?.heading ?? type.panel.heading,
+    icon: entry.panel?.icon ?? type.panel.icon,
+  };
+}
+
 export interface CreateComponentsResult {
   /** `panel` components in config order, for the sidebar to show. */
   panels: PanelComponent[];
@@ -49,7 +70,7 @@ export interface CreateComponentsOptions {
   geocoding?: ComponentContext["geocoding"];
   /**
    * The container for a map corner (design D1). Defaults to the viewer's corner stack inside
-   * `mapElement`; tests pass their own.
+   * `mapElement`.
    */
   cornerStack?: (slot: string) => { append(...nodes: ComponentElement[]): void };
 }
@@ -126,12 +147,8 @@ export async function createComponents(options: CreateComponentsOptions): Promis
     if (entry.placement === "panel") {
       // Outside arcgis-map, a map component finds its view through referenceElement (design D6).
       (element as unknown as { referenceElement: unknown }).referenceElement = mapElement;
-      panels.push({
-        entry,
-        element,
-        heading: entry.panel?.heading ?? type.panel.heading,
-        icon: entry.panel?.icon ?? type.panel.icon,
-      });
+      const { heading, icon } = panelSlot(entry, types);
+      panels.push({ entry, element, heading, icon });
       continue;
     }
     if (entry.placement === "none") {

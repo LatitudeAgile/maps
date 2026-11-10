@@ -14,7 +14,7 @@ configured.
 
 #### Scenario: Key provided
 - **WHEN** the app is built with `VITE_ARCGIS_API_KEY` set to a non-empty value
-- **THEN** the viewer treats a basemap credential as configured (Vitest)
+- **THEN** the viewer treats a basemap credential as configured
 
 #### Scenario: Blank key
 - **WHEN** `VITE_ARCGIS_API_KEY` is set to spaces only
@@ -31,12 +31,12 @@ including a route service or geocoder on any other host, and every geocoder list
 #### Scenario: Requests to other hosts carry no key
 - **GIVEN** the app was built with an API key
 - **WHEN** the map has loaded with the shipped default config, and the user has searched for an address
-- **THEN** the key appears as a token only on requests to the basemap styles service and ArcGIS routing and geocoding hosts, and on no request to any other URL (Playwright, network log; skipped when no key is configured)
+- **THEN** the key appears as a token only on requests to the basemap styles service and ArcGIS routing and geocoding hosts, and on no request to any other URL
 
 #### Scenario: Places requests carry the key
 - **GIVEN** the app was built with an API key, and `geocoding.places` is set
 - **WHEN** the user types a place name in the Search panel
-- **THEN** the requests to `places-api.arcgis.com` carry the key, and no request to any other host gains it (Playwright, request fixture and network log; skipped when no key is configured)
+- **THEN** the requests to `places-api.arcgis.com` carry the key, and no request to any other host gains it
 
 ### Requirement: Credentials stay out of source control and logs
 The repository SHALL NOT contain a real API key. Local keys SHALL live in a gitignored
@@ -50,4 +50,4 @@ value. The viewer SHALL NOT write the key to the console or the page.
 #### Scenario: Key not echoed
 - **GIVEN** the app was built with an API key
 - **WHEN** the app starts normally, and again when it starts with an invalid config
-- **THEN** no console message or page text contains the key (Playwright; skipped when no key is configured)
+- **THEN** no console message or page text contains the key

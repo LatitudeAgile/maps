@@ -1,6 +1,6 @@
 // Keeping sketches in the browser (add-print-and-sketch-panels D9), ported from StewardshipOS's
-// mapSketches.ts: per config name instead of per account, and preferences per browser. Written
-// against a Storage-like interface, so tests can pass one that throws.
+// mapSketches.ts: per app name (`?app=`) instead of per account, and preferences per browser. Written
+// against a Storage-like interface, and every storage error is caught.
 import Graphic from "@arcgis/core/Graphic.js";
 import type TextSymbol from "@arcgis/core/symbols/TextSymbol.js";
 

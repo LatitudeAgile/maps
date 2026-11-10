@@ -16,22 +16,22 @@ config is invalid or unreadable and the notice shown when the map fails.
 #### Scenario: Invalid config notice
 - **GIVEN** the config has `map.center` `[-98.5, 120]`
 - **WHEN** the user presses the error notice's close button
-- **THEN** the notice is removed, and no map is created (Playwright)
+- **THEN** the notice is removed, and no map is created
 
 #### Scenario: Map failure notice
 - **GIVEN** all requests for the basemap are blocked, and the map-failure notice is shown
 - **WHEN** the user presses its close button
-- **THEN** the notice is removed (Playwright, request blocking)
+- **THEN** the notice is removed
 
 #### Scenario: Layer warning
 - **GIVEN** one configured layer returns HTTP 404, and the layer warning is shown
 - **WHEN** the user presses its close button
-- **THEN** the notice is removed, and the map and its other layers keep working (Playwright, route interception)
+- **THEN** the notice is removed, and the map and its other layers keep working
 
 #### Scenario: Close from the keyboard
 - **GIVEN** the invalid-config notice is shown
 - **WHEN** the user moves focus to its close button with Tab and presses Enter
-- **THEN** the notice is removed (Playwright)
+- **THEN** the notice is removed
 
 ### Requirement: Notices do not cover the title box
 When the title box is shown, in-page notices SHALL NOT overlap it at any viewport width. When
@@ -40,14 +40,14 @@ the title box is hidden, notices SHALL keep their usual place at the top of the 
 #### Scenario: Notice and title on a phone
 - **GIVEN** a 375×667 viewport and a configured layer that returns HTTP 404
 - **WHEN** the layer warning is shown
-- **THEN** the notice's top edge is below the title box's bottom edge (Playwright, comparing bounding boxes)
+- **THEN** the notice's top edge is below the title box's bottom edge
 
 #### Scenario: Notice and title on a wide screen
 - **GIVEN** a 1280×800 viewport, a long `app.title`, and a configured layer that returns HTTP 404
 - **WHEN** the layer warning is shown
-- **THEN** the notice and the title box do not overlap (Playwright, comparing bounding boxes)
+- **THEN** the notice and the title box do not overlap
 
 #### Scenario: Title hidden
 - **GIVEN** a 375×667 viewport, `app.titleVisible` `false`, and a configured layer that returns HTTP 404
 - **WHEN** the layer warning is shown
-- **THEN** the notice's top edge is within 16 px of the map's top edge (Playwright)
+- **THEN** the notice's top edge is within 16 px of the map's top edge

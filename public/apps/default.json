@@ -1,11 +1,14 @@
 {
   "app": {
-    "title": "ArcGIS Sidebar Viewer",
+    "title": "ArcGIS Sidebar",
+    "summary": "Every panel: search, directions, layers, print and more",
+    "description": "The full viewer, with every built-in panel: search for places, get directions, turn layers on and off, read the legend, switch basemaps, sketch on the map and print it.\n\nThis is a sample app. Replace it with your own in apps/default.json.",
+    "icon": "map",
     "theme": { "color": "#1f6f8b", "opacity": 0.85 }
   },
   "portal": { "url": "https://www.arcgis.com" },
   "map": {
-    "basemap": "arcgis/streets",
+    "basemap": "arcgis/topographic",
     "fallbackBasemap": "osm",
     "center": [-98.579404, 39.828127],
     "scale": 18489298
