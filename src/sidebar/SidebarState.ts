@@ -3,7 +3,7 @@ export type SidebarListener = (openId: string | undefined, previousId: string | 
 /**
  * Which sidebar panel is open, if any (design D3). Mirrors dojo-sidebar's tabClickHandler,
  * openTab and closeTab: toggling the open panel collapses the sidebar; toggling another
- * switches to it. Pure state, so it is tested without a DOM.
+ * switches to it. Pure state, with no DOM.
  */
 export class SidebarState {
   #openId: string | undefined;

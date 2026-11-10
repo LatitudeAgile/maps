@@ -1,5 +1,5 @@
-// Pure formatting for the hello-world component, kept apart from the element so it can be
-// unit-tested without a browser. Keep your own component's logic in files like this one.
+// Pure formatting for the hello-world component, kept apart from the element so it
+// needs no browser. Keep your own component's logic in files like this one.
 
 /** "-104.99, 39.74": longitude then latitude, to two decimal places. */
 export function formatCenter(longitude: number, latitude: number): string {

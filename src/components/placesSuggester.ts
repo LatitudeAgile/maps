@@ -1,6 +1,6 @@
 /**
  * The rationing and caching behind the Places search source (geocoding spec, design D16), kept
- * free of SDK imports so it can be tested with a stand-in query and fake timers. Each Places
+ * free of SDK imports: the query and the timer are passed in. Each Places
  * request that returns results is billed, so:
  * - no request below the API's 3-character minimum;
  * - a pause after the latest call, so only the last term of a burst is sent;
@@ -34,7 +34,7 @@ export interface PlacesSuggesterOptions {
   categories: string[];
   /** Pause after the latest call before sending; default 300 ms. */
   delayMs?: number;
-  /** For tests. */
+  /** How to wait; defaults to setTimeout. */
   wait?: (ms: number) => Promise<void>;
 }
 

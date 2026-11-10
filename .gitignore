@@ -53,10 +53,5 @@ jspm_packages/
 # System files
 .DS_Store
 Thumbs.db
-# Playwright
-/test-results
-/playwright-report
-/blob-report
-
 # Screenshots from OpenSpec spikes and manual checks: findings go in the change's notes.md
 openspec/changes/**/screenshots/

@@ -1,5 +1,5 @@
 // Sketch colors (add-print-and-sketch-panels D5), ported from StewardshipOS's mapSketches.ts:
-// the configured colors, and up to six the user adds. Pure functions, so Vitest needs no DOM.
+// the configured colors, and up to six the user adds. Pure functions, with no DOM.
 
 /** A color on the strip: from config, or added by the user (named by its hex). */
 export interface SketchColor {

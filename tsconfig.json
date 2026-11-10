@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig.json",
-  "include": ["src", "e2e", "*.ts"],
+  "include": ["src", "*.ts"],
   "compilerOptions": {
     // Disallow unreachable code.
     "allowUnreachableCode": false,

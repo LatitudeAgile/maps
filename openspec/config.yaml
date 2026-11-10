@@ -42,8 +42,8 @@ context: |
 
 rules:
   specs:
-    - Every scenario must be checkable by a Vitest unit test, a Playwright test, or a
-      named manual check; say which when it is not obvious.
+    - Every scenario describes behavior someone can check in the running app. Don't name a
+      test tool; the project has no automated tests.
   tasks:
-    - Each task group lands the tests for its own behavior; no trailing "write tests" group.
-    - Tests that need a live ArcGIS credential must skip cleanly when none is configured.
+    - Each task states how it is verified, by a typecheck (`npm run check`) or by checking the
+      behavior in the browser on the dev server; no tasks that write automated tests.

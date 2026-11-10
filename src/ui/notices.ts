@@ -12,7 +12,7 @@ interface NoticeOptions {
   title: string;
   message?: string;
   items?: string[];
-  /** Stable hook for tests and for replacing an existing notice. */
+  /** Stable hook for replacing an existing notice. */
   id: string;
 }
 

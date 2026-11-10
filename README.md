@@ -26,13 +26,8 @@ npm install
 npm run dev       # start the Vite dev server
 npm run build     # type-check and build to dist/
 npm run preview   # serve the production build
-npm test          # unit tests (Vitest)
-npm run check     # type-check + unit tests
-npm run test:e2e  # browser tests (Playwright) against a production build
+npm run check     # type-check
 ```
-
-Before the first `npm run test:e2e`, install the test browser once:
-`npx playwright install chromium`.
 
 ## Configure
 

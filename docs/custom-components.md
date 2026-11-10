@@ -18,7 +18,7 @@ copy:
   Change the `HTMLElementTagNameMap` entry at the bottom to `"viewer-my-component": MyComponent`.
 - **`index.ts`:** import `MyComponent` from `./MyComponent.ts`, and define it as
   `viewer-my-component`.
-- **`format.ts` and `format.test.ts`:** keep them for your own logic, or delete them.
+- **`format.ts`:** keep it for your own logic, or delete it.
 
 Tag names start with `viewer-`, so they can't clash with `arcgis-` or `calcite-` elements. A
 custom element name must contain a hyphen.
@@ -134,12 +134,7 @@ Use Calcite components and Calcite design tokens (`var(--calcite-color-text-1)`,
 `var(--calcite-spacing-sm)`, and so on) only, so your component matches the viewer in light and
 dark mode. Import each Calcite component you use, as the template does with `calcite-block`.
 
-## 8. Test it
+## 8. Try it
 
-- **Vitest:** unit-test pure logic, as `format.test.ts` does. Unit tests run in Node, without a
-  browser.
-- **Playwright:** serve a config that uses your type and check what the user sees. Copy
-  [`e2e/hello-world.spec.ts`](../e2e/hello-world.spec.ts). Its helpers serve a modified config,
-  wait for the map, and open sidebar panels.
-
-Run `npm run check` (typecheck and unit tests) and `npm run test:e2e`.
+Run `npm run check` to type-check, then `npm run dev`. Add your type to a config, in a map
+corner and in a panel, and check what the user sees in both places.

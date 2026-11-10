@@ -33,7 +33,7 @@ import { EDIT_SKETCH_ACTION_ID, sketchPopupTemplate } from "./popup.ts";
 import { areaFillOpacity, setNoteText, sketchKind, sketchSymbol, styleSketch, noteText } from "./symbols.ts";
 import { loadPref, loadSketches, PREF_KEYS, savePref, SketchSaver, sketchesKey, type StorageLike } from "./storage.ts";
 
-/** The sketch layer's id, also used by tests to find it. */
+/** The sketch layer's id. */
 export const SKETCH_LAYER_ID = "viewer-sketches";
 
 /** Drawing tools (D6). Listing the freehand ones adds a Freehand segment to lines and polygons. */
@@ -294,7 +294,7 @@ export class SketchPanel extends HTMLElement {
     this.#applyUnits();
   }
 
-  /** The sketch layer, for the app and tests. */
+  /** The sketch layer, for the app. */
   get layer(): GraphicsLayer {
     return this.#layer;
   }

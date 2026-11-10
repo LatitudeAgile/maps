@@ -8,5 +8,5 @@ To make your own, follow [docs/custom-components.md](../../../../docs/custom-com
 | File | What it holds |
 |---|---|
 | `HelloWorld.ts` | The custom element: options as properties, finding the map, cleanup. |
-| `format.ts` | Pure logic, unit-tested without a browser (`format.test.ts`). |
+| `format.ts` | Pure logic, kept apart from the element. |
 | `index.ts` | Defines the element once; the registry entry imports it. |
