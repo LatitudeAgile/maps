@@ -12,10 +12,16 @@ export const LAYER_LOADERS: LayerLoaders = {
   tile: async () => (await import("@arcgis/core/layers/TileLayer.js")).default as unknown as LayerClass,
   geojson: async () => (await import("@arcgis/core/layers/GeoJSONLayer.js")).default as unknown as LayerClass,
   imagery: async () => (await import("@arcgis/core/layers/ImageryLayer.js")).default as unknown as LayerClass,
+  // 3D only (map-scenes).
+  scene: async () => (await import("@arcgis/core/layers/SceneLayer.js")).default as unknown as LayerClass,
+  "building-scene": async () => (await import("@arcgis/core/layers/BuildingSceneLayer.js")).default as unknown as LayerClass,
+  "point-cloud": async () => (await import("@arcgis/core/layers/PointCloudLayer.js")).default as unknown as LayerClass,
+  "integrated-mesh": async () => (await import("@arcgis/core/layers/IntegratedMeshLayer.js")).default as unknown as LayerClass,
+  elevation: async () => (await import("@arcgis/core/layers/ElevationLayer.js")).default as unknown as LayerClass,
 };
 
-/** Types that get a default popup listing all attributes (map-layers, P-06). */
-const DEFAULT_POPUP_TYPES: ReadonlySet<LayerType> = new Set(["feature", "geojson", "imagery"]);
+/** Types that get a default popup listing all attributes (map-layers, P-06; `scene`: map-scenes). */
+const DEFAULT_POPUP_TYPES: ReadonlySet<LayerType> = new Set(["feature", "geojson", "imagery", "scene"]);
 
 /**
  * Constructor properties for a layer entry. `options` pass through, but the entry's own

@@ -81,13 +81,19 @@ app model, and the API key. Only pass the key on to ArcGIS services that need it
 
 ## 4. Finding the map
 
-- **In a map corner,** the element is a child of `arcgis-map`, so `this.closest("arcgis-map")`
-  finds it.
+The map element is `arcgis-map` in a 2D app and `arcgis-scene` in a 3D one (see
+[3D scenes](configuration.md#3d-scenes)). Write your component for both unless it only makes
+sense in one, and then limit its type's `views` in the registry, as `print` does.
+
+- **In a map corner,** the element is a child of the map element, so `findViewElement(this)`
+  from [`src/map/viewElement.ts`](../src/map/viewElement.ts) finds it. It looks for
+  `arcgis-map` or `arcgis-scene`.
 - **In a sidebar panel,** the element sits outside the map. The viewer sets its
-  `referenceElement` property to the map, as it does for SDK components.
+  `referenceElement` property to the map element, as it does for SDK components.
 
 The template's `#findMap()` handles both. Then `await mapElement.viewOnReady()` before using
-`mapElement.view`.
+`mapElement.view`, which is a `MapView` in 2D and a `SceneView` in 3D. Both have `center`,
+`scale`, `zoom` and `extent`.
 
 ## 5. Clean up
 

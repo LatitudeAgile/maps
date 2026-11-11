@@ -1,6 +1,7 @@
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import type Layer from "@arcgis/core/layers/Layer.js";
 import type MapView from "@arcgis/core/views/MapView.js";
+import type SceneView from "@arcgis/core/views/SceneView.js";
 import type { LayerConfig, ComponentConfig } from "../config/types.ts";
 import { ErrorChannel } from "./errors.ts";
 
@@ -19,8 +20,8 @@ export interface ComponentRecord {
 
 export type ViewStateName = "extent" | "center" | "zoom" | "scale";
 
-/** The view properties the model reads. A MapView satisfies it. */
-type ViewLike = Pick<MapView, ViewStateName>;
+/** The view properties the model reads. A MapView and a SceneView both satisfy it. */
+type ViewLike = Pick<MapView, ViewStateName> | Pick<SceneView, ViewStateName>;
 
 /**
  * Runtime model shared by the viewer and its components (design D7): view state, layer and

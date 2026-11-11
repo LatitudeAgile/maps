@@ -68,6 +68,11 @@ export function showConfigError(title: string, items: string[], message?: string
   return showNotice({ id: "config-error", kind: "danger", title, items, message });
 }
 
+/** The app's web map or web scene item couldn't be opened, so no map is created (web-maps). */
+export function showItemError(title: string, message: string): HTMLElement {
+  return showNotice({ id: "item-error", kind: "danger", title, message });
+}
+
 /** The map or its basemap failed after creation. */
 export function showMapError(message: string): HTMLElement {
   return showNotice({
@@ -78,17 +83,20 @@ export function showMapError(message: string): HTMLElement {
   });
 }
 
-/** Some configured layers failed to load. The rest of the viewer keeps working. */
-export function showLayerErrors(ids: string[]): HTMLElement {
+/**
+ * Some layers failed to load: config layers by `id`, the map item's layers by title. The rest
+ * of the viewer keeps working.
+ */
+export function showLayerErrors(names: string[]): HTMLElement {
   return showNotice({
     id: "layer-errors",
     kind: "warning",
-    title: ids.length === 1 ? "A layer could not be loaded" : "Some layers could not be loaded",
+    title: names.length === 1 ? "A layer could not be loaded" : "Some layers could not be loaded",
     message:
-      ids.length === 1
+      names.length === 1
         ? "The map works without it. Check the layer's URL or portal item in the config."
         : "The map works without them. Check each layer's URL or portal item in the config.",
-    items: ids,
+    items: names,
   });
 }
 

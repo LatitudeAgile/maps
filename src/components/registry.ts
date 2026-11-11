@@ -4,7 +4,7 @@ import { isBasemapStyleId } from "../map/basemapIds.ts";
 import { DEFAULT_GEOCODER_URL } from "./geocoder.ts";
 import { buildSearchSources } from "./searchSources.ts";
 import type { GeocodingConfig } from "../config/geocoding.ts";
-import type { ComponentPlacement } from "../config/types.ts";
+import type { ComponentPlacement, MapViewKind } from "../config/types.ts";
 import { DEFAULT_SKETCH_COLORS } from "./sketch/palette.ts";
 import { basemapGalleryKeyless, configureBasemapGallery, DEFAULT_GALLERY_BASEMAPS } from "./basemapGallery.ts";
 import { configureDirections, DEFAULT_ROUTE_SERVICE_URL, DIRECTIONS_UNITS, directionsKeyless } from "./directions.ts";
@@ -43,6 +43,12 @@ export interface ComponentTypeSchema {
   defaults?: Readonly<Record<string, unknown>>;
   /** The only placements the type supports; any other fails validation. All when absent (D2). */
   placements?: readonly ComponentPlacement[];
+  /**
+   * The only views the type works in. In an app whose view the config decides, any other fails
+   * validation; in an app opened from an item, the component is left out (add-web-maps-and-scenes
+   * D8). Both when absent.
+   */
+  views?: readonly MapViewKind[];
 }
 
 /** A registered component type: a map component, loaded on first use. */
@@ -197,6 +203,8 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     tag: "arcgis-print",
     load: () => import("@arcgis/map-components/components/arcgis-print"),
     options: { printServiceUrl: "url" },
+    // arcgis-print reports a sceneViewError in a scene: it prints 2D maps only.
+    views: ["2d"],
     panel: { heading: "Print", icon: "print" },
   },
   // Drawing and writing on the map, ported from StewardshipOS (P-61, design D5). Panel only: its
@@ -207,7 +215,25 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { colors: "color[]", fillPercent: { integer: [0, 100] }, unit: { oneOf: ["imperial", "metric"] } },
     defaults: { colors: DEFAULT_SKETCH_COLORS.map((c) => ({ ...c })), fillPercent: 0, unit: "imperial" },
     placements: ["panel"],
+    // Its symbols, saved sketches and printing are 2D; 3D sketching waits for a later change.
+    views: ["2d"],
     panel: { heading: "Sketch", icon: "pencil" },
+  },
+  // Which way is north; pressing it turns the map back to north up. 2D and 3D (map-components).
+  compass: {
+    tag: "arcgis-compass",
+    load: () => import("@arcgis/map-components/components/arcgis-compass"),
+    options: {},
+    panel: { heading: "Compass", icon: "compass" },
+  },
+  // Switches what dragging does in a scene: pan or rotate. The SDK supports it in arcgis-scene
+  // only (map-components; add-web-maps-and-scenes D10).
+  "navigation-toggle": {
+    tag: "arcgis-navigation-toggle",
+    load: () => import("@arcgis/map-components/components/arcgis-navigation-toggle"),
+    options: { layout: { oneOf: ["vertical", "horizontal"] } },
+    views: ["3d"],
+    panel: { heading: "Navigation", icon: "move-and-rotate" },
   },
   // Custom components live in src/components/custom/ (docs/custom-components.md). This one
   // is the template to copy; it isn't in the default config (P-38, design D7).

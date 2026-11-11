@@ -1,6 +1,6 @@
-import { LEGACY_BASEMAP_IDS, isBasemapStyleId } from "../map/basemapIds.ts";
 import { hooks } from "../extensions/hooks.ts";
 import { validateLayers } from "./layers.ts";
+import { validateMap } from "./map.ts";
 import { validateRequest } from "./request.ts";
 import { validateComponents } from "./components.ts";
 import { validateTheme } from "./theme.ts";
@@ -37,7 +37,6 @@ type Obj = Record<string, unknown>;
 
 const isObject = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
 const isNonEmptyString = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
-const isFiniteNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
 function isHttpsUrl(v: unknown): v is string {
   if (typeof v !== "string") return false;
@@ -152,81 +151,8 @@ export function validateConfig(raw: unknown, context: ValidationContext = {}): V
     else errors.push({ path: "portal.url", message: "Expected an absolute https URL." });
   }
 
-  // map (required)
-  if (raw.map === undefined) {
-    errors.push({ path: "map", message: "Required. Expected an object with basemap, center, and zoom or scale." });
-  }
-  const map = section(raw, "map", errors);
-  const mapPresent = isObject(raw.map);
-
-  let basemap = "";
-  if (mapPresent) {
-    if (isNonEmptyString(map.basemap)) {
-      basemap = map.basemap.trim();
-      const modern = LEGACY_BASEMAP_IDS[basemap];
-      if (modern) {
-        warnings.push({
-          path: "map.basemap",
-          message: `"${basemap}" is a legacy basemap ID. Use the basemap styles ID "${modern}" instead.`,
-        });
-      }
-    } else {
-      errors.push({
-        path: "map.basemap",
-        message: 'Expected a non-empty basemap ID, such as "arcgis/streets" or "osm".',
-      });
-    }
-  }
-
-  let fallbackBasemap: string = DEFAULTS.map.fallbackBasemap;
-  if (map.fallbackBasemap !== undefined) {
-    if (!isNonEmptyString(map.fallbackBasemap)) {
-      errors.push({ path: "map.fallbackBasemap", message: "Expected a non-empty basemap ID." });
-    } else if (isBasemapStyleId(map.fallbackBasemap.trim())) {
-      errors.push({
-        path: "map.fallbackBasemap",
-        message: 'Expected a basemap that needs no API key, such as "osm" (not a provider/style ID).',
-      });
-    } else {
-      fallbackBasemap = map.fallbackBasemap.trim();
-    }
-  }
-
-  let center: [number, number] = [0, 0];
-  if (mapPresent) {
-    const c: unknown = map.center;
-    if (!Array.isArray(c) || c.length !== 2) {
-      errors.push({ path: "map.center", message: "Expected [longitude, latitude]: an array of two numbers." });
-    } else {
-      const [lon, lat] = c as [unknown, unknown];
-      if (!isFiniteNumber(lon) || lon < -180 || lon > 180) {
-        errors.push({ path: "map.center[0]", message: "Expected a longitude between -180 and 180." });
-      }
-      if (!isFiniteNumber(lat) || lat < -90 || lat > 90) {
-        errors.push({ path: "map.center[1]", message: "Expected a latitude between -90 and 90." });
-      }
-      center = [lon as number, lat as number];
-    }
-  }
-
-  // Initial view: exactly one of zoom or scale (design D10).
-  let view: { zoom: number } | { scale: number } | undefined;
-  if (mapPresent) {
-    const hasZoom = map.zoom !== undefined;
-    const hasScale = map.scale !== undefined;
-    if (hasZoom && hasScale) {
-      errors.push({ path: "map", message: "Set either map.zoom or map.scale, not both." });
-    } else if (!hasZoom && !hasScale) {
-      errors.push({ path: "map", message: "Required: map.zoom or map.scale." });
-    } else if (hasZoom) {
-      if (isFiniteNumber(map.zoom) && map.zoom >= 0) view = { zoom: map.zoom };
-      else errors.push({ path: "map.zoom", message: "Expected a number 0 or greater." });
-    } else if (isFiniteNumber(map.scale) && map.scale > 0) {
-      view = { scale: map.scale };
-    } else {
-      errors.push({ path: "map.scale", message: "Expected a number greater than 0." });
-    }
-  }
+  // map (required): basemap and starting view, or an item (viewer-config, web-maps, map-scenes)
+  const { map, view } = validateMap(raw.map, errors, warnings);
 
   // services: named https URLs
   const servicesRaw = section(raw, "services", errors);
@@ -239,14 +165,14 @@ export function validateConfig(raw: unknown, context: ValidationContext = {}): V
 
   const layers = validateLayers(
     raw.layers,
-    { hookNames: context.hookNames ?? Object.keys(hooks), configUrl: context.configUrl },
+    { hookNames: context.hookNames ?? Object.keys(hooks), configUrl: context.configUrl, view },
     errors,
     warnings,
   );
 
   const components = validateComponents(
     raw.components,
-    { types: context.componentTypes ?? COMPONENT_TYPES, layerIds: layers.map((l) => l.id) },
+    { types: context.componentTypes ?? COMPONENT_TYPES, layerIds: layers.map((l) => l.id), view },
     errors,
     warnings,
   );
@@ -261,7 +187,7 @@ export function validateConfig(raw: unknown, context: ValidationContext = {}): V
   const geocoding = validateGeocoding(raw.geocoding, errors, warnings);
   const request = validateRequest(raw.request, errors, warnings);
 
-  if (errors.length > 0 || !view) return { config: undefined, errors, warnings };
+  if (errors.length > 0 || !map) return { config: undefined, errors, warnings };
 
   return {
     config: {
@@ -277,7 +203,7 @@ export function validateConfig(raw: unknown, context: ValidationContext = {}): V
         ...(icon !== undefined ? { icon } : {}),
       },
       portal: { url: portalUrl },
-      map: { basemap, fallbackBasemap, center, ...view },
+      map,
       services,
       layers,
       components,

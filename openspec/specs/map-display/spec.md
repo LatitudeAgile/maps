@@ -8,12 +8,22 @@ credentials are or are not available, the zoom control, and behavior on resize.
 ## Requirements
 
 ### Requirement: Map opens at the configured view
-The map SHALL open using `map.basemap`, `map.center` (longitude, latitude), and `map.zoom` or
-`map.scale` from the config.
+Without `map.item`, the map SHALL open using `map.basemap`, `map.center` (longitude, latitude),
+and `map.zoom` or `map.scale` from the config, in 2D unless `map.view` is `"3d"`. With
+`map.item`, it SHALL open from that item, with any of these settings that are set overriding the
+item's (web-maps).
 
 #### Scenario: Default configuration (P-01)
 - **WHEN** the app starts with the shipped default config
 - **THEN** the map is ready with its center within 0.01° of longitude -98.579404, latitude 39.828127, and its scale within 1% of 1:18,489,298, whichever basemap is shown
+
+#### Scenario: Default configuration is 2D
+- **WHEN** the app starts with the shipped default config
+- **THEN** the map is a 2D map, not a 3D scene
+
+#### Scenario: Map from an item
+- **WHEN** an app has `map.item` and no `map.center`, `map.zoom` or `map.scale`
+- **THEN** the map opens at the item's own starting view
 
 ### Requirement: Map fills the window
 The map SHALL fill the browser viewport, with no page scrollbars, at every viewport width

@@ -22,9 +22,10 @@ change the viewer's behavior without a rebuild.
 - **THEN** the map opens at the new scale
 
 ### Requirement: Initial view is set by zoom or by scale
-The config SHALL set the map's initial view with exactly one of `map.zoom` (a zoom level of
-the basemap's tiling scheme, 0 or greater) or `map.scale` (a map scale denominator, greater
-than 0). A config that sets both, or neither, SHALL fail validation.
+Without `map.item`, the config SHALL set the map's initial view with `map.center` and exactly one
+of `map.zoom` (a zoom level of the basemap's tiling scheme, 0 or greater) or `map.scale` (a map
+scale denominator, greater than 0), and SHALL set `map.basemap`. A config that sets both zoom
+and scale SHALL fail validation. With `map.item`, all of these SHALL be optional.
 
 #### Scenario: Scale instead of zoom
 - **WHEN** the config sets `map.scale` to 18489298 and does not set `map.zoom`
@@ -34,9 +35,17 @@ than 0). A config that sets both, or neither, SHALL fail validation.
 - **WHEN** the config sets both `map.zoom` and `map.scale`
 - **THEN** validation fails with an error at `map` saying to set either `map.zoom` or `map.scale`, not both
 
+#### Scenario: Both set with an item
+- **WHEN** the config sets `map.item`, `map.zoom` and `map.scale`
+- **THEN** validation fails with an error at `map` saying to set either `map.zoom` or `map.scale`, not both
+
 #### Scenario: Neither set
-- **WHEN** the config sets neither `map.zoom` nor `map.scale`
+- **WHEN** the config has no `map.item` and sets neither `map.zoom` nor `map.scale`
 - **THEN** validation fails with an error at `map` saying `map.zoom` or `map.scale` is required
+
+#### Scenario: No basemap without an item
+- **WHEN** the config has no `map.item` and no `map.basemap`
+- **THEN** validation fails with an error at `map.basemap` saying a basemap ID is required unless `map.item` is set
 
 #### Scenario: Invalid scale
 - **WHEN** `map.scale` is 0
@@ -48,12 +57,18 @@ The viewer SHALL apply these defaults when a setting is absent:
 - `app.titleVisible`: `true`
 - `portal.url`: `https://www.arcgis.com`
 - `map.fallbackBasemap`: `osm`
+- `map.view`: `"2d"`, when there is no `map.item`
+- `map.ground`: `"world-elevation"`, in a config-built 3D scene
 
 `app.theme` has no default: without it, the viewer keeps the Calcite default colors.
 
 #### Scenario: Minimal config
 - **WHEN** the config contains only `map.basemap`, `map.center`, and `map.zoom`
-- **THEN** the viewer starts with the default title, the title box shown, no theme, the default portal URL, and the default fallback basemap
+- **THEN** the viewer starts with the default title, the title box shown, no theme, the default portal URL, the default fallback basemap, and a 2D map
+
+#### Scenario: Minimal config with an item
+- **WHEN** the config contains only `map.item`, naming a public web map
+- **THEN** the viewer starts with the default title, the default portal URL and the default fallback basemap, and opens the web map
 
 ### Requirement: Invalid config stops startup with a readable error
 The viewer SHALL validate the config before creating the map. When validation fails, it SHALL

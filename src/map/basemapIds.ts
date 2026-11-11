@@ -9,6 +9,12 @@ export function isBasemapStyleId(id: string): boolean {
 }
 
 /**
+ * Hosts whose basemap requests need an API key (or sign-in): the basemap styles service and the
+ * basemap APIs behind Map Viewer's "for Developers" basemaps (add-web-maps-and-scenes D3).
+ */
+export const BASEMAP_STYLES_HOSTS: readonly string[] = ["basemapstyles-api.arcgis.com", "basemaps-api.arcgis.com", "ibasemaps-api.arcgis.com"];
+
+/**
  * Legacy well-known basemap IDs and their basemap styles equivalents.
  * `osm`, `hybrid`, and `satellite` are deliberately absent: they need no credential (`hybrid`
  * and `satellite` are built-in free basemaps, see freeBasemaps.ts).

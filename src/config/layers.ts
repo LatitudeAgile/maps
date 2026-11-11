@@ -1,11 +1,20 @@
-import { LAYER_TYPES, isCredentialKey, type ConfigProblem, type LayerConfig, type LayerType } from "./types.ts";
+import {
+  LAYER_TYPES,
+  isCredentialKey,
+  isLayerType3dOnly,
+  type ConfigProblem,
+  type LayerConfig,
+  type LayerType,
+  type MapViewKind,
+} from "./types.ts";
 
 type Obj = Record<string, unknown>;
 const isObject = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
 
 /** Config ids: also used as SDK layer ids and in error paths. */
 export const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
-const PORTAL_ITEM_ID = /^[0-9a-f]{32}$/i;
+/** A portal item ID: 32 hexadecimal characters. */
+export const PORTAL_ITEM_ID = /^[0-9a-f]{32}$/i;
 const KNOWN_KEYS = ["id", "type", "url", "portalItem", "title", "visible", "opacity", "popupEnabled", "showSublayers", "hideSublayers", "options", "hooks"];
 const SUBLAYER_KEYS = ["showSublayers", "hideSublayers"] as const;
 const HOOK_KEYS = ["preLoad", "onLoad"] as const;
@@ -15,6 +24,8 @@ export interface LayerValidationContext {
   hookNames: string[];
   /** URL of the loaded config file; relative GeoJSON URLs resolve against it. */
   configUrl?: string;
+  /** The app's view when the config decides it; undefined with `map.item` (design D8). */
+  view?: MapViewKind;
 }
 
 function absoluteUrl(v: string): URL | undefined {
@@ -67,6 +78,8 @@ export function validateLayers(
     const type = entry.type;
     if (typeof type !== "string" || !(LAYER_TYPES as readonly string[]).includes(type)) {
       errors.push({ path: `${at}.type`, message: `Expected one of: ${LAYER_TYPES.join(", ")}.` });
+    } else if (context.view === "2d" && isLayerType3dOnly(type as LayerType)) {
+      errors.push({ path: `${at}.type`, message: `The "${type}" type needs "view": "3d".` });
     }
 
     // source: exactly one of url or portalItem

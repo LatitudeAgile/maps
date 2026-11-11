@@ -7,8 +7,14 @@ import {
   type ComponentConfig,
   type ComponentPlacement,
   type ConfigProblem,
+  type MapViewKind,
   type PanelSettings,
 } from "./types.ts";
+
+/** "2D maps", "3D scenes", or both, for view-limit messages. */
+export function viewsText(views: readonly MapViewKind[]): string {
+  return views.map((v) => (v === "2d" ? "2D maps" : "3D scenes")).join(" and ");
+}
 
 type Obj = Record<string, unknown>;
 const isObject = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -22,6 +28,8 @@ export interface ComponentValidationContext {
   types: Readonly<Record<string, ComponentTypeSchema>>;
   /** Ids of the configured layers, for layer-reference options. */
   layerIds: string[];
+  /** The app's view when the config decides it; undefined with `map.item` (design D8). */
+  view?: MapViewKind;
 }
 
 /** Validate the `components` section. Problems are appended to `errors` and `warnings`. */
@@ -65,6 +73,9 @@ export function validateComponents(
     const type = entry.type;
     const schema = typeof type === "string" && Object.hasOwn(context.types, type) ? context.types[type] : undefined;
     if (!schema) errors.push({ path: `${at}.type`, message: `Expected one of: ${typeNames.join(", ")}.` });
+    else if (context.view && schema.views && !schema.views.includes(context.view)) {
+      errors.push({ path: `${at}.type`, message: `The "${type}" component works only in ${viewsText(schema.views)}.` });
+    }
 
     // Omitted placement means a sidebar panel, as `tab` did in dojo-sidebar (P-14).
     const placement = entry.placement ?? DEFAULT_PLACEMENT;

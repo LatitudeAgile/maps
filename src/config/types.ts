@@ -28,19 +28,35 @@ export interface ViewerConfig {
     url: string;
   };
   map: {
-    /** Basemap styles ID (`provider/style`, needs a key) or well-known basemap ID. */
-    basemap: string;
-    /** Basemap used when `basemap` needs a credential and none is configured. */
-    fallbackBasemap: string;
-    /** [longitude, latitude] in WGS84 degrees. */
-    center: [number, number];
+    /** A public web map or web scene on `portal.url` (web-maps). Its type decides the view. */
+    item?: { id: string };
     /**
-     * Initial view: exactly one of `zoom` or `scale` is set (design D10).
-     * `zoom` is a level of the basemap's tiling scheme, so its scale depends on the basemap;
-     * `scale` (a map scale denominator) is basemap-independent.
+     * `"2d"` or `"3d"` for a map built from config; undefined with `item`, whose type decides
+     * once it has been read (add-web-maps-and-scenes D8).
+     */
+    view?: MapViewKind;
+    /**
+     * Basemap styles ID (`provider/style`, needs a key) or well-known basemap ID. Always set
+     * without `item`; with `item`, set only to replace the item's basemap.
+     */
+    basemap?: string;
+    /** Basemap used when the basemap shown needs a credential and none is configured. */
+    fallbackBasemap: string;
+    /** [longitude, latitude] in WGS84 degrees. Always set without `item`. */
+    center?: [number, number];
+    /**
+     * Initial view: at most one of `zoom` or `scale` is set, and exactly one without `item`
+     * (design D10). `zoom` is a level of the basemap's tiling scheme, so its scale depends on
+     * the basemap; `scale` (a map scale denominator) is basemap-independent.
      */
     zoom?: number;
     scale?: number;
+    /** 3D only: the ground. Defaults to `"world-elevation"` in a config-built scene. */
+    ground?: GroundSetting;
+    /** 3D only: starting tilt, 0 (straight down) to 90 (the horizon). */
+    tilt?: number;
+    /** 3D only: starting compass heading, 0 (north up) up to 360. */
+    heading?: number;
   };
   /** Named service URLs (absolute https). */
   services: Record<string, string>;
@@ -68,13 +84,40 @@ export interface RequestConfig {
   proxyRules: ProxyRule[];
 }
 
+/** `map.view` values (map-scenes). */
+export const MAP_VIEWS = ["2d", "3d"] as const;
+export type MapViewKind = (typeof MAP_VIEWS)[number];
+
+/** `map.ground` values: Esri's world terrain, or a flat ground (map-scenes). */
+export const GROUND_SETTINGS = ["world-elevation", "none"] as const;
+export type GroundSetting = (typeof GROUND_SETTINGS)[number];
+
 /** `app.mode` values: `"auto"` follows the system's light or dark mode (branding). */
 export const COLOR_MODES = ["auto", "light", "dark"] as const;
 export type ColorMode = (typeof COLOR_MODES)[number];
 
-/** Supported layer types (map-layers). */
-export const LAYER_TYPES = ["feature", "map-image", "vector-tile", "tile", "geojson", "imagery"] as const;
-export type LayerType = (typeof LAYER_TYPES)[number];
+/**
+ * Supported layer types and the views each works in (map-layers, map-scenes). The 3D-only
+ * types fail validation in a 2D app (add-web-maps-and-scenes D8).
+ */
+export const LAYER_TYPE_VIEWS = {
+  feature: ["2d", "3d"],
+  "map-image": ["2d", "3d"],
+  "vector-tile": ["2d", "3d"],
+  tile: ["2d", "3d"],
+  geojson: ["2d", "3d"],
+  imagery: ["2d", "3d"],
+  scene: ["3d"],
+  "building-scene": ["3d"],
+  "point-cloud": ["3d"],
+  "integrated-mesh": ["3d"],
+  elevation: ["3d"],
+} as const satisfies Record<string, readonly MapViewKind[]>;
+export type LayerType = keyof typeof LAYER_TYPE_VIEWS;
+export const LAYER_TYPES = Object.keys(LAYER_TYPE_VIEWS) as readonly LayerType[];
+
+/** True when a layer type works only in a 3D scene. */
+export const isLayerType3dOnly = (type: LayerType): boolean => !(LAYER_TYPE_VIEWS[type] as readonly MapViewKind[]).includes("2d");
 
 /** One validated `layers` entry. */
 export interface LayerConfig {
@@ -132,11 +175,14 @@ export interface ConfigProblem {
   message: string;
 }
 
-/** Defaults for optional settings. Required settings (`map.basemap`, `map.center`, `map.zoom`) have none. */
+/**
+ * Defaults for optional settings. Settings required without `map.item` (`map.basemap`,
+ * `map.center`, `map.zoom` or `map.scale`) have none.
+ */
 export const DEFAULTS = {
   app: { title: "ArcGIS Sidebar Viewer", titleVisible: true, selectorVisible: true, settingsVisible: true, mode: "auto" },
   portal: { url: "https://www.arcgis.com" },
-  map: { fallbackBasemap: "osm" },
+  map: { fallbackBasemap: "osm", view: "2d", ground: "world-elevation" },
 } as const;
 
 /** Top-level sections the viewer recognizes. */

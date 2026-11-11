@@ -11,8 +11,9 @@ created.
 ### Requirement: Components are created from config
 The viewer SHALL create one component for each entry of the `components` config array, using the
 entry's `type`. Only registered component types SHALL be accepted. This version registers
-thirteen: `home`, `zoom`, `legend`, `locate`, `track`, `basemap-toggle`, `search`, `directions`,
-`layer-list`, `basemap-gallery`, `print`, `sketch`, and the `hello-world` template.
+fifteen: `home`, `zoom`, `legend`, `locate`, `track`, `basemap-toggle`, `search`, `directions`,
+`layer-list`, `basemap-gallery`, `print`, `sketch`, `compass`, `navigation-toggle`, and the
+`hello-world` template.
 
 #### Scenario: Home component returns to the initial view
 - **GIVEN** the config has a `home` component placed `top-left`
@@ -20,8 +21,8 @@ thirteen: `home`, `zoom`, `legend`, `locate`, `track`, `basemap-toggle`, `search
 - **THEN** the map returns to within 0.01° of the configured center and within 1% of the configured scale
 
 #### Scenario: Unknown component type
-- **WHEN** a component entry has `"type": "compass"`
-- **THEN** validation fails with an error at `components[0].type` that lists the supported types, including `print` and `sketch`
+- **WHEN** a component entry has `"type": "weather"`
+- **THEN** validation fails with an error at `components[0].type` that lists the supported types, including `compass` and `navigation-toggle`
 
 #### Scenario: Duplicate component ID
 - **WHEN** two component entries have the `id` `home`
@@ -408,3 +409,52 @@ lists the placements the type supports. The `sketch` type SHALL support only `pa
 #### Scenario: Sketch with placement omitted
 - **WHEN** a `sketch` component entry has no `placement`
 - **THEN** validation passes, and the Sketch panel is in the sidebar
+
+### Requirement: A component type can limit the views it supports
+A component type MAY work only in 2D maps or only in 3D scenes. `print` and `sketch` SHALL be 2D
+only, and `navigation-toggle` 3D only. Every other built-in type SHALL work in both. In an app
+whose view is known from the config, an entry of a type that doesn't support it SHALL fail
+validation.
+
+#### Scenario: Print in a config-built scene
+- **WHEN** an app with `"view": "3d"` has a `print` component as its first entry
+- **THEN** validation fails with an error at `components[0].type` saying the `print` component works only in 2D maps
+
+#### Scenario: Navigation toggle in a 2D app
+- **WHEN** an app with no `map.view` and no `map.item` has a `navigation-toggle` component as its first entry
+- **THEN** validation fails with an error at `components[0].type` saying the `navigation-toggle` component works only in 3D scenes
+
+#### Scenario: Both views
+- **WHEN** an app with `"view": "3d"` has `home`, `zoom`, `search`, `legend`, `layer-list` and `basemap-gallery` components
+- **THEN** validation passes, and each component appears and works in the scene
+
+### Requirement: Components that don't support an item's view are left out
+In an app with `map.item`, once the item's type shows the view, the viewer SHALL leave out every
+component whose type doesn't support that view, writing one console warning that names it. The
+sidebar SHALL have no icon for a panel component that is left out.
+
+#### Scenario: Print with a web scene
+- **WHEN** an app with a web scene item has a `print` panel and a `legend` panel
+- **THEN** the sidebar has a Legend icon and no Print icon, and one console warning names the `print` component
+
+#### Scenario: Print with a web map
+- **WHEN** an app with a web map item has a `print` panel
+- **THEN** the sidebar has a Print icon, and printing exports the web map's layers
+
+### Requirement: The compass shows and resets the heading
+A `compass` component SHALL show which way north is. Pressing it SHALL turn the map back to
+north up. It SHALL work in 2D maps and 3D scenes.
+
+#### Scenario: Reset the heading in a scene
+- **GIVEN** a config-built 3D scene with `"heading": 90` and a `compass` component placed `top-right`
+- **WHEN** the user presses the compass
+- **THEN** after the scene settles, its heading is within 1° of 0
+
+### Requirement: The navigation toggle switches between panning and rotating
+A `navigation-toggle` component SHALL switch what dragging the scene with the primary mouse
+button does, between panning and rotating. It SHALL work only in 3D scenes.
+
+#### Scenario: Rotate by dragging
+- **GIVEN** a config-built 3D scene with a `navigation-toggle` component placed `top-right`
+- **WHEN** the user switches the toggle to rotate and drags the scene sideways with the primary mouse button
+- **THEN** the scene's heading changes and its center stays within 0.01° of where it was

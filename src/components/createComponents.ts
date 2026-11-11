@@ -1,4 +1,5 @@
 import type Layer from "@arcgis/core/layers/Layer.js";
+import type Viewpoint from "@arcgis/core/Viewpoint.js";
 import type { AppModel } from "../app/AppModel.ts";
 import { errorText } from "../app/errors.ts";
 import type { ComponentConfig } from "../config/types.ts";
@@ -51,7 +52,7 @@ export interface CreateComponentsResult {
 
 export interface CreateComponentsOptions {
   entries: ComponentConfig[];
-  /** The `arcgis-map` element components are slotted into. */
+  /** The map element (`arcgis-map` or `arcgis-scene`) components are slotted into. */
   mapElement: { append(...nodes: ComponentElement[]): void };
   app: AppModel;
   types?: Readonly<Record<string, ComponentType>>;
@@ -73,6 +74,11 @@ export interface CreateComponentsOptions {
    * `mapElement`.
    */
   cornerStack?: (slot: string) => { append(...nodes: ComponentElement[]): void };
+  /**
+   * Where Home returns to: the settled starting view of an app opened from an item, or of a
+   * scene (add-web-maps-and-scenes D4). Absent, Home keeps its own default.
+   */
+  homeViewpoint?: Viewpoint;
 }
 
 /**
@@ -124,6 +130,9 @@ export async function createComponents(options: CreateComponentsOptions): Promis
       for (const [name, value] of Object.entries(entry.options)) {
         (element as unknown as Record<string, unknown>)[name] = resolveOption(type.options[name], value, app);
       }
+    }
+    if (type.tag === "arcgis-home" && options.homeViewpoint) {
+      (element as unknown as { viewpoint: Viewpoint }).viewpoint = options.homeViewpoint.clone();
     }
     app.addComponent({ entry, element: element as unknown as HTMLElement });
     if (type.locationMarker) {

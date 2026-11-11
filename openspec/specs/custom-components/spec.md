@@ -32,8 +32,8 @@ and the same corner, `none`, and `panel` placements (P-38).
 The repository SHALL include a `hello-world` component type that a developer can copy as the
 starting point for their own. It SHALL show the text of its `greeting` option (default
 "Hello, world"), and the map's current center and scale, which update as the map moves. It SHALL
-find the map whether it is placed in a map corner or in the sidebar, and SHALL stop following the
-map when removed from the page.
+find the map whether it is placed in a map corner or in the sidebar, in a 2D map or a 3D scene,
+and SHALL stop following the map when removed from the page.
 
 #### Scenario: Greeting from config
 - **WHEN** a `hello-world` component has `"options": { "greeting": "Hi from the team" }`
@@ -47,6 +47,11 @@ map when removed from the page.
 - **GIVEN** a `hello-world` component in a sidebar panel that is open
 - **WHEN** the map is panned to longitude -104.99, latitude 39.74
 - **THEN** within 2 seconds after the map is stationary, the component shows that center to two decimal places
+
+#### Scenario: Follows a scene
+- **GIVEN** a config-built 3D scene with a `hello-world` component placed `top-right` and another in an open sidebar panel
+- **WHEN** the scene is panned
+- **THEN** within 2 seconds after the scene is stationary, both components show its new center to two decimal places
 
 #### Scenario: Stops following when removed
 - **GIVEN** a `hello-world` component is showing the map's center

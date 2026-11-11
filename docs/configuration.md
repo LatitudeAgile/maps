@@ -149,7 +149,8 @@ Replace it with your own layers. If the sample service is unavailable, the viewe
 working and lists the layer in a "could not be loaded" notice.
 
 The smallest valid config sets only `map.basemap`, `map.center`, and one of `map.zoom` or
-`map.scale`.
+`map.scale`. An app can instead open a web map or web scene from the portal with only
+`map.item`: see [Web maps and web scenes](#web-maps-and-web-scenes).
 
 ## Settings
 
@@ -171,21 +172,27 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `portal` | object | `{}` | Optional section. |
 | `portal.url` | string | `"https://www.arcgis.com"` | Absolute `https` URL of your ArcGIS Online organization, ArcGIS Enterprise portal (for example `https://gis.example.org/portal`), or Location Platform portal. A trailing `/` is removed. |
 | `map` | object | none | **Required.** |
-| `map.basemap` | string | none | **Required**, non-empty. A basemap styles ID in `provider/style` form (for example `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`), which needs an API key, or a basemap that needs none: `osm` (OpenStreetMap), or one of Esri's public tile services: `hybrid` (imagery with roads and place names), `satellite` (imagery), `light` (light gray), or `dark` (dark gray). Legacy IDs such as `streets-vector` are accepted with a warning that suggests the `provider/style` equivalent. |
+| `map.item` | object | none | A public web map or web scene on `portal.url` to open, such as `{ "id": "41281c51f9de45edaf1c8ed44bb10e30" }`. A web map opens in 2D and a web scene in 3D. With it, `map.basemap`, `map.center` and `map.zoom` or `map.scale` are optional, and each one you set overrides the item. See [Web maps and web scenes](#web-maps-and-web-scenes). |
+| `map.item.id` | string | none | **Required** in `map.item`. A 32-character portal item ID. |
+| `map.view` | string | `"2d"` | `"2d"` or `"3d"`. `"3d"` shows the map as a 3D scene. Not allowed with `map.item`, whose type decides. See [3D scenes](#3d-scenes). |
+| `map.basemap` | string | none | **Required** unless `map.item` is set, non-empty. A basemap styles ID in `provider/style` form (for example `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`), which needs an API key, or a basemap that needs none: `osm` (OpenStreetMap), or one of Esri's public tile services: `hybrid` (imagery with roads and place names), `satellite` (imagery), `light` (light gray), or `dark` (dark gray). Legacy IDs such as `streets-vector` are accepted with a warning that suggests the `provider/style` equivalent. |
 | `map.fallbackBasemap` | string | `"osm"` | Non-empty, and must not be a `provider/style` ID: `osm`, `hybrid`, `satellite`, `light`, or `dark`. Used instead of `map.basemap` when that basemap needs an API key and none is configured, or when the basemap styles service refuses the configured key (for example, an invalid key or one without the basemap styles privilege). In the second case the browser console says which basemap failed. |
-| `map.center` | `[number, number]` | none | **Required.** `[longitude, latitude]` in degrees. `map.center[0]` (longitude) must be between -180 and 180; `map.center[1]` (latitude) must be between -90 and 90. |
-| `map.zoom` | number | none | 0 or greater. A zoom level of the basemap's tiling scheme. Set exactly one of `map.zoom` or `map.scale`. |
-| `map.scale` | number | none | Greater than 0. The map scale denominator, for example `18489298` for 1:18,489,298. Set exactly one of `map.zoom` or `map.scale`. |
+| `map.center` | `[number, number]` | none | **Required** unless `map.item` is set. `[longitude, latitude]` in degrees. `map.center[0]` (longitude) must be between -180 and 180; `map.center[1]` (latitude) must be between -90 and 90. |
+| `map.zoom` | number | none | 0 or greater. A zoom level of the basemap's tiling scheme. Set exactly one of `map.zoom` or `map.scale`, or at most one with `map.item`. |
+| `map.scale` | number | none | Greater than 0. The map scale denominator, for example `18489298` for 1:18,489,298. Set exactly one of `map.zoom` or `map.scale`, or at most one with `map.item`. |
+| `map.ground` | string | `"world-elevation"` in 3D | 3D only. `"world-elevation"` (Esri's world terrain, no API key needed) or `"none"` (a flat ground). With a web scene item, replaces its ground. |
+| `map.tilt` | number | `0` | 3D only. From 0 (looking straight down) to 90 (looking at the horizon): the starting tilt in degrees. |
+| `map.heading` | number | `0` | 3D only. From 0 up to, but not including, 360: the starting compass direction in degrees, 0 being north up and 90 east. |
 | `services` | object | `{}` | Named service URLs, for example `{ "routing": "https://..." }`. Each `services.<name>` value must be an absolute `https` URL. Later versions read specific names. |
 | `layers` | array | `[]` | Operational layers, one entry each. The first entry draws on top. See [Layers](#layers). |
 | `layers[].id` | string | none | **Required.** 1 to 64 letters, digits, hyphens, or underscores, unique among layers. Components and the app model refer to the layer by it. |
-| `layers[].type` | string | none | **Required.** One of `feature`, `map-image`, `vector-tile`, `tile`, `geojson`, `imagery`. |
+| `layers[].type` | string | none | **Required.** One of `feature`, `map-image`, `vector-tile`, `tile`, `geojson`, `imagery`, or, in 3D only, `scene`, `building-scene`, `point-cloud`, `integrated-mesh`, `elevation`. See [3D layers](#layers). |
 | `layers[].url` | string | none | The service or file URL. Absolute `https`; a `geojson` URL may also be a path relative to the config file. Set exactly one of `url` or `portalItem`. |
 | `layers[].portalItem.id` | string | none | A 32-character portal item ID, loaded from `portal.url`. Set exactly one of `url` or `portalItem`. |
 | `layers[].title` | string | from the service | Non-empty. The layer's display name. |
 | `layers[].visible` | boolean | `true` | Whether the layer starts visible. |
 | `layers[].opacity` | number | `1` | Between 0 and 1. |
-| `layers[].popupEnabled` | boolean | `true` | For `feature`, `geojson`, and `imagery` layers: `false` turns off the click popup. |
+| `layers[].popupEnabled` | boolean | `true` | For `feature`, `geojson`, `imagery` and `scene` layers: `false` turns off the click popup. |
 | `layers[].showSublayers` | array | none | `map-image` layers only. Sublayer ids (whole numbers 0 or greater) to turn on once the layer loads, including ones the service has off by default. A sublayer inside a group also turns its groups on. See [Sublayers](#layers). |
 | `layers[].hideSublayers` | array | none | `map-image` layers only. Sublayer ids to turn off once the layer loads. An id can't be in both lists. |
 | `layers[].options` | object | `{}` | Extra layer properties passed to the SDK as they are, such as `definitionExpression` or `minScale`. **Not checked:** a misspelled property is silently ignored. |
@@ -232,16 +239,18 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 ```
 
 - **Draw order:** the first entry draws on top, and each later entry draws below the one
-  before it. Here `incidents` is on top of `parcels`, which is on top of `sites`.
+  before it. Here `incidents` is on top of `parcels`, which is on top of `sites`. In an app
+  opened from a web map or web scene, all of these draw above the item's own layers.
 - **Sources:** each layer comes from a service or file `url`, or from a portal item. Portal
   items are read from `portal.url`, so the same config works against ArcGIS Online or an
   ArcGIS Enterprise portal. Private items need sign-in, which a later version adds; until
   then they fail to load and are reported.
 - **Failures:** a layer that fails to load doesn't stop the viewer. A closable warning lists
-  the IDs of the layers that couldn't load, and the rest of the map keeps working. The viewer
-  waits up to 15 seconds for layers before carrying on without the slow ones.
-- **Popups:** clicking a feature of a `feature`, `geojson`, or `imagery` layer opens a popup
-  listing its attributes. Set `popupEnabled: false` to turn that off, or set a
+  the IDs of the layers that couldn't load (and the titles of an item's layers), and the rest of
+  the map keeps working. The viewer waits up to 15 seconds for layers before carrying on without
+  the slow ones.
+- **Popups:** clicking a feature of a `feature`, `geojson`, `imagery` or `scene` layer opens a
+  popup listing its attributes. Set `popupEnabled: false` to turn that off, or set a
   `popupTemplate` in `options` to customize it.
 - **Sublayers:** a `map-image` service has numbered sublayers, each on or off by default.
   `showSublayers` and `hideSublayers` change only the ids they list; every other sublayer
@@ -257,6 +266,19 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
   the layer and the id. On other layer types these settings are ignored with a warning. They
   are applied before the layer's `onLoad` hook runs, so a hook sees them. Don't use
   `options.sublayers` for this: the SDK then drops every sublayer you don't list.
+- **3D layers:** `scene` (3D objects or points, such as buildings), `building-scene`,
+  `point-cloud` and `integrated-mesh` work only in a 3D scene: with `"view": "3d"`, or in an app
+  opened from a web scene. In a 2D app they are a config error; in an app opened from a web map
+  they fail like a layer that can't load. In a global scene, use 3D data in WGS84 or Web
+  Mercator: a point cloud in another coordinate system loads but isn't drawn.
+
+  ```json
+  { "id": "buildings", "type": "scene",
+    "url": "https://tiles.arcgis.com/.../SanFrancisco_Bldgs/SceneServer/layers/0" }
+  ```
+- **Elevation layers:** an `elevation` layer (an elevation image service) shapes the scene's
+  ground instead of appearing in the Layers panel. Where it has data, it wins over Esri's world
+  terrain. With `"ground": "none"`, the ground uses only your elevation layers.
 - **Hooks:** `hooks` names code built into the viewer that runs at a layer's `preLoad` or
   `onLoad` point. Config can't hold code, so hooks are added to the viewer's source and
   referred to by name. See [docs/extensions.md](extensions.md).
@@ -284,8 +306,10 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `directions` | Routes between stops and lists turn-by-turn directions, with a button that clears the route. Esri's world route service needs an API key with the Routing privilege; without a key, a Directions panel that uses it is left out and the browser console says why. A public route service on another host works without a key. Panel default: "Directions", `car` icon. | `routeServiceUrl` (https URL, default `https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World`): the route service. The API key is sent only to `route-api.arcgis.com` or `route.arcgis.com`. `unit` (default `miles`): one of `miles`, `kilometers`, `meters`, `feet`, `yards`, `nautical-miles`, `us-feet`, `inches`, `millimeters`, `centimeters`, `decimeters`, `metric`, `imperial`. |
 | `layer-list` | Lists the map's operational layers by title, each with a checkbox that turns it on and off. Panel default: "Layers", `layers` icon. | `visibilityAppearance` (`checkbox` or `default`, default `checkbox`): `default` shows the SDK's eye icon instead. `showFilter` (boolean, default `false`): show a box that filters the list by title. |
 | `basemap-gallery` | Thumbnails of basemaps to choose from; the current one is marked. Without an API key, basemaps that need one are left out of the gallery (and the gallery is left out if none is left). Panel default: "Basemaps", `basemap` icon. | `basemaps` (list of basemap IDs, at least one): the basemaps to offer, in the same forms as `map.basemap`. Default: `osm`, `hybrid`, `satellite`, `light`, `dark`, `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`, `arcgis/light-gray`, `arcgis/dark-gray`. |
-| `print` | Esri's print component as it ships: choose a layout (with a title, legend and scale bar) or the map only, a format such as PDF or JPG, and export the map to a file listed for download. Works without an API key. Panel default: "Print", `print` icon. | `printServiceUrl` (https URL): the print service's Export Web Map task, such as your ArcGIS Enterprise `.../PrintingTools/GPServer/Export%20Web%20Map%20Task`. When omitted, the viewer sets nothing and the component uses its own default, the ArcGIS Online print service. |
-| `sketch` | Draw and write on the map: points, lines, polygons, rectangles, circles and notes, with freehand and curved segments, undo and redo, and measurements while drawing. Opening the panel turns drawing on; closing it, or switching panels, ends drawing and any selection. With the panel closed, clicking a sketch opens a popup with **Edit sketch**. Sketches are saved in the browser, separately for each app (`?app=`), and come back on reload; the Layers panel lists them as **Sketches** with a checkbox. **Panel only:** any other placement fails validation. Panel default: "Sketch", `pencil` icon. | `colors` (list of 1 to 12 `{ "name": <text>, "color": "#rrggbb" }`, unique colors): the color strip, first one chosen at first. Default: Red `#d7263d`, Blue `#1f5fd1`, Green `#1a9e3f`, Orange `#f28c00`, Black `#1a1a1a`. Users can add up to six colors of their own. `fillPercent` (whole number 0 to 100, default `0`): how filled new areas are until the user changes it; 0 draws outlines only. `unit` (`imperial` or `metric`, default `imperial`): feet and miles, or meters and kilometers, in the drawing tooltips. |
+| `print` | **2D only.** Esri's print component as it ships: choose a layout (with a title, legend and scale bar) or the map only, a format such as PDF or JPG, and export the map to a file listed for download. Works without an API key. Panel default: "Print", `print` icon. | `printServiceUrl` (https URL): the print service's Export Web Map task, such as your ArcGIS Enterprise `.../PrintingTools/GPServer/Export%20Web%20Map%20Task`. When omitted, the viewer sets nothing and the component uses its own default, the ArcGIS Online print service. |
+| `sketch` | **2D only.** Draw and write on the map: points, lines, polygons, rectangles, circles and notes, with freehand and curved segments, undo and redo, and measurements while drawing. Opening the panel turns drawing on; closing it, or switching panels, ends drawing and any selection. With the panel closed, clicking a sketch opens a popup with **Edit sketch**. Sketches are saved in the browser, separately for each app (`?app=`), and come back on reload; the Layers panel lists them as **Sketches** with a checkbox. **Panel only:** any other placement fails validation. Panel default: "Sketch", `pencil` icon. | `colors` (list of 1 to 12 `{ "name": <text>, "color": "#rrggbb" }`, unique colors): the color strip, first one chosen at first. Default: Red `#d7263d`, Blue `#1f5fd1`, Green `#1a9e3f`, Orange `#f28c00`, Black `#1a1a1a`. Users can add up to six colors of their own. `fillPercent` (whole number 0 to 100, default `0`): how filled new areas are until the user changes it; 0 draws outlines only. `unit` (`imperial` or `metric`, default `imperial`): feet and miles, or meters and kilometers, in the drawing tooltips. |
+| `compass` | Shows which way north is; pressing it turns the map back to north up. Most useful in a 3D scene, or in a 2D map the user can rotate. Panel default: "Compass", `compass` icon. | None. |
+| `navigation-toggle` | **3D only.** Two buttons that switch what dragging the scene does: pan (the default) or rotate around the center. Either way, dragging with the right mouse button does the other. Panel default: "Navigation", `move-and-rotate` icon. | `layout` (`vertical` or `horizontal`, default `vertical`): how the two buttons are arranged. |
 | `hello-world` | A template for your own component types: shows its greeting and the map's center and scale, updating as the map moves. Not in the default config. See [custom-components.md](custom-components.md). Panel default: "Hello", `code` icon. | `greeting` (string, default `"Hello, world"`): the heading it shows. |
 
 **The location marker:** clicking the marker that `locate` or `track` puts on the map opens a
@@ -316,6 +340,14 @@ the map as a web map: the basemap, the operational layers that are shown, the ma
 title, and any graphics on the map, including sketches and their note text. Nothing is sent
 until the user presses Export. To keep that within your organization, set `printServiceUrl` to
 your own ArcGIS Enterprise print service.
+
+**2D and 3D.** Every type works in 2D maps and 3D scenes except `print` and `sketch` (2D only)
+and `navigation-toggle` (3D only). In an app whose view the config decides (`map.view`, or its
+default `"2d"`), a type that doesn't support it is a config error, such as `The "print"
+component works only in 2D maps.` In an app opened from an item, the view is known only once the
+item is read, so such a component is left out instead: it gets no sidebar icon, and the browser
+console says why. In 3D, the zoom buttons move the camera closer or farther, and Home returns to
+the starting view, tilt and heading included.
 
 **Placements**
 
@@ -522,6 +554,67 @@ on its own.
   mode for the open page; nothing is remembered and no notice is shown.
 - **Hide it:** set `"settingsVisible": false` in an app's `app` section.
 
+### Web maps and web scenes
+
+An app can open a map made in Map Viewer or Scene Viewer instead of describing it piece by
+piece. Name the item in `map.item`:
+
+```json
+"map": { "item": { "id": "41281c51f9de45edaf1c8ed44bb10e30" } }
+```
+
+The item is read from `portal.url`. A web map opens in 2D and a web scene in 3D, with its
+basemap, layers, starting view and popups (and, for a web scene, its ground).
+
+- **Overrides:** `map.basemap`, `map.center`, and `map.zoom` or `map.scale` are optional. Each
+  one you set replaces the item's own value. `center` and `zoom` or `scale` work on their own:
+  setting only `scale` keeps the item's center. With a web scene, `map.tilt`, `map.heading` and
+  `map.ground` override it too. With a web map they're ignored, with a console warning.
+- **Extra layers:** entries in `layers` draw above all of the item's layers, the first on top.
+  The item's own layers keep the styling, visibility and popups the item gives them. `hooks`,
+  `options`, `popupEnabled` and the sublayer settings apply only to your `layers` entries.
+- **Component options** that name layers, such as the legend's `layerInfos`, take only `id`s
+  from `layers`, not the item's layers. Without `layerInfos`, the legend and the layer list show
+  every layer, the item's included.
+- **Public items only:** the viewer reads the item without signing in. If the item doesn't
+  exist or isn't shared with everyone, the page says `The web map or web scene "<id>" could not
+  be read from <portal>. The item must exist and be shared publicly (with everyone).` If the
+  item is another type, it says `Item "<id>" is a "<type>", not a web map or web scene.` In both
+  cases no map is shown, but the Apps panel still works. Signing in to open private items is
+  planned for a later version.
+- **Basemaps that need a key:** some Map Viewer basemaps, such as the "(for Developers)" ones,
+  need an API key. Without one, the viewer shows `map.fallbackBasemap` instead and writes the
+  item basemap's name to the console, so no sign-in dialog appears. With a key that the
+  basemap's service refuses, the viewer also falls back, with a console warning.
+- **Requests:** before the map appears, the viewer requests the item and its data from the
+  portal, plus the style of a vector basemap to see whether it needs a key. A layer failure in
+  the item is listed by the layer's title in the "could not be loaded" notice.
+
+### 3D scenes
+
+Set `"view": "3d"` to show an app's map as a 3D scene: a globe with the basemap draped over
+Esri's world terrain.
+
+```json
+"map": {
+  "view": "3d",
+  "basemap": "satellite",
+  "center": [-122.40, 37.79],
+  "scale": 20000,
+  "tilt": 65,
+  "heading": 30
+}
+```
+
+- **Ground:** `map.ground` defaults to `"world-elevation"`. `"none"` gives a flat ground and
+  makes no elevation requests.
+- **Starting view:** `center` and `zoom` or `scale` set what the camera looks at, as in 2D.
+  `tilt` and `heading` turn the camera. Home returns to this view.
+- **Only in 3D:** `ground`, `tilt` and `heading` are errors in a 2D app, as are the 3D layer
+  types (see [Layers](#layers)) and components that work only in 3D.
+- **One view per app:** an app is 2D or 3D for its whole session. To offer both, make two apps
+  and list them in the [catalog](#apps).
+
 ### Zoom or scale
 
 Zoom levels come from the basemap's tiling scheme, so the same `map.zoom` can show different
@@ -533,7 +626,8 @@ another basemap when no API key is configured, the two can open at different sca
 `18489298` matches dojo-sidebar's zoom-5 view of the continental US. Scales that match a
 basemap zoom level display exactly; other scales snap to the nearest level.
 
-Setting both, or neither, is an error.
+Setting both is an error, and so is setting neither unless `map.item` is set. With an item,
+setting neither keeps the item's own starting view.
 
 ### Unknown settings
 

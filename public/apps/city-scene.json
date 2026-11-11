@@ -1,0 +1,36 @@
+{
+  "app": {
+    "title": "City Scene",
+    "summary": "San Francisco in 3D, built from the config",
+    "description": "A 3D scene described in the config rather than a web scene: satellite imagery over Esri's world terrain, with San Francisco's buildings as a scene layer, seen from a tilted camera. Drag to pan, or switch the navigation buttons to rotate.\n\nThis is a sample app. Replace it, or remove it from apps/index.json.",
+    "icon": "urban-model",
+    "theme": { "color": "#9a4a12", "opacity": 0.85 }
+  },
+  "map": {
+    "view": "3d",
+    "basemap": "satellite",
+    "center": [-122.398, 37.792],
+    "scale": 15000,
+    "tilt": 65,
+    "heading": 30
+  },
+  "layers": [
+    {
+      "id": "buildings",
+      "type": "scene",
+      "url": "https://tiles.arcgis.com/tiles/z2tnIkrLQ2BRzr6P/arcgis/rest/services/SanFrancisco_Bldgs/SceneServer/layers/0",
+      "title": "San Francisco buildings (sample layer: replace with your own)"
+    }
+  ],
+  "components": [
+    { "id": "compass", "type": "compass", "placement": "top-right" },
+    { "id": "navigation", "type": "navigation-toggle", "placement": "top-right" },
+    { "id": "home", "type": "home", "placement": "bottom-right" },
+    { "id": "locate", "type": "locate", "placement": "bottom-right" },
+    { "id": "zoom", "type": "zoom", "placement": "bottom-right" },
+    { "id": "search", "type": "search", "placement": "panel" },
+    { "id": "layers", "type": "layer-list", "placement": "panel" },
+    { "id": "legend", "type": "legend", "placement": "panel" },
+    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" }
+  ]
+}

@@ -3,17 +3,19 @@
 //
 // What it shows:
 // - an option from config (`greeting`), set as a property by the component stage;
-// - finding the map, whether placed in a map corner (inside arcgis-map) or in the sidebar
-//   (where the stage sets `referenceElement` to the map);
+// - finding the map, in a 2D map (arcgis-map) or a 3D scene (arcgis-scene), whether placed in a
+//   map corner (inside the map element) or in the sidebar (where the stage sets
+//   `referenceElement` to the map element);
 // - following the view live with reactiveUtils, and cleaning up when removed;
 // - Calcite components and design tokens only.
 import "@esri/calcite-components/components/calcite-block";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import type { ResourceHandle } from "@arcgis/core/core/Handles.js";
+import { findViewElement, type ViewElement } from "../../../map/viewElement.ts";
 import { formatCenter, formatScale } from "./format.ts";
 
-/** The map element, or its id, that a component outside arcgis-map works on. */
-type MapReference = HTMLArcgisMapElement | string | undefined;
+/** The map element (arcgis-map or arcgis-scene), or its id, that a component in the sidebar works on. */
+type MapReference = ViewElement | string | undefined;
 
 const STYLE = `
   :host { display: block; }
@@ -86,10 +88,10 @@ export class HelloWorld extends HTMLElement {
     );
   }
 
-  #findMap(): HTMLArcgisMapElement | null {
+  #findMap(): ViewElement | null {
     const ref = this.referenceElement;
-    if (typeof ref === "string") return document.getElementById(ref) as HTMLArcgisMapElement | null;
-    return ref ?? this.closest("arcgis-map");
+    if (typeof ref === "string") return document.getElementById(ref) as ViewElement | null;
+    return ref ?? findViewElement(this);
   }
 
   #row(list: HTMLElement, label: string): HTMLElement {

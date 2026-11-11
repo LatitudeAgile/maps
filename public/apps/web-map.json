@@ -1,0 +1,32 @@
+{
+  "app": {
+    "title": "LA Trails",
+    "summary": "A web map from ArcGIS Online, with a layer added on top",
+    "description": "This app opens a web map made in Map Viewer: trails, trailheads and parks in the Santa Monica Mountains, with the web map's own basemap, styles and popups. The config adds one layer of its own on top.\n\nThis is a sample app. Point map.item at your own public web map, or remove it from apps/index.json.",
+    "icon": "map-information",
+    "theme": { "color": "#2f6b3a", "opacity": 0.85 }
+  },
+  "map": {
+    "item": { "id": "41281c51f9de45edaf1c8ed44bb10e30" }
+  },
+  "layers": [
+    {
+      "id": "cities",
+      "type": "feature",
+      "url": "https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer/0",
+      "title": "US cities (sample layer: replace with your own)"
+    }
+  ],
+  "components": [
+    { "id": "home", "type": "home", "placement": "bottom-right" },
+    { "id": "locate", "type": "locate", "placement": "bottom-right" },
+    { "id": "zoom", "type": "zoom", "placement": "bottom-right" },
+    { "id": "search", "type": "search", "placement": "panel" },
+    { "id": "directions", "type": "directions", "placement": "panel" },
+    { "id": "layers", "type": "layer-list", "placement": "panel" },
+    { "id": "legend", "type": "legend", "placement": "panel" },
+    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" },
+    { "id": "sketch", "type": "sketch", "placement": "panel" },
+    { "id": "print", "type": "print", "placement": "panel" }
+  ]
+}

@@ -10,7 +10,8 @@ popups on click.
 
 ### Requirement: Layers are created from config
 The viewer SHALL add each entry of the `layers` config array to the map as a layer of the
-entry's `type`: `feature`, `map-image`, `vector-tile`, `tile`, `geojson`, or `imagery`. The
+entry's `type`: `feature`, `map-image`, `vector-tile`, `tile`, `geojson`, or `imagery`, and, in
+3D, `scene`, `building-scene`, `point-cloud`, `integrated-mesh`, or `elevation`. The
 layer's source SHALL be its `url`, or else its `portalItem.id`. It SHALL apply the entry's
 `title`, `visible`, and `opacity` when given.
 
@@ -19,12 +20,16 @@ layer's source SHALL be its `url`, or else its `portalItem.id`. It SHALL apply t
 - **THEN** the map contains a layer with that entry's `id`, and three features are drawn
 
 #### Scenario: Every type is created from its source
-- **WHEN** the config has one layer of each supported type, some by `url` and some by `portalItem.id`
+- **WHEN** the config has one layer of each supported 2D type, some by `url` and some by `portalItem.id`
 - **THEN** each created layer is of the matching kind and carries the configured source, title, visibility, and opacity
 
 #### Scenario: Live services
-- **WHEN** the config has one layer of each type pointing to a public Esri sample service
+- **WHEN** the config has one layer of each 2D type pointing to a public Esri sample service
 - **THEN** every layer loads and draws without an error notice
+
+#### Scenario: 3D types in a scene
+- **WHEN** a config-built 3D scene has one `scene`, `building-scene`, `point-cloud` and `integrated-mesh` layer, each pointing to a public Esri sample service
+- **THEN** every layer loads and draws in 3D without an error notice, and the layer list lists all four by title
 
 ### Requirement: Extra layer properties pass through
 The viewer SHALL apply each property in a layer entry's `options` object to the created layer.
@@ -66,28 +71,42 @@ NOT start, as for any other invalid config.
 
 ### Requirement: First layer listed draws on top
 The viewer SHALL add layers so that the first entry in `layers` draws above all the others,
-and each later entry draws below the one before it (P-11).
+and each later entry draws below the one before it (P-11). When the map comes from an item, the
+config layers SHALL all draw above the item's layers.
 
 #### Scenario: Two overlapping layers
 - **WHEN** `layers` lists `roads` and then `parcels`
 - **THEN** the map's layer order puts `roads` above `parcels`
 
+#### Scenario: Config layers over an item's layers
+- **WHEN** an app with a web map item that has two layers lists `roads` and then `parcels` in `layers`
+- **THEN** the layer list shows, from top to bottom, `roads`, `parcels`, and then the web map's two layers in the web map's order
+
 ### Requirement: A failed layer does not stop the viewer
 When a layer fails to load, the viewer SHALL keep the map and the other layers working. It
-SHALL show a closable warning notice that names the failed layer's `id`, and SHALL report the
-failure on the error channel (P-13).
+SHALL show a closable warning notice that names the failed layer's `id`, or its title for a
+layer that comes from the map's item, and SHALL report the failure on the error channel (P-13).
 
 #### Scenario: Layer service returns 404
 - **WHEN** one of two configured layers points to a URL that returns HTTP 404
 - **THEN** the other layer is drawn, configured components appear, and a warning notice names the failed layer's `id`
 
+#### Scenario: Item layer fails
+- **GIVEN** a public web map with a layer titled "Old parcels" whose service returns HTTP 404
+- **WHEN** an app opens that web map
+- **THEN** the web map's other layers are drawn, configured components appear, and a warning notice names "Old parcels"
+
 ### Requirement: Layers settle before components are created
-The viewer SHALL create configured components only after every configured layer has loaded or
-failed (P-13). It SHALL stop waiting after 15 seconds, so that a layer that never responds
-does not keep components from appearing.
+The viewer SHALL create configured components only after every layer, from the config and from
+the map's item, has loaded or failed (P-13). It SHALL stop waiting after 15 seconds, so that a
+layer that never responds does not keep components from appearing.
 
 #### Scenario: Slow layer
 - **WHEN** a layer's service responds after 2 seconds
+- **THEN** no configured component exists until that response arrives, and the components appear after it
+
+#### Scenario: Slow item layer
+- **WHEN** a layer of the app's web map item responds after 2 seconds
 - **THEN** no configured component exists until that response arrives, and the components appear after it
 
 #### Scenario: Layer never responds
@@ -113,7 +132,7 @@ SHALL fail validation (P-12).
 - **THEN** the layer stays on the map, the viewer keeps running, and the error is reported on the error channel with the layer's `id`
 
 ### Requirement: Clicking a feature opens a popup
-For `feature`, `geojson`, and `imagery` layers, clicking a feature SHALL open the map's
+For `feature`, `geojson`, `imagery` and `scene` layers, clicking a feature SHALL open the map's
 built-in popup listing that feature's attributes, unless the layer entry sets `popupEnabled`
 to `false` (P-06).
 
@@ -124,6 +143,10 @@ to `false` (P-06).
 #### Scenario: Popup turned off
 - **WHEN** the layer entry has `"popupEnabled": false` and the user clicks one of its points
 - **THEN** no popup opens
+
+#### Scenario: Scene layer popup
+- **WHEN** the user clicks a building of a configured `scene` layer in a 3D scene
+- **THEN** a popup opens showing that building's attribute values
 
 ### Requirement: Map image sublayers can be shown or hidden from config
 A `map-image` layer entry MAY list sublayer ids in `showSublayers` and `hideSublayers`. Once the
@@ -162,3 +185,16 @@ type other than `map-image`, it SHALL ignore them with one console warning per s
 #### Scenario: Not a map image layer
 - **WHEN** a `feature` layer entry has `"hideSublayers": [3]`
 - **THEN** validation passes with one warning at `layers[0].hideSublayers`, and the setting is dropped
+
+### Requirement: 3D layer types need a 3D map
+The types `scene`, `building-scene`, `point-cloud`, `integrated-mesh` and `elevation` SHALL be
+accepted only in a config-built 3D scene or an app with `map.item`. In any other app, a layer
+entry of one of these types SHALL fail validation at its `type`.
+
+#### Scenario: Scene layer in a 2D app
+- **WHEN** an app with no `map.view` and no `map.item` has a `scene` layer as its first entry
+- **THEN** validation fails with an error at `layers[0].type` saying the `scene` type needs `"view": "3d"`
+
+#### Scenario: Scene layer with an item
+- **WHEN** an app with `map.item` has a `scene` layer
+- **THEN** validation passes

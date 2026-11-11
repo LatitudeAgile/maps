@@ -41,8 +41,14 @@ Legend has something to show. Replace it with your own layers before deploying.
 
 **Apps:** each file in `public/apps/` is an app, opened with `?app=<name>`, and
 `public/apps/index.json` lists the apps users can switch between from the sidebar's Apps
-button. The shipped `index.json` and its second app, `field-notes.json`, are **samples**:
-replace them with your own apps, or delete `index.json` for a single-app viewer. See [Apps](docs/configuration.md#apps).
+button. The shipped `index.json` and its other apps are **samples**: replace them with your own
+apps, or delete `index.json` for a single-app viewer. See [Apps](docs/configuration.md#apps).
+
+- `field-notes.json`: a smaller app for searching and marking up the map.
+- `web-map.json`: opens a public web map made in Map Viewer, with one layer of its own added on
+  top. See [Web maps and web scenes](docs/configuration.md#web-maps-and-web-scenes).
+- `city-scene.json`: a 3D scene of San Francisco's buildings, built from the config. See
+  [3D scenes](docs/configuration.md#3d-scenes).
 
 ## Write your own component
 

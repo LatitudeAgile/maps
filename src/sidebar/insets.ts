@@ -1,3 +1,4 @@
+import type { ViewElement } from "../map/viewElement.ts";
 import type { Sidebar } from "./createSidebar.ts";
 
 /** Viewport width from which the sidebar sits at the start side; below it, a bottom bar (P-25). */
@@ -41,7 +42,7 @@ export function computeInsets(boxes: Box[], map: Box, wide: boolean): SidebarIns
  *   sample);
  * - `--sidebar-inset-*` on the shell, for the viewer's own notices.
  */
-export function trackSidebarInsets(sidebar: Sidebar, mapElement: HTMLArcgisMapElement, root: HTMLElement): () => void {
+export function trackSidebarInsets(sidebar: Sidebar, mapElement: ViewElement, root: HTMLElement): () => void {
   const wideQuery = window.matchMedia(WIDE_QUERY);
   let frame = 0;
   let last = "";
