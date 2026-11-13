@@ -146,7 +146,7 @@ export function validateLayers(
           if (!(HOOK_KEYS as readonly string[]).includes(key)) {
             warnings.push({ path, message: "Unknown hook; expected preLoad or onLoad. It is ignored." });
           } else if (typeof name !== "string" || !context.hookNames.includes(name)) {
-            const available = context.hookNames.length ? context.hookNames.join(", ") : "none (see docs/extensions.md)";
+            const available = context.hookNames.length ? context.hookNames.join(", ") : "none (see docs/layer-hooks.md)";
             errors.push({ path, message: `Expected the name of an available hook. Available: ${available}.` });
           } else {
             hooks[key as (typeof HOOK_KEYS)[number]] = name;

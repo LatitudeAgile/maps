@@ -1,7 +1,7 @@
 /**
  * How a component's container, a sidebar panel or a corner expand, talks to it
  * (add-print-and-sketch-panels D3, add-map-expand-and-components D4). Documented for custom
- * components in docs/custom-components.md.
+ * components in docs/components/guides/container-events.md, and exported to them by the viewer API.
  *
  * - `viewer-panel-open` and `viewer-panel-close` are dispatched on the component's element when
  *   its container opens and closes, however that happens: its icon or button, its close button,

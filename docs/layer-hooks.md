@@ -1,4 +1,4 @@
-# Extensions: layer hooks
+# Layer hooks
 
 A config file can't contain code, but some layers need code: to set a renderer, label
 features, or react once data arrives. dojo-sidebar put `preLoad` and `onLoad` functions in its
@@ -6,6 +6,9 @@ JavaScript config. Here they live in the viewer's source as named **hooks**, and
 refers to them by name.
 
 Adding a hook needs a rebuild. Choosing which layers use it does not: that's a config edit.
+
+Hooks are separate from the component folders under `extensions/`, which add component types
+(see [Writing your own components](components/README.md)).
 
 ## When hooks run
 

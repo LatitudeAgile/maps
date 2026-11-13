@@ -196,7 +196,7 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `layers[].showSublayers` | array | none | `map-image` layers only. Sublayer ids (whole numbers 0 or greater) to turn on once the layer loads, including ones the service has off by default. A sublayer inside a group also turns its groups on. See [Sublayers](#layers). |
 | `layers[].hideSublayers` | array | none | `map-image` layers only. Sublayer ids to turn off once the layer loads. An id can't be in both lists. |
 | `layers[].options` | object | `{}` | Extra layer properties passed to the SDK as they are, such as `definitionExpression` or `minScale`. **Not checked:** a misspelled property is silently ignored. |
-| `layers[].hooks.preLoad` | string | none | Name of a built-in hook to run after the layer is created, before it is added to the map. See [docs/extensions.md](extensions.md). |
+| `layers[].hooks.preLoad` | string | none | Name of a built-in hook to run after the layer is created, before it is added to the map. See [docs/layer-hooks.md](layer-hooks.md). |
 | `layers[].hooks.onLoad` | string | none | Name of a built-in hook to run once the layer has loaded. |
 | `components` | array | `[]` | Components, one entry each, created after the layers have loaded. See [Components](#components). |
 | `components[].id` | string | none | **Required.** 1 to 64 letters, digits, hyphens, or underscores, unique among components. |
@@ -281,7 +281,7 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
   terrain. With `"ground": "none"`, the ground uses only your elevation layers.
 - **Hooks:** `hooks` names code built into the viewer that runs at a layer's `preLoad` or
   `onLoad` point. Config can't hold code, so hooks are added to the viewer's source and
-  referred to by name. See [docs/extensions.md](extensions.md).
+  referred to by name. See [docs/layer-hooks.md](layer-hooks.md).
 
 ### Components
 
@@ -315,7 +315,7 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `scale-bar` | A bar showing the map's scale, updated as it zooms. **2D only. Corner only:** with no placement, or `panel` or `none`, it fails validation. | `unit` (`imperial`, `metric` or `dual`, default `imperial`): `dual` shows both. `barStyle` (`line` or `ruler`, default `line`). |
 | `bookmarks` | Places to go to: the bookmarks saved in the app's web map or web scene (`map.item`), then those in the config, then the ones the user added. Choosing one goes there. The user can add the current view as a bookmark and edit bookmarks; their own are kept in the browser (see below). With none, it says there are none. Panel default: "Bookmarks", `bookmark` icon. | `bookmarks` (list): places to add, each `{ "name": <text>, "center": [longitude, latitude], "zoom" or "scale": <number> }`, with `"tilt"` (0 to 90) and `"heading"` (0 up to 360) in a 3D scene, checked as in `map`. `showAddBookmarkButton` (boolean, default `true`): the add button, and the edit buttons with it. `showFilter` (boolean, default `false`): a box that filters the list by name. |
 | `coordinate-conversion` | Shows the coordinates of the pointer, or of a clicked point, in formats the user chooses, and goes to coordinates typed in (for decimal degrees, as `39.74N 104.99W`). Converts in the browser: no service and no API key. Panel default: "Coordinates", `coordinate-system` icon. | `formats` (list of `xy`, `dd`, `ddm`, `dms`, `mgrs`, `usng`, `utm` and `basemap`, each at most once, default all): the formats offered. `xy` is longitude and latitude in degrees; `basemap` is the basemap's own coordinates. `mode` (`live` or `capture`, default `live`): follow the pointer, or show the point the user clicks. |
-| `hello-world` | A template for your own component types: shows its greeting and the map's center and scale, updating as the map moves. Not in the default config. See [custom-components.md](custom-components.md). Panel default: "Hello", `code` icon. | `greeting` (string, default `"Hello, world"`): the heading it shows. |
+| `hello-world` | A template for your own component types: shows its greeting and the map's center and scale, updating as the map moves. Not in the default config. Its folder is `extensions/hello-world/`; see [Writing your own components](components/README.md). Panel default: "Hello", `code` icon. | `greeting` (string, default `"Hello, world"`): the heading it shows. |
 
 **The location marker:** clicking the marker that `locate` or `track` puts on the map opens a
 popup with the position's details and a **Remove** action that takes the marker off the map.
@@ -423,8 +423,8 @@ itself. An object sets any of these:
   `coordinate-conversion`, `measure` and `hello-world`. Buttons such as `home` and `zoom` don't
   need one. Turning expand on for any other type in a corner fails validation, for example
   `components[0].expand: The "home" component can't open from an expand. These can: legend, …`.
-  A custom type accepts it when it is registered with `expandable: true` (see
-  [custom-components.md](custom-components.md)).
+  A custom type accepts it when its manifest has `expandable: true` (see
+  [manifest.md](components/manifest.md#expandable)).
 - **Corners only:** `expand` on an entry placed `panel` or `none`, or with no placement, is
   ignored, and the browser console says `Only used with a corner placement; it is ignored.`
 - **Order:** the button takes the component's place in its corner, in config order.

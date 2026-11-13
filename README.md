@@ -62,9 +62,12 @@ apps, or delete `index.json` for a single-app viewer. See [Apps](docs/configurat
 
 ## Write your own component
 
-Add your own component types next to the built-in ones and configure them the same way. Start
-from the `hello-world` template; [docs/custom-components.md](docs/custom-components.md) walks
-through copying, registering, and testing it.
+Add your own component types and configure them like the built-in ones. Each is a folder under
+`extensions/`: the build finds it, so adding one needs no other edit, and sharing one means
+copying the folder. Fork the viewer, then run `npm run new:component`, which asks what your
+component needs and writes a folder that already works, or copy the `hello-world` template.
+[docs/components/](docs/components/README.md) covers getting started, the manifest, the viewer
+API, guides, and sharing.
 
 ## API key
 

@@ -18,6 +18,6 @@ export type LayerHook = (layer: Layer, context: HookContext) => void | Promise<v
 
 /**
  * Hooks a config can name under `layers[].hooks`. Add an entry here to make a hook available.
- * See docs/extensions.md.
+ * See docs/layer-hooks.md.
  */
 export const hooks: Record<string, LayerHook> = {};
