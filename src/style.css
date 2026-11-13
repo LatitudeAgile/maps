@@ -65,16 +65,33 @@ arcgis-map {
   align-items: flex-end;
 }
 
-/* The components the SDK gives a shadow when slotted (its ::slotted list, SDK 5.2). */
-.corner-stack > :is(arcgis-home, arcgis-locate, arcgis-track, arcgis-zoom, arcgis-search, arcgis-legend, arcgis-layer-list, arcgis-basemap-gallery, arcgis-directions) {
+/*
+ * The components the SDK gives a shadow when slotted (its ::slotted list, SDK 5.2, in
+ * dist/chunks/slots.js), plus viewer-measure, which wraps the SDK's measuring components. The
+ * SDK gives the scale bar none.
+ */
+.corner-stack > :is(arcgis-home, arcgis-locate, arcgis-track, arcgis-zoom, arcgis-search, arcgis-legend, arcgis-layer-list, arcgis-basemap-gallery, arcgis-directions, arcgis-print, arcgis-navigation-toggle, arcgis-expand, arcgis-fullscreen, arcgis-bookmarks, arcgis-coordinate-conversion, viewer-measure) {
   box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
 }
 
-.corner-stack > :is(arcgis-legend, arcgis-layer-list, arcgis-basemap-gallery, arcgis-directions) {
+.corner-stack > :is(arcgis-legend, arcgis-layer-list, arcgis-basemap-gallery, arcgis-directions, arcgis-print, arcgis-bookmarks, viewer-measure) {
   min-height: var(--calcite-spacing-xxxl);
   min-width: var(--calcite-spacing-xxxl);
   overflow-y: auto;
   width: var(--arcgis-internal-panel-width, 300px);
+}
+
+/*
+ * Coordinate conversion sizes itself to its widest format, wider than a phone. In a corner, leave
+ * room for the opposite corner's buttons: the page's 16 px gutters, a 32 px button and a gap.
+ */
+.corner-stack > arcgis-coordinate-conversion {
+  max-width: calc(100vw - 2 * var(--calcite-spacing-lg, 16px) - 48px);
+}
+
+/* In an expand, the SDK sizes its own components; the viewer's measure gets the same width. */
+.corner-stack > arcgis-expand > viewer-measure {
+  min-width: var(--arcgis-internal-panel-width, 300px);
 }
 
 /*

@@ -4,8 +4,10 @@ import { isBasemapStyleId } from "../map/basemapIds.ts";
 import { DEFAULT_GEOCODER_URL } from "./geocoder.ts";
 import { buildSearchSources } from "./searchSources.ts";
 import type { GeocodingConfig } from "../config/geocoding.ts";
-import type { ComponentPlacement, MapViewKind } from "../config/types.ts";
+import { CORNER_PLACEMENTS, type ComponentPlacement, type ExpandMode, type MapViewKind } from "../config/types.ts";
 import { DEFAULT_SKETCH_COLORS } from "./sketch/palette.ts";
+import { MEASURE_TOOLS, MEASURE_UNITS } from "./measure/options.ts";
+import { configureCoordinateConversion, COORDINATE_FORMATS, COORDINATE_MODES } from "./coordinateConversion.ts";
 import { basemapGalleryKeyless, configureBasemapGallery, DEFAULT_GALLERY_BASEMAPS } from "./basemapGallery.ts";
 import { configureDirections, DEFAULT_ROUTE_SERVICE_URL, DIRECTIONS_UNITS, directionsKeyless } from "./directions.ts";
 
@@ -18,7 +20,9 @@ import { configureDirections, DEFAULT_ROUTE_SERVICE_URL, DIRECTIONS_UNITS, direc
  * is a non-empty list of them. `url` is an absolute https URL. `{ oneOf }` is one of a fixed
  * list of strings; `{ integer }` is a whole number in an inclusive range (design D1).
  * `color[]` is a list of 1 to 12 `{ name, color }` entries with unique `#rrggbb` colors,
- * normalized to lowercase (add-print-and-sketch-panels D5).
+ * normalized to lowercase (add-print-and-sketch-panels D5). `{ listOf }` is a non-empty list of
+ * unique strings from a fixed list (add-map-expand-and-components D8). `bookmark[]` is a list of
+ * `{ name, center, zoom | scale, tilt?, heading? }` places, checked like `map` (map-components).
  */
 export type OptionKind =
   | "string"
@@ -32,8 +36,10 @@ export type OptionKind =
   | "layer[]"
   | "layer-info[]"
   | "color[]"
+  | "bookmark[]"
   | { readonly oneOf: readonly string[] }
-  | { readonly integer: readonly [number, number] };
+  | { readonly integer: readonly [number, number] }
+  | { readonly listOf: readonly string[] };
 
 /** What validation needs to know about a component type. */
 export interface ComponentTypeSchema {
@@ -49,6 +55,11 @@ export interface ComponentTypeSchema {
    * D8). Both when absent.
    */
   views?: readonly MapViewKind[];
+  /**
+   * The type can sit behind an expand button in a map corner (add-map-expand-and-components D2).
+   * Set only once the type has been seen to work in one.
+   */
+  expandable?: true;
 }
 
 /** A registered component type: a map component, loaded on first use. */
@@ -59,6 +70,11 @@ export interface ComponentType extends ComponentTypeSchema {
   load: () => Promise<unknown>;
   /** Sidebar heading and Calcite icon when placed in `panel` without its own `panel` settings. */
   panel: { heading: string; icon: string };
+  /**
+   * The expand mode when the entry doesn't set one; else `auto`. `floating` for types used on the
+   * map while open: on a small map, `auto` opens a modal sheet, and a tap on the map closes it.
+   */
+  expandMode?: ExpandMode;
   /** The element emits `arcgisError` with a GeolocationPositionError, shown to the user (D3). */
   reportsLocationErrors?: boolean;
   /**
@@ -87,6 +103,8 @@ export interface ComponentContext {
   apiKey: string | undefined;
   /** The validated `geocoding` section: search sources for Search and Directions (D16). */
   geocoding?: GeocodingConfig;
+  /** The map element (`arcgis-map` or `arcgis-scene`). */
+  mapElement?: HTMLElement;
 }
 
 /** An element whose properties a `configure` hook sets. */
@@ -117,6 +135,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     load: () => import("@arcgis/map-components/components/arcgis-legend"),
     options: { layerInfos: "layer-info[]", basemapLegendVisible: "boolean", hideLayersNotInCurrentView: "boolean" },
     panel: { heading: "Legend", icon: "legend" },
+    expandable: true,
   },
   // Panel icons are each component's own default icon (design D2).
   locate: {
@@ -155,6 +174,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { geocoderUrl: "url", maxSuggestions: { integer: [1, 10] }, popupDisabled: "boolean" },
     defaults: { geocoderUrl: DEFAULT_GEOCODER_URL },
     panel: { heading: "Search", icon: "search" },
+    expandable: true,
     configure: async (element, options, { geocoding, apiKey }) => {
       // Never fall back to the portal's default source, which needs a key.
       element.includeDefaultSourcesDisabled = true;
@@ -186,6 +206,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     // The SDK's own default is an eye icon; the viewer's is a checkbox (design D6).
     defaults: { visibilityAppearance: "checkbox" },
     panel: { heading: "Layers", icon: "layers" },
+    expandable: true,
   },
   // Basemap thumbnails to choose from; without a key, only those that need none (P-37, D5).
   "basemap-gallery": {
@@ -194,6 +215,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { basemaps: "basemap[]" },
     defaults: { basemaps: [...DEFAULT_GALLERY_BASEMAPS] },
     panel: { heading: "Basemaps", icon: "basemap" },
+    expandable: true,
     configure: configureBasemapGallery,
     keyless: basemapGalleryKeyless,
   },
@@ -206,6 +228,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     // arcgis-print reports a sceneViewError in a scene: it prints 2D maps only.
     views: ["2d"],
     panel: { heading: "Print", icon: "print" },
+    expandable: true,
   },
   // Drawing and writing on the map, ported from StewardshipOS (P-61, design D5). Panel only: its
   // toolbar, colors and fill need panel room, and drawing turns on and off with the panel.
@@ -218,6 +241,66 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     // Its symbols, saved sketches and printing are 2D; 3D sketching waits for a later change.
     views: ["2d"],
     panel: { heading: "Sketch", icon: "pencil" },
+  },
+  // Distances and areas, in 2D and 3D, with a Clear button; closing stops a measurement in
+  // progress and keeps a finished one (P-67, add-map-expand-and-components D5).
+  measure: {
+    tag: "viewer-measure",
+    load: () => import("./measure/index.ts"),
+    options: { tools: { listOf: MEASURE_TOOLS }, unit: { oneOf: MEASURE_UNITS } },
+    defaults: { tools: [...MEASURE_TOOLS], unit: "imperial" },
+    placements: ["panel", ...CORNER_PLACEMENTS],
+    panel: { heading: "Measure", icon: "measure" },
+    expandable: true,
+    expandMode: "floating",
+  },
+  // Shows the whole viewer, or only the map, fullscreen (P-68, add-map-expand-and-components D7).
+  // The element is always set: the SDK's default, the view container's parent, isn't the viewer.
+  fullscreen: {
+    tag: "arcgis-fullscreen",
+    load: () => import("@arcgis/map-components/components/arcgis-fullscreen"),
+    options: { target: { oneOf: ["app", "map"] } },
+    defaults: { target: "app" },
+    placements: [...CORNER_PLACEMENTS, "none"],
+    panel: { heading: "Fullscreen", icon: "full-screen" },
+    configure: (element, options, { mapElement }) => {
+      element.element = options.target === "map" ? mapElement : (document.querySelector("calcite-shell") ?? undefined);
+    },
+  },
+  // The map's scale as a bar, updated as it zooms (P-69). The SDK's scale bar takes a MapView only.
+  "scale-bar": {
+    tag: "arcgis-scale-bar",
+    load: () => import("@arcgis/map-components/components/arcgis-scale-bar"),
+    options: { unit: { oneOf: ["imperial", "metric", "dual"] }, barStyle: { oneOf: ["line", "ruler"] } },
+    defaults: { unit: "imperial", barStyle: "line" },
+    placements: [...CORNER_PLACEMENTS],
+    views: ["2d"],
+    panel: { heading: "Scale bar", icon: "actual-size" },
+  },
+  // Bookmarks from the web map or web scene, then from the config, then the user's own, kept in
+  // the browser per app (P-70, src/components/bookmarks.ts).
+  bookmarks: {
+    tag: "arcgis-bookmarks",
+    load: () => import("@arcgis/map-components/components/arcgis-bookmarks"),
+    options: { bookmarks: "bookmark[]", showAddBookmarkButton: "boolean", showFilter: "boolean" },
+    defaults: { showAddBookmarkButton: true },
+    panel: { heading: "Bookmarks", icon: "bookmark" },
+    expandable: true,
+    // Loaded with the type, so a config without bookmarks doesn't load their storage code.
+    configure: async (element, options, context) => (await import("./bookmarks.ts")).configureBookmarks(element, options, context),
+  },
+  // Coordinates of the pointer or a clicked point, in chosen formats, and going to typed
+  // coordinates; converted in the browser (P-71).
+  "coordinate-conversion": {
+    tag: "arcgis-coordinate-conversion",
+    load: () => import("@arcgis/map-components/components/arcgis-coordinate-conversion"),
+    options: { formats: { listOf: COORDINATE_FORMATS }, mode: { oneOf: COORDINATE_MODES } },
+    defaults: { mode: "live" },
+    panel: { heading: "Coordinates", icon: "coordinate-system" },
+    expandable: true,
+    // Capture mode takes taps on the map, which a modal sheet would catch.
+    expandMode: "floating",
+    configure: configureCoordinateConversion,
   },
   // Which way is north; pressing it turns the map back to north up. 2D and 3D (map-components).
   compass: {
@@ -243,5 +326,6 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { greeting: "string" },
     defaults: { greeting: "Hello, world" },
     panel: { heading: "Hello", icon: "code" },
+    expandable: true,
   },
 };

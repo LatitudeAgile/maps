@@ -3,10 +3,14 @@ import { LEGACY_BASEMAP_IDS } from "../map/basemapIds.ts";
 import { ID_PATTERN } from "./layers.ts";
 import {
   COMPONENT_PLACEMENTS,
+  CORNER_PLACEMENTS,
+  EXPAND_MODES,
   isCredentialKey,
   type ComponentConfig,
   type ComponentPlacement,
   type ConfigProblem,
+  type ExpandMode,
+  type ExpandSettings,
   type MapViewKind,
   type PanelSettings,
 } from "./types.ts";
@@ -18,7 +22,7 @@ export function viewsText(views: readonly MapViewKind[]): string {
 
 type Obj = Record<string, unknown>;
 const isObject = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
-const KNOWN_KEYS = ["id", "type", "placement", "options", "panel"];
+const KNOWN_KEYS = ["id", "type", "placement", "options", "panel", "expand"];
 
 /** Placement used when an entry doesn't set one. */
 export const DEFAULT_PLACEMENT: ComponentPlacement = "panel";
@@ -99,7 +103,7 @@ export function validateComponents(
           warnings.push({ path, message: `Not supported by the "${type}" component; it is ignored.` });
           continue;
         }
-        if (checkOption(kind, value, path, context.layerIds, errors, warnings)) options[name] = kind === "color[]" ? normalizeColors(value) : value;
+        if (checkOption(kind, value, path, context.layerIds, errors, warnings, context.view)) options[name] = kind === "color[]" ? normalizeColors(value) : value;
       }
     }
     // Fill options the entry leaves out from the type's defaults (design D1).
@@ -110,6 +114,8 @@ export function validateComponents(
     }
 
     const panel = validatePanel(entry.panel, placement === "panel", `${at}.panel`, errors, warnings);
+    const isCorner = typeof placement === "string" && (CORNER_PLACEMENTS as readonly string[]).includes(placement);
+    const expand = validateExpand(entry.expand, isCorner, schema, type, context.types, `${at}.expand`, errors, warnings);
 
     if (errors.length > before) return;
     result.push({
@@ -118,6 +124,7 @@ export function validateComponents(
       placement: placement as ComponentPlacement,
       options,
       ...(panel ? { panel } : {}),
+      ...(expand ? { expand } : {}),
     });
   });
 
@@ -159,6 +166,80 @@ function validatePanel(
   return panel;
 }
 
+const EXPAND_KEYS = ["icon", "tooltip", "expanded", "group", "mode"];
+
+/**
+ * A component's `expand` setting (add-map-expand-and-components D1): `true` is `{}`, `false` is
+ * none. The value is checked first; then, off a corner placement, it is ignored with one warning
+ * (before the type check, so a button type with the default `panel` placement warns, not fails);
+ * then the type must accept it (D2).
+ */
+function validateExpand(
+  raw: unknown,
+  isCorner: boolean,
+  schema: ComponentTypeSchema | undefined,
+  type: unknown,
+  types: Readonly<Record<string, ComponentTypeSchema>>,
+  path: string,
+  errors: ConfigProblem[],
+  warnings: ConfigProblem[],
+): ExpandSettings | undefined {
+  if (raw === undefined || raw === false) return undefined;
+  if (raw !== true && !isObject(raw)) {
+    errors.push({ path, message: 'Expected true, false, or a settings object, such as { "icon": "print" }.' });
+    return undefined;
+  }
+  const expand: ExpandSettings = {};
+  let ok = true;
+  if (isObject(raw)) {
+    for (const key of Object.keys(raw)) {
+      if (!EXPAND_KEYS.includes(key) && !isCredentialKey(key)) warnings.push({ path: `${path}.${key}`, message: "Unknown setting; it is ignored." });
+    }
+    for (const key of ["icon", "tooltip"] as const) {
+      if (raw[key] === undefined) continue;
+      if (typeof raw[key] === "string" && raw[key].trim() !== "") expand[key] = raw[key];
+      else {
+        errors.push({ path: `${path}.${key}`, message: key === "icon" ? 'Expected a Calcite icon name, such as "print".' : "Expected a non-empty string." });
+        ok = false;
+      }
+    }
+    if (raw.expanded !== undefined) {
+      if (typeof raw.expanded === "boolean") expand.expanded = raw.expanded;
+      else {
+        errors.push({ path: `${path}.expanded`, message: "Expected true or false." });
+        ok = false;
+      }
+    }
+    if (raw.group !== undefined) {
+      if (raw.group === false || (typeof raw.group === "string" && raw.group.trim() !== "")) expand.group = raw.group;
+      else {
+        errors.push({ path: `${path}.group`, message: "Expected a non-empty group name, or false for no group." });
+        ok = false;
+      }
+    }
+    if (raw.mode !== undefined) {
+      if (typeof raw.mode === "string" && (EXPAND_MODES as readonly string[]).includes(raw.mode)) expand.mode = raw.mode as ExpandMode;
+      else {
+        errors.push({ path: `${path}.mode`, message: `Expected one of: ${EXPAND_MODES.join(", ")}.` });
+        ok = false;
+      }
+    }
+  }
+  if (!ok) return undefined;
+  if (!isCorner) {
+    warnings.push({ path, message: "Only used with a corner placement; it is ignored." });
+    return undefined;
+  }
+  if (schema && !schema.expandable) {
+    const accepting = Object.entries(types)
+      .filter(([, t]) => t.expandable)
+      .map(([name]) => name);
+    errors.push({ path, message: `The "${String(type)}" component can't open from an expand. These can: ${accepting.join(", ")}.` });
+    return undefined;
+  }
+  return expand;
+}
+
 /** Check one option value against its kind. Returns true when it is valid. */
 function checkOption(
   kind: OptionKind,
@@ -167,6 +248,7 @@ function checkOption(
   layerIds: string[],
   errors: ConfigProblem[],
   warnings: ConfigProblem[],
+  view?: MapViewKind,
 ): boolean {
   const unknownLayer = (id: unknown) => `"${String(id)}" is not a configured layer. Use an id from layers.`;
   if (typeof kind === "object") {
@@ -175,6 +257,7 @@ function checkOption(
       errors.push({ path, message: `Expected one of: ${kind.oneOf.join(", ")}.` });
       return false;
     }
+    if ("listOf" in kind) return checkListOf(kind.listOf, value, path, errors);
     const [min, max] = kind.integer;
     if (typeof value === "number" && Number.isInteger(value) && value >= min && value <= max) return true;
     errors.push({ path, message: `Expected a whole number from ${min} to ${max}.` });
@@ -234,6 +317,8 @@ function checkOption(
     }
     case "color[]":
       return checkColors(value, path, errors);
+    case "bookmark[]":
+      return checkBookmarks(value, path, view, errors, warnings);
     case "layer-info[]": {
       if (!Array.isArray(value)) {
         errors.push({ path, message: 'Expected an array of { "layer": <layer id>, "title": <text> } entries.' });
@@ -259,6 +344,78 @@ function checkOption(
       return ok;
     }
   }
+}
+
+/** A `{ listOf }` option: a non-empty list of unique values from `allowed` (D8). */
+function checkListOf(allowed: readonly string[], value: unknown, path: string, errors: ConfigProblem[]): boolean {
+  const expected = `a list of ${allowed.join(", ")}, each at most once`;
+  if (!Array.isArray(value) || value.length === 0) {
+    errors.push({ path, message: `Expected ${expected}, such as ["${allowed[0]}"].` });
+    return false;
+  }
+  let ok = true;
+  const seen = new Map<string, number>();
+  value.forEach((item: unknown, j) => {
+    if (typeof item !== "string" || !allowed.includes(item)) {
+      errors.push({ path: `${path}[${j}]`, message: `Expected one of: ${allowed.join(", ")}.` });
+      ok = false;
+    } else if (seen.has(item)) {
+      errors.push({ path, message: `Expected ${expected}; "${item}" is listed at [${seen.get(item)}] and [${j}].` });
+      ok = false;
+    } else {
+      seen.set(item, j);
+    }
+  });
+  return ok;
+}
+
+const BOOKMARK_KEYS = ["name", "center", "zoom", "scale", "tilt", "heading"];
+const isFiniteNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+
+/**
+ * A `bookmark[]` option: places to go to, each `{ name, center, zoom | scale, tilt?, heading? }`,
+ * checked like the same settings in `map`. Tilt and heading need a 3D scene; with `map.item` the
+ * view isn't known yet, so they are accepted and used only if it turns out to be a scene.
+ */
+function checkBookmarks(value: unknown, path: string, view: MapViewKind | undefined, errors: ConfigProblem[], warnings: ConfigProblem[]): boolean {
+  if (!Array.isArray(value) || value.length === 0) {
+    errors.push({ path, message: 'Expected a list of at least one bookmark, such as [{ "name": "Downtown", "center": [-104.99, 39.74], "zoom": 14 }].' });
+    return false;
+  }
+  let ok = true;
+  const fail = (at: string, message: string) => {
+    errors.push({ path: at, message });
+    ok = false;
+  };
+  value.forEach((item: unknown, j) => {
+    const at = `${path}[${j}]`;
+    if (!isObject(item)) return fail(at, 'Expected { "name": <text>, "center": [longitude, latitude], "zoom" or "scale": <number> }.');
+    for (const key of Object.keys(item)) {
+      if (!BOOKMARK_KEYS.includes(key) && !isCredentialKey(key)) warnings.push({ path: `${at}.${key}`, message: "Unknown setting; it is ignored." });
+    }
+    if (typeof item.name !== "string" || item.name.trim() === "") fail(`${at}.name`, "Required. Expected a non-empty string.");
+    const c = item.center;
+    if (!Array.isArray(c) || c.length !== 2 || !c.every(isFiniteNumber)) {
+      fail(`${at}.center`, "Required. Expected [longitude, latitude]: an array of two numbers.");
+    } else {
+      if (c[0] < -180 || c[0] > 180) fail(`${at}.center[0]`, "Expected a longitude between -180 and 180.");
+      if (c[1] < -90 || c[1] > 90) fail(`${at}.center[1]`, "Expected a latitude between -90 and 90.");
+    }
+    if (item.zoom !== undefined && item.scale !== undefined) fail(at, "Set either zoom or scale, not both.");
+    else if (item.zoom === undefined && item.scale === undefined) fail(at, "Required: zoom or scale.");
+    else if (item.zoom !== undefined && !(isFiniteNumber(item.zoom) && item.zoom >= 0)) fail(`${at}.zoom`, "Expected a number 0 or greater.");
+    else if (item.scale !== undefined && !(isFiniteNumber(item.scale) && item.scale > 0)) fail(`${at}.scale`, "Expected a number greater than 0.");
+    for (const [key, label, valid, range] of [
+      ["tilt", "Tilt", (v: number) => v >= 0 && v <= 90, "a number from 0 to 90"],
+      ["heading", "Heading", (v: number) => v >= 0 && v < 360, "a number from 0 up to, but not including, 360"],
+    ] as const) {
+      const v = item[key];
+      if (v === undefined) continue;
+      if (view === "2d") fail(`${at}.${key}`, `${label} needs "view": "3d".`);
+      else if (!(isFiniteNumber(v) && valid(v))) fail(`${at}.${key}`, `Expected ${range}.`);
+    }
+  });
+  return ok;
 }
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;

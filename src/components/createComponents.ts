@@ -7,6 +7,7 @@ import { COMPONENT_TYPES, type ComponentContext, type ComponentType, type Config
 import { resolveBasemap } from "../map/freeBasemaps.ts";
 import { cornerStack } from "../map/cornerStack.ts";
 import { handleRemoveLocationAction, replaceRemoveAction } from "./locationMarker.ts";
+import { loadExpand, wrapInExpand } from "./expand.ts";
 
 /** The parts of an element the stage touches. Real DOM elements satisfy it. */
 export interface ComponentElement {
@@ -97,8 +98,11 @@ export async function createComponents(options: CreateComponentsOptions): Promis
   // Load each type once, before creating anything, so order isn't affected by load order.
   const needed = new Set(entries.map((e) => e.type));
   const loaded = new Set<string>();
-  await Promise.all(
-    [...needed].map(async (name) => {
+  // Expand buttons (D3): loaded once, with the types. Validation keeps `expand` to corners.
+  const wantsExpand = entries.some((e) => e.expand && e.placement !== "panel" && e.placement !== "none");
+  let expandLoaded = false;
+  await Promise.all([
+    ...[...needed].map(async (name) => {
       try {
         await types[name].load();
         loaded.add(name);
@@ -106,7 +110,17 @@ export async function createComponents(options: CreateComponentsOptions): Promis
         app.errors.report({ source: `component-type:${name}`, message: `The "${name}" component could not be loaded.`, detail: errorText(err) });
       }
     }),
-  );
+    ...(wantsExpand
+      ? [
+          loadExpand().then(
+            () => void (expandLoaded = true),
+            (err: unknown) =>
+              // The components still show, open, in their corners.
+              app.errors.report({ source: "component-type:expand", message: "The expand button component could not be loaded.", detail: errorText(err) }),
+          ),
+        ]
+      : []),
+  ]);
 
   const panels: PanelComponent[] = [];
   for (const entry of entries) {
@@ -121,7 +135,13 @@ export async function createComponents(options: CreateComponentsOptions): Promis
         continue;
       }
       try {
-        await type.configure(element as unknown as ConfigurableElement, entry.options, { map: options.map, app, apiKey: options.apiKey, geocoding: options.geocoding });
+        await type.configure(element as unknown as ConfigurableElement, entry.options, {
+          map: options.map,
+          app,
+          apiKey: options.apiKey,
+          geocoding: options.geocoding,
+          mapElement: mapElement as unknown as HTMLElement,
+        });
       } catch (err) {
         app.errors.report({ source: `component:${entry.id}`, message: `The "${entry.id}" component could not be set up.`, detail: errorText(err) });
         continue;
@@ -163,6 +183,12 @@ export async function createComponents(options: CreateComponentsOptions): Promis
     if (entry.placement === "none") {
       element.hidden = true;
       mapElement.append(element);
+    } else if (entry.expand && expandLoaded) {
+      // The element stays inside the map, a child of its expand; referenceElement is set too, so
+      // finding the view doesn't depend on how the expand renders its content (D3).
+      (element as unknown as { referenceElement: unknown }).referenceElement = mapElement;
+      const expand = wrapInExpand(entry, element as unknown as HTMLElement, panelSlot(entry, types), type.expandMode);
+      stackFor(entry.placement).append(expand as unknown as ComponentElement);
     } else {
       stackFor(entry.placement).append(element);
     }

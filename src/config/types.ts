@@ -158,6 +158,24 @@ export interface PanelSettings {
   icon?: string;
 }
 
+/** How an expand opens: next to its button, in a sheet, or the SDK's choice by screen size. */
+export const EXPAND_MODES = ["auto", "floating", "drawer"] as const;
+export type ExpandMode = (typeof EXPAND_MODES)[number];
+
+/**
+ * A corner component's `expand` setting (map-components, P-66). `"expand": true` is `{}`.
+ * Gaps are filled at creation from the type's panel icon and heading and the corner (design D3).
+ */
+export interface ExpandSettings {
+  icon?: string;
+  tooltip?: string;
+  /** Open at startup. */
+  expanded?: boolean;
+  /** Expands in one group close each other; false is no group. Defaults to the corner. */
+  group?: string | false;
+  mode?: ExpandMode;
+}
+
 /** One validated `components` entry. */
 export interface ComponentConfig {
   id: string;
@@ -167,6 +185,8 @@ export interface ComponentConfig {
   options: Record<string, unknown>;
   /** Only on `panel` components. */
   panel?: PanelSettings;
+  /** Only on corner components: show a button that opens the component (P-66). */
+  expand?: ExpandSettings;
 }
 
 /** One validation problem, located by a path such as `map.center[1]`. */
