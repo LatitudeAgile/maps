@@ -13,7 +13,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "check": "tsc"
+    "check": "tsc",
+    "new:component": "node scripts/new-component.mjs"
   },
   "dependencies": {
     "@arcgis/core": "^5.1.0",
