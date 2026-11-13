@@ -11,9 +11,9 @@ created.
 ### Requirement: Components are created from config
 The viewer SHALL create one component for each entry of the `components` config array, using the
 entry's `type`. Only registered component types SHALL be accepted. This version registers
-fifteen: `home`, `zoom`, `legend`, `locate`, `track`, `basemap-toggle`, `search`, `directions`,
-`layer-list`, `basemap-gallery`, `print`, `sketch`, `compass`, `navigation-toggle`, and the
-`hello-world` template.
+twenty: `home`, `zoom`, `legend`, `locate`, `track`, `basemap-toggle`, `search`, `directions`,
+`layer-list`, `basemap-gallery`, `print`, `sketch`, `compass`, `navigation-toggle`, `measure`,
+`fullscreen`, `scale-bar`, `bookmarks`, `coordinate-conversion`, and the `hello-world` template.
 
 #### Scenario: Home component returns to the initial view
 - **GIVEN** the config has a `home` component placed `top-left`
@@ -22,7 +22,7 @@ fifteen: `home`, `zoom`, `legend`, `locate`, `track`, `basemap-toggle`, `search`
 
 #### Scenario: Unknown component type
 - **WHEN** a component entry has `"type": "weather"`
-- **THEN** validation fails with an error at `components[0].type` that lists the supported types, including `compass` and `navigation-toggle`
+- **THEN** validation fails with an error at `components[0].type` that lists the supported types, including `measure` and `coordinate-conversion`
 
 #### Scenario: Duplicate component ID
 - **WHEN** two component entries have the `id` `home`
@@ -401,6 +401,8 @@ SHALL leave the component's own default service in place.
 A component type MAY support only some placements. An entry of that type with any other
 placement, stated or defaulted, SHALL fail validation with an error at its `placement` that
 lists the placements the type supports. The `sketch` type SHALL support only `panel`.
+`fullscreen` SHALL support only the corners and `none`, `scale-bar` only the corners, and
+`measure` only `panel` and the corners.
 
 #### Scenario: Sketch in a corner
 - **WHEN** a `sketch` component has `"placement": "top-right"`
@@ -410,22 +412,34 @@ lists the placements the type supports. The `sketch` type SHALL support only `pa
 - **WHEN** a `sketch` component entry has no `placement`
 - **THEN** validation passes, and the Sketch panel is in the sidebar
 
+#### Scenario: Scale bar with placement omitted
+- **WHEN** a `scale-bar` component entry has no `placement`
+- **THEN** validation fails with an error at `components[0].placement` that lists the corner placements
+
+#### Scenario: Fullscreen in a panel
+- **WHEN** a `fullscreen` component has `"placement": "panel"`
+- **THEN** validation fails with an error at `components[0].placement` that lists the corner placements and `none`
+
 ### Requirement: A component type can limit the views it supports
-A component type MAY work only in 2D maps or only in 3D scenes. `print` and `sketch` SHALL be 2D
-only, and `navigation-toggle` 3D only. Every other built-in type SHALL work in both. In an app
-whose view is known from the config, an entry of a type that doesn't support it SHALL fail
+A component type MAY work only in 2D maps or only in 3D scenes. `print`, `sketch` and `scale-bar`
+SHALL be 2D only, and `navigation-toggle` 3D only. Every other built-in type SHALL work in both. In
+an app whose view is known from the config, an entry of a type that doesn't support it SHALL fail
 validation.
 
 #### Scenario: Print in a config-built scene
 - **WHEN** an app with `"view": "3d"` has a `print` component as its first entry
 - **THEN** validation fails with an error at `components[0].type` saying the `print` component works only in 2D maps
 
+#### Scenario: Scale bar in a config-built scene
+- **WHEN** an app with `"view": "3d"` has a `scale-bar` component as its first entry
+- **THEN** validation fails with an error at `components[0].type` saying the `scale-bar` component works only in 2D maps
+
 #### Scenario: Navigation toggle in a 2D app
 - **WHEN** an app with no `map.view` and no `map.item` has a `navigation-toggle` component as its first entry
 - **THEN** validation fails with an error at `components[0].type` saying the `navigation-toggle` component works only in 3D scenes
 
 #### Scenario: Both views
-- **WHEN** an app with `"view": "3d"` has `home`, `zoom`, `search`, `legend`, `layer-list` and `basemap-gallery` components
+- **WHEN** an app with `"view": "3d"` has `home`, `zoom`, `search`, `legend`, `layer-list`, `basemap-gallery`, `measure`, `fullscreen`, `bookmarks` and `coordinate-conversion` components
 - **THEN** validation passes, and each component appears and works in the scene
 
 ### Requirement: Components that don't support an item's view are left out
@@ -458,3 +472,273 @@ button does, between panning and rotating. It SHALL work only in 3D scenes.
 - **GIVEN** a config-built 3D scene with a `navigation-toggle` component placed `top-right`
 - **WHEN** the user switches the toggle to rotate and drags the scene sideways with the primary mouse button
 - **THEN** the scene's heading changes and its center stays within 0.01° of where it was
+
+### Requirement: A corner component can open from an expand button
+A corner entry with `"expand": true` or an `expand` object SHALL show a button in its corner
+instead of the component, in the same position in config order (P-66). Pressing the button SHALL
+open the component over the map, next to the button. Pressing it again, or Escape, SHALL close
+it. `"expand": false` SHALL mean no expand.
+
+#### Scenario: Print behind a button at the top right
+- **WHEN** a `print` component has `"placement": "top-right"` and `"expand": true`
+- **THEN** the top-right corner shows one button with the print icon and no print form, and pressing it opens the print component next to the button
+
+#### Scenario: Close with Escape
+- **GIVEN** a `legend` component placed `top-right` with `"expand": true`, opened by its button
+- **WHEN** the user presses Escape
+- **THEN** the legend is no longer shown, and focus is on its button
+
+#### Scenario: Expand keeps its place in the corner
+- **WHEN** a `home` component and then a `legend` component with `"expand": true` are both placed `top-right`
+- **THEN** the Home button appears above the legend's button
+
+### Requirement: An expand button shows its component's icon and heading
+An expand button's icon SHALL default to the icon of the type's sidebar panel, and its tooltip
+and accessible name to that panel's heading. The `expand` object's `icon` and `tooltip` SHALL
+override them. A custom type SHALL get its registered panel icon and heading the same way.
+
+#### Scenario: Default icon and tooltip
+- **WHEN** a `print` component placed `top-right` has `"expand": true`
+- **THEN** its button shows the `print` icon, and hovering it shows "Print"
+
+#### Scenario: Own icon and tooltip
+- **WHEN** a `legend` component placed `top-right` has `"expand": { "icon": "information", "tooltip": "Map key" }`
+- **THEN** its button shows the `information` icon, and hovering it shows "Map key"
+
+#### Scenario: Custom type
+- **WHEN** a `hello-world` component placed `top-left` has `"expand": true`
+- **THEN** its button shows the `code` icon, and hovering it shows "Hello"
+
+### Requirement: Expand settings are checked
+An `expand` object MAY set `icon` and `tooltip` (non-empty strings), `expanded` (true or false,
+open at startup, default false), `group` (a non-empty string, or false), and `mode` (`auto`,
+`floating` or `drawer`). `mode` SHALL default to `auto`, except for `measure` and
+`coordinate-conversion`, which are used on the map while open and SHALL default to `floating`.
+An unknown key SHALL be ignored with a warning. Any other value of `expand` SHALL fail
+validation.
+
+#### Scenario: Open at startup
+- **WHEN** a `legend` component placed `top-right` has `"expand": { "expanded": true }`
+- **THEN** the legend is open next to its button once the components are created
+
+#### Scenario: Drawer mode
+- **WHEN** a `legend` component placed `top-right` has `"expand": { "mode": "drawer" }` and its button is pressed
+- **THEN** the legend opens in a sheet along an edge of the map instead of next to the button
+
+#### Scenario: Measure floats on a phone
+- **GIVEN** a `measure` component placed `top-right` with `"expand": true`, on a 375×667 screen
+- **WHEN** the user opens it, starts a distance measurement and taps the map
+- **THEN** it is open next to its button rather than in a sheet, and the tap adds a point to the measurement
+
+#### Scenario: Invalid mode
+- **WHEN** a component has `"expand": { "mode": "popup" }`
+- **THEN** validation fails with an error at `components[0].expand.mode` that lists `auto`, `floating` and `drawer`
+
+#### Scenario: Invalid expand value
+- **WHEN** a component has `"expand": "yes"`
+- **THEN** validation fails with an error at `components[0].expand` saying true, false, or a settings object is expected
+
+#### Scenario: Unknown expand setting
+- **WHEN** a component has `"expand": { "colour": "red" }`
+- **THEN** validation passes with one warning at `components[0].expand.colour`
+
+### Requirement: Expands in one corner close each other
+Expands in the same corner SHALL be in one group by default, so that opening one closes any other
+open one in that corner. An expand's `group` setting SHALL put it in the named group instead,
+across corners. `"group": false` SHALL put it in no group, so it stays open when others open.
+
+#### Scenario: Same corner
+- **GIVEN** a `legend` and a `print` component, both placed `top-right` with `"expand": true`, and the legend is open
+- **WHEN** the user presses the print button
+- **THEN** print is open and the legend is closed
+
+#### Scenario: Different corners
+- **GIVEN** a `legend` placed `top-right` and a `print` placed `top-left`, both with `"expand": true`, and the legend is open
+- **WHEN** the user presses the print button
+- **THEN** both are open
+
+#### Scenario: No group
+- **GIVEN** a `legend` with `"expand": { "group": false }` and a `print` with `"expand": true`, both placed `top-right`, and the legend is open
+- **WHEN** the user presses the print button
+- **THEN** both are open
+
+### Requirement: Only some component types open from an expand
+These types SHALL accept `expand`: `legend`, `layer-list`, `basemap-gallery`, `print`, `search`,
+`bookmarks`, `coordinate-conversion`, `measure` and `hello-world`. A custom type SHALL accept it
+when registered as doing so. A corner entry of any other type that turns expand on SHALL fail
+validation with an error at its `expand` that lists the types that accept it.
+
+#### Scenario: Button type
+- **WHEN** a `home` component placed `top-right` has `"expand": true`
+- **THEN** validation fails with an error at `components[0].expand` that lists the types that accept it
+
+#### Scenario: Expand turned off on a button type
+- **WHEN** a `home` component placed `top-right` has `"expand": false`
+- **THEN** validation passes, and the Home button is shown in the corner
+
+### Requirement: Expand applies only to corner placements
+An `expand` setting on an entry placed `panel` or `none`, stated or defaulted, SHALL be ignored
+with one warning at its `expand` saying it is only used with a corner placement.
+
+#### Scenario: Expand on a panel
+- **WHEN** a `legend` component with no `placement` has `"expand": true`
+- **THEN** validation passes with one warning at `components[0].expand`, and the legend is a sidebar panel
+
+### Requirement: A component in an expand is told when it opens and closes
+A component in an expand SHALL be told when the expand opens and when it closes, with the same
+open and close events that a sidebar panel sends, however the expand closes: its button, Escape,
+or another expand in its group opening. A component's request to open its panel SHALL open its
+expand.
+
+#### Scenario: Told on open and close
+- **GIVEN** a `hello-world` component placed `top-right` with `"expand": true`, with the open and close events on its element being recorded
+- **WHEN** the user opens the expand, presses Escape, opens it again and presses its button
+- **THEN** the element was told open, closed, open, closed, in that order
+
+#### Scenario: Open at startup is told
+- **WHEN** a `hello-world` component placed `top-right` has `"expand": { "expanded": true }`
+- **THEN** its element is told open once, after it is on the page
+
+#### Scenario: Asking to open
+- **GIVEN** a `hello-world` component placed `top-right` with `"expand": true`, and its expand closed
+- **WHEN** the open request is sent from that element
+- **THEN** its expand is open, and any other open expand in its group is closed
+
+### Requirement: Fullscreen shows the viewer on the whole screen
+A `fullscreen` button SHALL show the whole viewer, sidebar included, fullscreen when pressed
+(P-68), and SHALL return to the normal page when pressed again or on Escape. Its `target` option
+SHALL be `app` (the default) or `map`, which shows only the map. Where the browser has no
+fullscreen support, pressing it SHALL do nothing and report no error.
+
+#### Scenario: App fullscreen
+- **GIVEN** a `fullscreen` component placed `top-right` with no options
+- **WHEN** the user presses it
+- **THEN** the viewer fills the screen with the sidebar's icon bar still showing, and the sidebar's panels still open
+
+#### Scenario: Map only
+- **GIVEN** a `fullscreen` component with `"options": { "target": "map" }`
+- **WHEN** the user presses it
+- **THEN** only the map fills the screen, without the sidebar
+
+#### Scenario: Leave fullscreen
+- **GIVEN** the viewer is fullscreen from a `fullscreen` button
+- **WHEN** the user presses Escape
+- **THEN** the viewer is back in the normal page
+
+#### Scenario: Invalid target
+- **WHEN** a `fullscreen` component has `"options": { "target": "page" }`
+- **THEN** validation fails with an error at `components[0].options.target` that lists `app` and `map`
+
+### Requirement: The scale bar shows the map scale
+A `scale-bar` component SHALL show a bar for the map's current scale, updated as the map zooms
+(P-69). Its `unit` option SHALL be `imperial` (the default), `metric`, or `dual` for both. Its
+`barStyle` option SHALL be `line` (the default) or `ruler`.
+
+#### Scenario: Imperial by default
+- **GIVEN** a `scale-bar` component placed `bottom-left` with no options, in a 2D map
+- **WHEN** the map is shown
+- **THEN** the bottom-left corner shows a scale bar labeled in miles or feet
+
+#### Scenario: Both units
+- **WHEN** a `scale-bar` component has `"options": { "unit": "dual" }`
+- **THEN** the scale bar shows one label in imperial units and one in metric units
+
+#### Scenario: Updates on zoom
+- **GIVEN** a `scale-bar` component is showing
+- **WHEN** the user zooms in two levels
+- **THEN** the scale bar's label shows a shorter distance than before
+
+### Requirement: Bookmarks go to saved places
+A `bookmarks` component SHALL list the bookmarks of the app's web map or web scene, then those of
+its `bookmarks` option, and SHALL go to a bookmark when it is chosen (P-70). Each configured
+bookmark SHALL have a `name`, a `center`, and a `zoom` or a `scale`, and in a 3D scene MAY have a
+`tilt` and a `heading`, checked as in `map`. `showAddBookmarkButton` (default true) SHALL let the
+user add the current view; `showFilter` SHALL show a filter box. With none, it SHALL say so.
+
+#### Scenario: Go to a bookmark
+- **GIVEN** an app whose web map item has bookmarks, and a `bookmarks` panel
+- **WHEN** the user opens the Bookmarks panel and chooses the first bookmark
+- **THEN** the map settles on that bookmark's extent
+
+#### Scenario: Bookmarks in a config-built map
+- **GIVEN** a 2D app with no `map.item`, and a `bookmarks` panel with `"options": { "bookmarks": [{ "name": "Red Rocks", "center": [-105.2053, 39.6654], "zoom": 16 }] }`
+- **WHEN** the user opens the Bookmarks panel and chooses "Red Rocks"
+- **THEN** the map settles within 0.002° of that center, at zoom 16
+
+#### Scenario: Bookmark with tilt and heading in a scene
+- **GIVEN** an app with `"view": "3d"` and a configured bookmark with `"tilt": 70` and `"heading": 330`
+- **WHEN** the user chooses that bookmark
+- **THEN** the scene looks at its center with a tilt of 70° and a heading of 330°, each within 1°
+
+#### Scenario: Web map bookmarks come first
+- **WHEN** an app with a web map item that has bookmarks also configures bookmarks
+- **THEN** the list shows the web map's bookmarks, then the configured ones
+
+#### Scenario: Invalid bookmark
+- **WHEN** a configured bookmark has no `name`, or both `zoom` and `scale`, or neither, or a latitude of 95, or a `tilt` in a 2D app
+- **THEN** validation fails with an error at that bookmark's path, such as `components[0].options.bookmarks[0].name`, saying what is expected
+
+#### Scenario: No bookmarks
+- **WHEN** a `bookmarks` component is opened in a config-built app with `"options": { "showAddBookmarkButton": false }`
+- **THEN** it shows its empty message, and no error is reported
+
+### Requirement: Bookmarks the user adds are kept in the browser
+Bookmarks the user adds, and changes to them, SHALL be kept in the browser for each app (`?app=`)
+and SHALL come back, after the app's other bookmarks, when it is opened again. Bookmarks from the
+web map, web scene or config SHALL come back as configured, even if the user changed or removed
+them. Where the browser can't keep them, they SHALL last until the page is closed.
+
+#### Scenario: Add a bookmark
+- **GIVEN** a `bookmarks` component with no options, in an app with no bookmarks
+- **WHEN** the user adds a bookmark named "Trailhead", pans away and chooses "Trailhead"
+- **THEN** the map returns to the view it had when the bookmark was added
+
+#### Scenario: Kept after a reload
+- **GIVEN** the user added a bookmark named "Trailhead" and renamed it "Red Rocks lot"
+- **WHEN** the page is reloaded
+- **THEN** the list ends with "Red Rocks lot", and choosing it returns to the view it was added at
+
+#### Scenario: Separate for each app
+- **GIVEN** the user added a bookmark in one app
+- **WHEN** another app with a `bookmarks` component is opened in the same browser
+- **THEN** its list doesn't include that bookmark
+
+#### Scenario: Configured bookmarks come back
+- **GIVEN** the user removed a configured bookmark
+- **WHEN** the page is reloaded
+- **THEN** the bookmark is back in its place in the list
+
+### Requirement: Coordinate conversion shows and finds coordinates
+A `coordinate-conversion` component SHALL show the coordinates of the pointer, or of a clicked
+point, in the user's chosen formats, and SHALL go to coordinates the user types in (P-71). Its
+`formats` option SHALL limit the formats offered to a list from `xy`, `dd`, `ddm`, `dms`, `mgrs`,
+`usng`, `utm` and `basemap`. Its `mode` option SHALL be `live` (the default) or `capture`. It SHALL
+convert in the browser, with no service request.
+
+#### Scenario: Live coordinates
+- **GIVEN** a `coordinate-conversion` component placed `bottom-left` with no options
+- **WHEN** the user moves the pointer over the map
+- **THEN** the coordinates it shows change with the pointer
+
+#### Scenario: Capture a point
+- **GIVEN** a `coordinate-conversion` component with `"options": { "mode": "capture" }`
+- **WHEN** the user clicks the map
+- **THEN** it shows that point's coordinates and marks the point on the map
+
+#### Scenario: Limited formats
+- **WHEN** a `coordinate-conversion` component has `"options": { "formats": ["dd", "mgrs"] }`
+- **THEN** its list of formats to add offers only decimal degrees and MGRS
+
+#### Scenario: Go to typed coordinates
+- **GIVEN** a `coordinate-conversion` component
+- **WHEN** the user enters `39.74N 104.99W` as decimal degrees and goes to it
+- **THEN** the map settles within 0.01° of longitude -104.99, latitude 39.74
+
+#### Scenario: No service requests
+- **GIVEN** the app was built without an API key
+- **WHEN** the user converts a point to MGRS, USNG and UTM
+- **THEN** each conversion is shown, and no request goes to a geometry service
+
+#### Scenario: Invalid format
+- **WHEN** a `coordinate-conversion` component has `"options": { "formats": ["latlon"] }`
+- **THEN** validation fails with an error at `components[0].options.formats[0]` that lists the supported formats
