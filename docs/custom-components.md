@@ -3,7 +3,8 @@
 The viewer creates its components from the `components` config. Built-in types wrap ArcGIS map
 components; your own types work the same way. You add the source to the repository, register
 it under a type name, and configure it like any built-in type. Validation, placement (map
-corners, `none`, or a sidebar panel) and panel headings and icons come for free.
+corners, an expand button in a corner, `none`, or a sidebar panel) and panel headings and icons
+come for free.
 
 The `hello-world` type in [`src/components/custom/hello-world/`](../src/components/custom/hello-world/)
 is a working template. It shows a greeting from config and the map's center and scale, updating
@@ -34,6 +35,7 @@ Add an entry to `COMPONENT_TYPES` in [`src/components/registry.ts`](../src/compo
   options: { greeting: "string" },
   defaults: { greeting: "Hello, world" },
   panel: { heading: "My component", icon: "code" },
+  expandable: true,
 },
 ```
 
@@ -43,12 +45,23 @@ Add an entry to `COMPONENT_TYPES` in [`src/components/registry.ts`](../src/compo
 - **`options`** lists the options the type accepts and their kinds. See below.
 - **`defaults`** fills options the config leaves out.
 - **`panel`** sets the sidebar heading and [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/)
-  used when the component is placed in `panel` without its own `panel` settings.
+  used when the component is placed in `panel` without its own `panel` settings. An expand
+  button uses the same icon, and the heading as its tooltip.
+- **`expandable: true`** lets a config put the component behind an expand button in a map
+  corner, with `"expand": true` (see [Expand buttons](configuration.md#components)). Leave it
+  out until you have seen your component work in one: the popover is about 300 px wide, and on
+  a small map it becomes a sheet. Without it, `expand` on a corner entry fails validation.
 
 Then use it in an app's config, such as `public/apps/default.json`:
 
 ```json
 { "id": "mine", "type": "my-component", "options": { "greeting": "Hi" } }
+```
+
+or, in a map corner behind a button:
+
+```json
+{ "id": "mine", "type": "my-component", "placement": "top-right", "expand": true }
 ```
 
 ## 3. Options
@@ -85,9 +98,10 @@ The map element is `arcgis-map` in a 2D app and `arcgis-scene` in a 3D one (see
 [3D scenes](configuration.md#3d-scenes)). Write your component for both unless it only makes
 sense in one, and then limit its type's `views` in the registry, as `print` does.
 
-- **In a map corner,** the element is a child of the map element, so `findViewElement(this)`
+- **In a map corner,** the element is inside the map element, so `findViewElement(this)`
   from [`src/map/viewElement.ts`](../src/map/viewElement.ts) finds it. It looks for
-  `arcgis-map` or `arcgis-scene`.
+  `arcgis-map` or `arcgis-scene`. Behind an expand button, the viewer also sets
+  `referenceElement`, as for a sidebar panel.
 - **In a sidebar panel,** the element sits outside the map. The viewer sets its
   `referenceElement` property to the map element, as it does for SDK components.
 
@@ -101,26 +115,30 @@ Watch the view with `reactiveUtils.watch` and keep the handle. Remove the handle
 `disconnectedCallback`, so a removed component stops reacting to the map. The template's
 `#generation` counter covers a component that is removed while it is still waiting for the view.
 
-## 6. Following your panel
+## 6. Following your container
 
-A component in a sidebar panel stays on the page while its panel is closed. When it needs to
-know whether its panel is showing, for example to pause work or end an edit, it listens for
-two events on its own element:
+A component in a sidebar panel, or behind an expand button in a map corner, stays on the page
+while its container is closed. When it needs to know whether it is showing, for example to
+pause work or end an edit, it listens for two events on its own element. Both containers send
+the same ones:
 
-- `viewer-panel-open`: its panel has opened.
-- `viewer-panel-close`: its panel has closed, by its icon, its close button, Escape, or a switch
-  to another panel. On a switch, the panel being left gets its close before the next panel's
-  component gets its open.
+- `viewer-panel-open`: its panel or expand has opened.
+- `viewer-panel-close`: its panel or expand has closed. A panel closes by its icon, its close
+  button, Escape, or a switch to another panel; on a switch, the panel being left gets its close
+  before the next panel's component gets its open. An expand closes by its button, Escape, or
+  another expand in its group opening; the order of the two expands' events is the SDK's.
 
 The sidebar is shown, and its panels can be opened, before components are created, which
 happens once the map's layers have settled. A panel opened before then shows a loader. If your
 component is put into a panel that is already open, it gets `viewer-panel-open` right after it
-is attached, so it can start as it would on a normal open.
+is attached, so it can start as it would on a normal open. An expand configured with
+`"expanded": true` does the same once it is on the page.
 
-A component can also ask for its panel to be opened, for example from a popup action on the
-map. It dispatches `viewer-panel-request-open` from its element. The event must bubble and be
-composed, so it reaches the sidebar. If the panel is already open, nothing happens. Outside the
-sidebar, in a map corner, nothing listens, so the request is safely ignored.
+A component can also ask for its container to be opened, for example from a popup action on
+the map. It dispatches `viewer-panel-request-open` from its element. The event must bubble and
+be composed, so it reaches the sidebar panel or the expand. If it is already open, nothing
+happens. In a map corner without an expand, or placed `none`, nothing listens, so the request
+is safely ignored.
 
 ```ts
 import { PANEL_CLOSE, PANEL_OPEN, requestPanelOpen } from "../../../sidebar/panelEvents.ts";
@@ -148,4 +166,5 @@ dark mode. Import each Calcite component you use, as the template does with `cal
 ## 8. Try it
 
 Run `npm run check` to type-check, then `npm run dev`. Add your type to a config, in a map
-corner and in a panel, and check what the user sees in both places.
+corner, behind an expand button if the type is `expandable`, and in a panel, and check what the
+user sees in each place.

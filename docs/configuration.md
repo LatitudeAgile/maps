@@ -310,6 +310,11 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `sketch` | **2D only.** Draw and write on the map: points, lines, polygons, rectangles, circles and notes, with freehand and curved segments, undo and redo, and measurements while drawing. Opening the panel turns drawing on; closing it, or switching panels, ends drawing and any selection. With the panel closed, clicking a sketch opens a popup with **Edit sketch**. Sketches are saved in the browser, separately for each app (`?app=`), and come back on reload; the Layers panel lists them as **Sketches** with a checkbox. **Panel only:** any other placement fails validation. Panel default: "Sketch", `pencil` icon. | `colors` (list of 1 to 12 `{ "name": <text>, "color": "#rrggbb" }`, unique colors): the color strip, first one chosen at first. Default: Red `#d7263d`, Blue `#1f5fd1`, Green `#1a9e3f`, Orange `#f28c00`, Black `#1a1a1a`. Users can add up to six colors of their own. `fillPercent` (whole number 0 to 100, default `0`): how filled new areas are until the user changes it; 0 draws outlines only. `unit` (`imperial` or `metric`, default `imperial`): feet and miles, or meters and kilometers, in the drawing tooltips. |
 | `compass` | Shows which way north is; pressing it turns the map back to north up. Most useful in a 3D scene, or in a 2D map the user can rotate. Panel default: "Compass", `compass` icon. | None. |
 | `navigation-toggle` | **3D only.** Two buttons that switch what dragging the scene does: pan (the default) or rotate around the center. Either way, dragging with the right mouse button does the other. Panel default: "Navigation", `move-and-rotate` icon. | `layout` (`vertical` or `horizontal`, default `vertical`): how the two buttons are arranged. |
+| `measure` | Measures distances and areas on the map, in 2D maps and 3D scenes. With two tools, a switch at the top chooses Distance or Area. **New measurement** starts one: click points on the map, and double-click to finish. A distance shows its length (in a scene, the direct, horizontal and vertical distances between two points); an area shows its area and perimeter. **Clear** removes every measurement of both tools, and is disabled when there is nothing to clear. The unit list in the component changes units for the current tool. Panel or corner only. In an expand it opens next to its button, also on phones (see [Expand buttons](#components)). Panel default: "Measure", `measure` icon. | `tools` (list of `distance` and `area`, each at most once, default both): the tools offered, in the order shown; with one, there is no switch. `unit` (`imperial` or `metric`, default `imperial`): the unit system the tools start in; within it, the unit suits the size, such as meters for a short line and kilometers for a long one. |
+| `fullscreen` | A button that shows the viewer fullscreen; pressing it again, or Escape, returns to the page. Browsers without the Fullscreen API (such as Safari on iPhone) can't: there the button does nothing. **Corner or `none` only:** `panel` fails validation. | `target` (`app` or `map`, default `app`): `app` shows the whole viewer, sidebar included; `map` shows the map alone. |
+| `scale-bar` | A bar showing the map's scale, updated as it zooms. **2D only. Corner only:** with no placement, or `panel` or `none`, it fails validation. | `unit` (`imperial`, `metric` or `dual`, default `imperial`): `dual` shows both. `barStyle` (`line` or `ruler`, default `line`). |
+| `bookmarks` | Places to go to: the bookmarks saved in the app's web map or web scene (`map.item`), then those in the config, then the ones the user added. Choosing one goes there. The user can add the current view as a bookmark and edit bookmarks; their own are kept in the browser (see below). With none, it says there are none. Panel default: "Bookmarks", `bookmark` icon. | `bookmarks` (list): places to add, each `{ "name": <text>, "center": [longitude, latitude], "zoom" or "scale": <number> }`, with `"tilt"` (0 to 90) and `"heading"` (0 up to 360) in a 3D scene, checked as in `map`. `showAddBookmarkButton` (boolean, default `true`): the add button, and the edit buttons with it. `showFilter` (boolean, default `false`): a box that filters the list by name. |
+| `coordinate-conversion` | Shows the coordinates of the pointer, or of a clicked point, in formats the user chooses, and goes to coordinates typed in (for decimal degrees, as `39.74N 104.99W`). Converts in the browser: no service and no API key. Panel default: "Coordinates", `coordinate-system` icon. | `formats` (list of `xy`, `dd`, `ddm`, `dms`, `mgrs`, `usng`, `utm` and `basemap`, each at most once, default all): the formats offered. `xy` is longitude and latitude in degrees; `basemap` is the basemap's own coordinates. `mode` (`live` or `capture`, default `live`): follow the pointer, or show the point the user clicks. |
 | `hello-world` | A template for your own component types: shows its greeting and the map's center and scale, updating as the map moves. Not in the default config. See [custom-components.md](custom-components.md). Panel default: "Hello", `code` icon. | `greeting` (string, default `"Hello, world"`): the heading it shows. |
 
 **The location marker:** clicking the marker that `locate` or `track` puts on the map opens a
@@ -335,14 +340,47 @@ browser refuses to save (storage full or blocked), the panel says so and the ske
 the map until the page is closed. The chosen color, added colors and fill are remembered per
 browser for every app.
 
+**Where bookmarks come from.** `bookmarks` lists, in this order:
+- the bookmarks saved in the app's web map or web scene, set up in Map Viewer or Scene Viewer.
+  For example, the public web map `aa1d3f80270146208328cf66d022e09c` (City of Redlands Parks)
+  has ten;
+- the bookmarks in its `bookmarks` option, for any app, config-built or not;
+- the bookmarks the user added.
+
+```json
+{ "id": "bookmarks", "type": "bookmarks", "options": { "bookmarks": [
+  { "name": "Downtown Denver", "center": [-104.9903, 39.7392], "zoom": 15 },
+  { "name": "Red Rocks", "center": [-105.2053, 39.6654], "zoom": 16 }
+] } }
+```
+
+In a 3D scene, a bookmark can also set `tilt` and `heading`, as `map` does; in a 2D app they are
+a config error. With `map.item`, they apply only if the item turns out to be a web scene.
+
+**Where the user's bookmarks are kept.** Bookmarks the user adds stay in the visitor's browser
+(`localStorage`), per app name like sketches, and come back after the app's other bookmarks the
+next time it is opened. Renaming or deleting one is kept too. Bookmarks from the web map, web
+scene or config can be renamed or removed for the visit, but come back as configured on reload.
+Another browser or a private window starts with none of the user's own. If the browser refuses
+to save, they last until the page is closed, and the console says so.
+
+**What coordinate conversion remembers.** The component keeps the user's chosen formats in the
+browser for the session (`sessionStorage`) and restores them on reload. One in a format that
+`formats` no longer offers is dropped.
+
+**What closing Measure does.** Closing the Measure panel or expand, or switching tools, stops a
+measurement in progress and removes it; clicks on the map then go to popups as usual. A finished
+measurement stays on the map, and is still shown when the component opens again, until the user
+presses Clear. Measurements aren't saved: a reload starts with none.
+
 **What printing sends.** The print service draws the map on its own server, so Print sends it
 the map as a web map: the basemap, the operational layers that are shown, the map's extent, the
 title, and any graphics on the map, including sketches and their note text. Nothing is sent
 until the user presses Export. To keep that within your organization, set `printServiceUrl` to
 your own ArcGIS Enterprise print service.
 
-**2D and 3D.** Every type works in 2D maps and 3D scenes except `print` and `sketch` (2D only)
-and `navigation-toggle` (3D only). In an app whose view the config decides (`map.view`, or its
+**2D and 3D.** Every type works in 2D maps and 3D scenes except `print`, `sketch` and `scale-bar`
+(2D only) and `navigation-toggle` (3D only). In an app whose view the config decides (`map.view`, or its
 default `"2d"`), a type that doesn't support it is a config error, such as `The "print"
 component works only in 2D maps.` In an app opened from an item, the view is known only once the
 item is read, so such a component is left out instead: it gets no sidebar icon, and the browser
@@ -362,6 +400,41 @@ the starting view, tilt and heading included.
 - **`none`:** the component is created without any visible UI and connected to the map. It is
   useful for components that only act behind the scenes. Debug mode can find it through the app
   model.
+
+**Expand buttons:** a component in a corner can sit behind a button that opens it over the map,
+next to the button. Pressing the button again, or Escape, closes it.
+
+```json
+{ "id": "print", "type": "print", "placement": "top-right", "expand": true }
+```
+
+`"expand": true` uses the defaults. `"expand": false`, or no `expand`, shows the component
+itself. An object sets any of these:
+
+| Key | Value | Default |
+|---|---|---|
+| `icon` | A [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/) name for the button. | The type's panel icon, such as `print`. |
+| `tooltip` | The button's tooltip and its name for screen readers. | The type's panel heading, such as "Print". |
+| `expanded` | `true` opens it when the app starts. | `false` |
+| `group` | A name. Expands with the same group close each other, in any corner. `false` puts it in no group, so it stays open when another opens. | The corner, so that opening one expand closes the others in its corner. |
+| `mode` | `floating` opens it next to its button; `drawer` opens it in a sheet along an edge of the map (the bottom, for a bottom corner); `auto` lets the SDK choose by screen size (a sheet on small screens). | `auto`; `floating` for `measure` and `coordinate-conversion`, which are used on the map while open. |
+
+- **Which types:** `legend`, `layer-list`, `basemap-gallery`, `print`, `search`, `bookmarks`,
+  `coordinate-conversion`, `measure` and `hello-world`. Buttons such as `home` and `zoom` don't
+  need one. Turning expand on for any other type in a corner fails validation, for example
+  `components[0].expand: The "home" component can't open from an expand. These can: legend, …`.
+  A custom type accepts it when it is registered with `expandable: true` (see
+  [custom-components.md](custom-components.md)).
+- **Corners only:** `expand` on an entry placed `panel` or `none`, or with no placement, is
+  ignored, and the browser console says `Only used with a corner placement; it is ignored.`
+- **Order:** the button takes the component's place in its corner, in config order.
+- **Phones:** with `auto`, on a map 544 px wide or less the component opens in a sheet that rises
+  from the bottom of the screen, over the sidebar's bar, until it is closed. To keep the bar in
+  view, use `"mode": "floating"`: the component opens next to its button and scrolls when it is
+  taller than the space there. The sheet is modal: a tap on the map closes it. That is why
+  `measure` and `coordinate-conversion`, which need taps on the map, float by default.
+- **Checked like other settings:** an unknown key is ignored with a warning, and a wrong value
+  fails validation, such as `components[0].expand.mode: Expected one of: auto, floating, drawer.`
 
 **Layer references:** some options take layer `id`s from `layers`, such as the legend's
 `layerInfos`. The component receives the layers themselves. An `id` that isn't in `layers`

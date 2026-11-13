@@ -46,9 +46,19 @@ apps, or delete `index.json` for a single-app viewer. See [Apps](docs/configurat
 
 - `field-notes.json`: a smaller app for searching and marking up the map.
 - `web-map.json`: opens a public web map made in Map Viewer, with one layer of its own added on
-  top. See [Web maps and web scenes](docs/configuration.md#web-maps-and-web-scenes).
-- `city-scene.json`: a 3D scene of San Francisco's buildings, built from the config. See
-  [3D scenes](docs/configuration.md#3d-scenes).
+  top, and print, measure and coordinates behind buttons in the map's top-right corner, next to
+  a fullscreen button. See [Web maps and web scenes](docs/configuration.md#web-maps-and-web-scenes)
+  and the expand buttons under [Components](docs/configuration.md#components).
+- `city-scene.json`: a 3D scene of San Francisco's buildings, built from the config, with
+  measuring behind a button. See [3D scenes](docs/configuration.md#3d-scenes).
+- `redlands-parks.json`: a public web map of Redlands parks, opening on its saved bookmarks,
+  with a legend behind a button in the same corner and a scale bar.
+- `survey-tools.json`: measuring in metric from the sidebar, bookmarks for places around Denver
+  set in the config, a live coordinate readout in five formats, a scale bar in miles and
+  kilometers, and a map-only fullscreen button.
+- `half-dome.json`: Half Dome in 3D on world terrain, for measuring heights and distances, with
+  coordinates behind a second button in the same corner, and bookmarks with tilt and heading
+  for Yosemite's landmarks.
 
 ## Write your own component
 
