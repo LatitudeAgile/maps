@@ -742,3 +742,28 @@ convert in the browser, with no service request.
 #### Scenario: Invalid format
 - **WHEN** a `coordinate-conversion` component has `"options": { "formats": ["latlon"] }`
 - **THEN** validation fails with an error at `components[0].options.formats[0]` that lists the supported formats
+
+### Requirement: A corner component's look comes from its type
+A component type SHALL say how it looks in a map corner: as a button, with the shadow the SDK
+gives its own buttons; as a panel, with that shadow plus a panel's width and scrolling; or with
+neither. Built-in and custom types SHALL get the same look from the same setting. Built-in types
+SHALL look as they did before this change.
+
+#### Scenario: Built-in measure keeps its look
+- **WHEN** a `measure` component is placed `top-right` without an expand
+- **THEN** it has a shadow and is as wide as a `legend` placed in the same corner
+
+#### Scenario: Custom panel-style type
+- **GIVEN** an extension type whose manifest gives it the panel look in corners
+- **WHEN** it is placed `top-right` above a `legend`
+- **THEN** both have the same shadow and width, and the custom component scrolls when its content is taller than the map allows
+
+#### Scenario: Custom button-style type
+- **GIVEN** an extension type whose manifest gives it the button look in corners
+- **WHEN** it is placed `top-left` below a `home` component
+- **THEN** it has the same shadow as the Home button
+
+#### Scenario: No corner look
+- **GIVEN** an extension type whose manifest gives no corner look
+- **WHEN** it is placed `top-right`
+- **THEN** the viewer adds no shadow or width to it, and it looks only as its own styles make it
