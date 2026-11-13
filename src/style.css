@@ -59,6 +59,9 @@ arcgis-map {
   display: flex;
   flex-direction: column;
   gap: var(--calcite-spacing-sm-plus, 10px);
+  /* The map's height less the corner gutters (the map fills the viewport): panel-style items
+     shrink to share it and scroll, instead of running off the map (add-drop-in-extensions D5). */
+  max-height: calc(100dvh - 2 * var(--calcite-spacing-lg, 16px));
 }
 
 .corner-stack:is([slot$="-right"], [slot$="-end"]) {
@@ -66,15 +69,22 @@ arcgis-map {
 }
 
 /*
- * The components the SDK gives a shadow when slotted (its ::slotted list, SDK 5.2, in
- * dist/chunks/slots.js), plus viewer-measure, which wraps the SDK's measuring components. The
- * SDK gives the scale bar none.
+ * Corner looks, from each type's cornerStyle (add-drop-in-extensions D5). The component stage
+ * adds the class to a component placed straight into a corner, and viewer-corner-button to every
+ * expand. They copy what the SDK gives the components it slots itself (its ::slotted list, SDK
+ * 5.2, in dist/chunks/slots.js): a shadow for buttons, and a panel's size for larger components.
  */
-.corner-stack > :is(arcgis-home, arcgis-locate, arcgis-track, arcgis-zoom, arcgis-search, arcgis-legend, arcgis-layer-list, arcgis-basemap-gallery, arcgis-directions, arcgis-print, arcgis-navigation-toggle, arcgis-expand, arcgis-fullscreen, arcgis-bookmarks, arcgis-coordinate-conversion, viewer-measure) {
+.corner-stack > :is(.viewer-corner-button, .viewer-corner-panel) {
   box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
 }
 
-.corner-stack > :is(arcgis-legend, arcgis-layer-list, arcgis-basemap-gallery, arcgis-directions, arcgis-print, arcgis-bookmarks, viewer-measure) {
+/*
+ * Panel width and scrolling, as the SDK gives its slotted panels, plus border-box, so a
+ * component's own padding doesn't widen it. Flex items shrink by default; the minimum height
+ * lets them shrink to fit the stack's cap.
+ */
+.corner-stack > .viewer-corner-panel {
+  box-sizing: border-box;
   min-height: var(--calcite-spacing-xxxl);
   min-width: var(--calcite-spacing-xxxl);
   overflow-y: auto;
@@ -89,8 +99,11 @@ arcgis-map {
   max-width: calc(100vw - 2 * var(--calcite-spacing-lg, 16px) - 48px);
 }
 
-/* In an expand, the SDK sizes its own components; the viewer's measure gets the same width. */
-.corner-stack > arcgis-expand > viewer-measure {
+/*
+ * In an expand, the SDK sizes its own components to about this width; a panel-style component
+ * of the viewer's or an extension's gets the same. The stage gives the class only to those.
+ */
+.corner-stack > arcgis-expand > .viewer-corner-panel {
   min-width: var(--arcgis-internal-panel-width, 300px);
 }
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig.json",
-  "include": ["src", "*.ts"],
+  "include": ["src", "extensions", "vite", "*.ts"],
   "compilerOptions": {
     // Disallow unreachable code.
     "allowUnreachableCode": false,
@@ -37,6 +37,9 @@
     // rather than the .d.ts files from the libraries you are using.
     "skipLibCheck": true,
     // Full strict type-checking for template code.
-    "strict": true
+    "strict": true,
+    // Extensions import viewer features from "viewer" (add-drop-in-extensions D4); Vite has the
+    // same alias in vite.config.ts.
+    "paths": { "viewer": ["./src/components/api.ts"] }
   }
 }

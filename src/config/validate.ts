@@ -5,7 +5,7 @@ import { validateRequest } from "./request.ts";
 import { validateComponents } from "./components.ts";
 import { validateTheme } from "./theme.ts";
 import { validateGeocoding } from "./geocoding.ts";
-import { COMPONENT_TYPES, type ComponentTypeSchema } from "../components/registry.ts";
+import { COMPONENT_TYPES, SKIPPED_EXTENSIONS, type ComponentTypeSchema } from "../components/registry.ts";
 import {
   isCredentialKey,
   COLOR_MODES,
@@ -29,8 +29,10 @@ export interface ValidationContext {
   configUrl?: string;
   /** Available layer hook names; defaults to the built-in hook registry. */
   hookNames?: string[];
-  /** Registered component types; defaults to the built-in component registry. */
+  /** Registered component types; defaults to the component registry. */
   componentTypes?: Readonly<Record<string, ComponentTypeSchema>>;
+  /** Skipped extension folders and why; defaults to the registry's. */
+  skippedExtensions?: ReadonlyMap<string, string>;
 }
 
 type Obj = Record<string, unknown>;
@@ -172,7 +174,12 @@ export function validateConfig(raw: unknown, context: ValidationContext = {}): V
 
   const components = validateComponents(
     raw.components,
-    { types: context.componentTypes ?? COMPONENT_TYPES, layerIds: layers.map((l) => l.id), view },
+    {
+      types: context.componentTypes ?? COMPONENT_TYPES,
+      skipped: context.skippedExtensions ?? SKIPPED_EXTENSIONS,
+      layerIds: layers.map((l) => l.id),
+      view,
+    },
     errors,
     warnings,
   );

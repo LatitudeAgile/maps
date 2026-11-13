@@ -16,8 +16,7 @@ import "@esri/calcite-components/components/calcite-action";
 
 import type Graphic from "@arcgis/core/Graphic.js";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer.js";
-import { configName, DEFAULT_CONFIG_NAME } from "../../config/load.ts";
-import { PANEL_CLOSE, PANEL_OPEN, requestPanelOpen } from "../../sidebar/panelEvents.ts";
+import { appStorageKey, PANEL_CLOSE, PANEL_OPEN, requestPanelOpen } from "viewer";
 import {
   addColorProblem,
   addCustomColor,
@@ -31,7 +30,7 @@ import {
 } from "./palette.ts";
 import { EDIT_SKETCH_ACTION_ID, sketchPopupTemplate } from "./popup.ts";
 import { areaFillOpacity, setNoteText, sketchKind, sketchSymbol, styleSketch, noteText } from "./symbols.ts";
-import { loadPref, loadSketches, PREF_KEYS, savePref, SketchSaver, sketchesKey, type StorageLike } from "./storage.ts";
+import { loadPref, loadSketches, PREF_KEYS, savePref, SketchSaver, type StorageLike } from "./storage.ts";
 
 /** The sketch layer's id. */
 export const SKETCH_LAYER_ID = "viewer-sketches";
@@ -102,7 +101,7 @@ export class SketchPanel extends HTMLElement {
   #unit: Unit = "imperial";
 
   readonly #store = browserStore;
-  readonly #key = sketchesKey(configName(globalThis.location?.search ?? "") ?? DEFAULT_CONFIG_NAME);
+  readonly #key = appStorageKey("sketches");
 
   // State.
   #customColors: string[] = [];

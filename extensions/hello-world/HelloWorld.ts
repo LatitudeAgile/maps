@@ -1,5 +1,6 @@
 // The hello-world component: a template for your own component types. Copy this folder, rename
-// it, and register it in src/components/registry.ts. See docs/custom-components.md.
+// it, and change the names inside it; nothing outside the folder needs an edit. See
+// docs/components/getting-started.md.
 //
 // What it shows:
 // - an option from config (`greeting`), set as a property by the component stage;
@@ -11,7 +12,7 @@
 import "@esri/calcite-components/components/calcite-block";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import type { ResourceHandle } from "@arcgis/core/core/Handles.js";
-import { findViewElement, type ViewElement } from "../../../map/viewElement.ts";
+import { findViewElement, type ViewElement } from "viewer";
 import { formatCenter, formatScale } from "./format.ts";
 
 /** The map element (arcgis-map or arcgis-scene), or its id, that a component in the sidebar works on. */

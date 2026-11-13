@@ -7,7 +7,7 @@ import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import Point from "@arcgis/core/geometry/Point.js";
 import Viewpoint from "@arcgis/core/Viewpoint.js";
 import Bookmark from "@arcgis/core/webmap/Bookmark.js";
-import { configName, DEFAULT_CONFIG_NAME } from "../config/load.ts";
+import { appStorageKey } from "viewer";
 import type { StorageLike } from "./sketch/storage.ts";
 import type { ComponentContext, ConfigurableElement } from "./registry.ts";
 
@@ -20,9 +20,6 @@ export interface BookmarkConfig {
   tilt?: number;
   heading?: number;
 }
-
-/** Where an app's own bookmarks are kept. */
-export const bookmarksKey = (appName: string): string => `viewer:bookmarks:${appName}`;
 
 const VERSION = 1;
 
@@ -109,7 +106,7 @@ export function configureBookmarks(element: ConfigurableElement, options: Readon
   const fromItem = (map as { bookmarks?: Collection<Bookmark> }).bookmarks?.toArray() ?? [];
   const configured = ((options.bookmarks as BookmarkConfig[] | undefined) ?? []).map(fromConfig);
   const store = storage();
-  const key = bookmarksKey(configName(globalThis.location?.search ?? "") ?? DEFAULT_CONFIG_NAME);
+  const key = appStorageKey("bookmarks");
   const own = store ? loadBookmarks(store, key) : [];
 
   const fixed = new WeakSet<Bookmark>([...fromItem, ...configured.map((c) => c.bookmark)]);

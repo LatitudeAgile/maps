@@ -1,0 +1,24 @@
+{
+  "description": "The built-in component type names: the keys of BUILT_IN_TYPES in registry.ts. The new:component scaffolder reads this file to refuse these names (add-drop-in-extensions D6). In dev, the viewer logs an error at startup if it doesn't match the registry.",
+  "types": [
+    "home",
+    "zoom",
+    "legend",
+    "locate",
+    "track",
+    "basemap-toggle",
+    "search",
+    "directions",
+    "layer-list",
+    "basemap-gallery",
+    "print",
+    "sketch",
+    "measure",
+    "fullscreen",
+    "scale-bar",
+    "bookmarks",
+    "coordinate-conversion",
+    "compass",
+    "navigation-toggle"
+  ]
+}

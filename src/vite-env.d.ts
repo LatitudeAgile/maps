@@ -8,3 +8,12 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/**
+ * The extension folders under extensions/, found at build time (vite/extensionsPlugin.ts,
+ * add-drop-in-extensions D1). `manifest` is the default export of the folder's component.ts,
+ * unchecked; src/components/extensions.ts checks it.
+ */
+declare module "virtual:viewer-extensions" {
+  export const folders: ReadonlyArray<{ folder: string; manifest?: unknown; problem?: string }>;
+}

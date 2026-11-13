@@ -11,9 +11,6 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
-/** Where a config's sketches are kept. */
-export const sketchesKey = (configName: string): string => `viewer:sketches:${configName}`;
-
 /** Preferences, per browser: shared by every config. */
 export const PREF_KEYS = {
   color: "viewer:sketch:color",

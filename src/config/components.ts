@@ -1,4 +1,5 @@
 import type { OptionKind, ComponentTypeSchema } from "../components/registry.ts";
+import { skippedMessage } from "../components/extensions.ts";
 import { LEGACY_BASEMAP_IDS } from "../map/basemapIds.ts";
 import { ID_PATTERN } from "./layers.ts";
 import {
@@ -34,6 +35,8 @@ export interface ComponentValidationContext {
   layerIds: string[];
   /** The app's view when the config decides it; undefined with `map.item` (design D8). */
   view?: MapViewKind;
+  /** Extension folders that were skipped, and why: an entry of such a type gets the reason. */
+  skipped?: ReadonlyMap<string, string>;
 }
 
 /** Validate the `components` section. Problems are appended to `errors` and `warnings`. */
@@ -76,7 +79,10 @@ export function validateComponents(
 
     const type = entry.type;
     const schema = typeof type === "string" && Object.hasOwn(context.types, type) ? context.types[type] : undefined;
-    if (!schema) errors.push({ path: `${at}.type`, message: `Expected one of: ${typeNames.join(", ")}.` });
+    if (!schema) {
+      const skipped = typeof type === "string" ? context.skipped?.get(type) : undefined;
+      errors.push({ path: `${at}.type`, message: skipped ? skippedMessage(type as string, skipped) : `Expected one of: ${typeNames.join(", ")}.` });
+    }
     else if (context.view && schema.views && !schema.views.includes(context.view)) {
       errors.push({ path: `${at}.type`, message: `The "${type}" component works only in ${viewsText(schema.views)}.` });
     }

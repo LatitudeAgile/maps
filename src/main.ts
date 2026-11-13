@@ -26,6 +26,8 @@ import { applyStartingView, ignoredForWebMap } from "./map/startingView.ts";
 import { followPopupDocking } from "./map/popupDock.ts";
 import { addLayers } from "./layers/addLayers.ts";
 import { createComponents, panelSlot, type CreateComponentsOptions } from "./components/createComponents.ts";
+import { SKIPPED_EXTENSIONS } from "./components/registry.ts";
+import { skippedMessage } from "./components/extensions.ts";
 import { createSidebar } from "./sidebar/createSidebar.ts";
 import { trackAttribution } from "./map/attribution.ts";
 import { trackSidebarInsets } from "./sidebar/insets.ts";
@@ -46,6 +48,8 @@ async function start(): Promise<void> {
   const apiKey = readApiKey(import.meta.env.VITE_ARCGIS_API_KEY);
   // Created first so every later stage can report errors; the key is redacted from reports.
   const app = new AppModel(new ErrorChannel([apiKey]));
+  // On every start, not only with debug: a developer needs to see why a folder isn't available.
+  for (const [folder, reason] of SKIPPED_EXTENSIONS) console.warn(`Viewer extensions: ${skippedMessage(folder, reason)}`);
 
   // The catalog is fetched alongside the config and awaited before the sidebar is built, so the
   // bar never changes after first paint (add-app-selector D2).

@@ -1,8 +1,16 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
+import { extensionsPlugin } from "./vite/extensionsPlugin.ts";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [],
+  // Extension folders under extensions/ (add-drop-in-extensions D1).
+  plugins: [extensionsPlugin()],
+  resolve: {
+    // Extensions import viewer features from "viewer" (add-drop-in-extensions D4). The pattern
+    // matches that exact specifier only, so a package named "viewer-something" isn't caught.
+    alias: [{ find: /^viewer$/, replacement: fileURLToPath(new URL("./src/components/api.ts", import.meta.url)) }],
+  },
   server: {
     open: true,
   },

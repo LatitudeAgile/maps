@@ -6,8 +6,7 @@
 import "@esri/calcite-components/components/calcite-button";
 import "@esri/calcite-components/components/calcite-segmented-control";
 import "@esri/calcite-components/components/calcite-segmented-control-item";
-import { findViewElement, type ViewElement } from "../../map/viewElement.ts";
-import { PANEL_CLOSE } from "../../sidebar/panelEvents.ts";
+import { findViewElement, PANEL_CLOSE, type ViewElement } from "viewer";
 
 import { MEASURE_TOOLS, type MeasureTool, type MeasureUnit } from "./options.ts";
 

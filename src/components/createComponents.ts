@@ -3,7 +3,7 @@ import type Viewpoint from "@arcgis/core/Viewpoint.js";
 import type { AppModel } from "../app/AppModel.ts";
 import { errorText } from "../app/errors.ts";
 import type { ComponentConfig } from "../config/types.ts";
-import { COMPONENT_TYPES, type ComponentContext, type ComponentType, type ConfigurableElement, type OptionKind } from "./registry.ts";
+import { COMPONENT_TYPES, type ComponentContext, type ComponentType, type ConfigurableElement, type CornerStyle, type OptionKind } from "./registry.ts";
 import { resolveBasemap } from "../map/freeBasemaps.ts";
 import { cornerStack } from "../map/cornerStack.ts";
 import { handleRemoveLocationAction, replaceRemoveAction } from "./locationMarker.ts";
@@ -14,6 +14,7 @@ export interface ComponentElement {
   slot: string;
   hidden: boolean;
   setAttribute(name: string, value: string): void;
+  classList: { add(token: string): void };
   addEventListener(type: string, listener: (event: Event) => void): void;
 }
 
@@ -187,9 +188,14 @@ export async function createComponents(options: CreateComponentsOptions): Promis
       // The element stays inside the map, a child of its expand; referenceElement is set too, so
       // finding the view doesn't depend on how the expand renders its content (D3).
       (element as unknown as { referenceElement: unknown }).referenceElement = mapElement;
+      // The SDK sizes its own components in an expand; only the viewer's and extensions' need it.
+      if (!type.tag.startsWith("arcgis-")) addCornerStyle(element, type.cornerStyle);
       const expand = wrapInExpand(entry, element as unknown as HTMLElement, panelSlot(entry, types), type.expandMode);
+      // The expand's button always looks like the SDK's own buttons.
+      addCornerStyle(expand as unknown as ComponentElement, "button");
       stackFor(entry.placement).append(expand as unknown as ComponentElement);
     } else {
+      addCornerStyle(element, type.cornerStyle);
       stackFor(entry.placement).append(element);
     }
   }
@@ -213,4 +219,12 @@ function resolveOption(kind: OptionKind | undefined, value: unknown, app: AppMod
   }
   if (kind === "basemap") return resolveBasemap(value as string);
   return value;
+}
+
+/**
+ * The class style.css gives a corner component for its type's `cornerStyle`
+ * (add-drop-in-extensions D5): `viewer-corner-button` or `viewer-corner-panel`.
+ */
+function addCornerStyle(element: ComponentElement, style: CornerStyle | undefined): void {
+  if (style) element.classList.add(`viewer-corner-${style}`);
 }

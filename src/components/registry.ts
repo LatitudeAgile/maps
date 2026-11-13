@@ -1,119 +1,30 @@
-import type EsriMap from "@arcgis/core/Map.js";
-import type { AppModel } from "../app/AppModel.ts";
 import { isBasemapStyleId } from "../map/basemapIds.ts";
 import { DEFAULT_GEOCODER_URL } from "./geocoder.ts";
 import { buildSearchSources } from "./searchSources.ts";
-import type { GeocodingConfig } from "../config/geocoding.ts";
-import { CORNER_PLACEMENTS, type ComponentPlacement, type ExpandMode, type MapViewKind } from "../config/types.ts";
+import { CORNER_PLACEMENTS } from "../config/types.ts";
+import type { ComponentType } from "./componentType.ts";
+import builtInTypes from "./builtInTypes.json";
+import { folders } from "virtual:viewer-extensions";
+import { checkExtensions } from "./extensions.ts";
 import { DEFAULT_SKETCH_COLORS } from "./sketch/palette.ts";
 import { MEASURE_TOOLS, MEASURE_UNITS } from "./measure/options.ts";
 import { configureCoordinateConversion, COORDINATE_FORMATS, COORDINATE_MODES } from "./coordinateConversion.ts";
 import { basemapGalleryKeyless, configureBasemapGallery, DEFAULT_GALLERY_BASEMAPS } from "./basemapGallery.ts";
 import { configureDirections, DEFAULT_ROUTE_SERVICE_URL, DIRECTIONS_UNITS, directionsKeyless } from "./directions.ts";
 
-/**
- * How a component option's config value is checked and applied. `layer` and `layer[]`
- * options take layer ids from `layers`, resolved to the created layers. `layer-info[]` takes
- * `{ layer: <id>, title?: <text> }` entries, resolved to `{ layer: <Layer>, title }` (the SDK's
- * LayerInfo shape, used by the legend). `scale` is a number greater than 0. `basemap` is a
- * non-empty basemap ID; legacy IDs are accepted with a warning, as in `map.basemap`; `basemap[]`
- * is a non-empty list of them. `url` is an absolute https URL. `{ oneOf }` is one of a fixed
- * list of strings; `{ integer }` is a whole number in an inclusive range (design D1).
- * `color[]` is a list of 1 to 12 `{ name, color }` entries with unique `#rrggbb` colors,
- * normalized to lowercase (add-print-and-sketch-panels D5). `{ listOf }` is a non-empty list of
- * unique strings from a fixed list (add-map-expand-and-components D8). `bookmark[]` is a list of
- * `{ name, center, zoom | scale, tilt?, heading? }` places, checked like `map` (map-components).
- */
-export type OptionKind =
-  | "string"
-  | "number"
-  | "boolean"
-  | "scale"
-  | "url"
-  | "basemap"
-  | "basemap[]"
-  | "layer"
-  | "layer[]"
-  | "layer-info[]"
-  | "color[]"
-  | "bookmark[]"
-  | { readonly oneOf: readonly string[] }
-  | { readonly integer: readonly [number, number] }
-  | { readonly listOf: readonly string[] };
+export type {
+  ComponentContext,
+  ComponentType,
+  ComponentTypeSchema,
+  ConfigurableElement,
+  CornerStyle,
+  ExtensionManifest,
+  KeylessResult,
+  OptionKind,
+} from "./componentType.ts";
 
-/** What validation needs to know about a component type. */
-export interface ComponentTypeSchema {
-  /** Supported options and their kinds; anything else is warned about and dropped. */
-  options: Readonly<Record<string, OptionKind>>;
-  /** Values for options the config leaves out, filled in by validation (design D1). */
-  defaults?: Readonly<Record<string, unknown>>;
-  /** The only placements the type supports; any other fails validation. All when absent (D2). */
-  placements?: readonly ComponentPlacement[];
-  /**
-   * The only views the type works in. In an app whose view the config decides, any other fails
-   * validation; in an app opened from an item, the component is left out (add-web-maps-and-scenes
-   * D8). Both when absent.
-   */
-  views?: readonly MapViewKind[];
-  /**
-   * The type can sit behind an expand button in a map corner (add-map-expand-and-components D2).
-   * Set only once the type has been seen to work in one.
-   */
-  expandable?: true;
-}
-
-/** A registered component type: a map component, loaded on first use. */
-export interface ComponentType extends ComponentTypeSchema {
-  /** Custom element tag. */
-  tag: string;
-  /** Import that defines the element. */
-  load: () => Promise<unknown>;
-  /** Sidebar heading and Calcite icon when placed in `panel` without its own `panel` settings. */
-  panel: { heading: string; icon: string };
-  /**
-   * The expand mode when the entry doesn't set one; else `auto`. `floating` for types used on the
-   * map while open: on a small map, `auto` opens a modal sheet, and a tap on the map closes it.
-   */
-  expandMode?: ExpandMode;
-  /** The element emits `arcgisError` with a GeolocationPositionError, shown to the user (D3). */
-  reportsLocationErrors?: boolean;
-  /**
-   * The element puts a location marker (its `graphic`) on the map, whose built-in remove action
-   * the SDK 5.2 popup component can't carry out; the stage swaps in a working one (D14).
-   */
-  locationMarker?: boolean;
-  /**
-   * Applies the validated options to the element, instead of assigning each one as a property.
-   * For types whose config options don't map one-to-one to element properties.
-   */
-  configure?: (element: ConfigurableElement, options: Readonly<Record<string, unknown>>, context: ComponentContext) => void | Promise<void>;
-  /**
-   * Without an API key: keep the entry (possibly with trimmed options) or leave it out with a
-   * reason. Applied before the component stage, so a left-out component sends no request.
-   */
-  keyless?: (options: Readonly<Record<string, unknown>>) => KeylessResult;
-}
-
-/** What a `configure` hook can use. */
-export interface ComponentContext {
-  /** The map the component works on. */
-  map: EsriMap;
-  app: AppModel;
-  /** The build's API key, or undefined. Only hooks that need it should read it. */
-  apiKey: string | undefined;
-  /** The validated `geocoding` section: search sources for Search and Directions (D16). */
-  geocoding?: GeocodingConfig;
-  /** The map element (`arcgis-map` or `arcgis-scene`). */
-  mapElement?: HTMLElement;
-}
-
-/** An element whose properties a `configure` hook sets. */
-export type ConfigurableElement = HTMLElement & Record<string, unknown>;
-
-export type KeylessResult = { keep: Record<string, unknown> } | { leaveOut: string };
-
-/** Component types a config can use under `components[].type`. */
-export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
+/** The built-in component types. Their names are also listed in builtInTypes.json (D6). */
+export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
   home: {
     tag: "arcgis-home",
     load: () => import("@arcgis/map-components/components/arcgis-home"),
@@ -121,6 +32,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     // (it stays "Home"), so it would be a setting with no visible effect.
     options: { icon: "string" },
     panel: { heading: "Home", icon: "home" },
+    cornerStyle: "button",
   },
   // Zoom-in and zoom-out buttons. A config without a zoom entry shows none; wheel, pinch and
   // keyboard zoom still work (P-02, design D2).
@@ -129,12 +41,14 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     load: () => import("@arcgis/map-components/components/arcgis-zoom"),
     options: {},
     panel: { heading: "Zoom", icon: "magnifying-glass-plus" },
+    cornerStyle: "button",
   },
   legend: {
     tag: "arcgis-legend",
     load: () => import("@arcgis/map-components/components/arcgis-legend"),
     options: { layerInfos: "layer-info[]", basemapLegendVisible: "boolean", hideLayersNotInCurrentView: "boolean" },
     panel: { heading: "Legend", icon: "legend" },
+    cornerStyle: "panel",
     expandable: true,
   },
   // Panel icons are each component's own default icon (design D2).
@@ -143,6 +57,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     load: () => import("@arcgis/map-components/components/arcgis-locate"),
     options: { scale: "scale", icon: "string", popupDisabled: "boolean" },
     panel: { heading: "Locate", icon: "gps-off" },
+    cornerStyle: "button",
     reportsLocationErrors: true,
     locationMarker: true,
   },
@@ -151,6 +66,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     load: () => import("@arcgis/map-components/components/arcgis-track"),
     options: { scale: "scale", icon: "string", rotationDisabled: "boolean" },
     panel: { heading: "Track", icon: "compass-north-circle" },
+    cornerStyle: "button",
     reportsLocationErrors: true,
     locationMarker: true,
   },
@@ -174,6 +90,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { geocoderUrl: "url", maxSuggestions: { integer: [1, 10] }, popupDisabled: "boolean" },
     defaults: { geocoderUrl: DEFAULT_GEOCODER_URL },
     panel: { heading: "Search", icon: "search" },
+    cornerStyle: "button",
     expandable: true,
     configure: async (element, options, { geocoding, apiKey }) => {
       // Never fall back to the portal's default source, which needs a key.
@@ -195,6 +112,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     defaults: { routeServiceUrl: DEFAULT_ROUTE_SERVICE_URL, unit: "miles" },
     // dojo-sidebar showed a car; the component's own default, "right", is a plain arrow.
     panel: { heading: "Directions", icon: "car" },
+    cornerStyle: "panel",
     configure: configureDirections,
     keyless: directionsKeyless,
   },
@@ -206,6 +124,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     // The SDK's own default is an eye icon; the viewer's is a checkbox (design D6).
     defaults: { visibilityAppearance: "checkbox" },
     panel: { heading: "Layers", icon: "layers" },
+    cornerStyle: "panel",
     expandable: true,
   },
   // Basemap thumbnails to choose from; without a key, only those that need none (P-37, D5).
@@ -215,6 +134,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { basemaps: "basemap[]" },
     defaults: { basemaps: [...DEFAULT_GALLERY_BASEMAPS] },
     panel: { heading: "Basemaps", icon: "basemap" },
+    cornerStyle: "panel",
     expandable: true,
     configure: configureBasemapGallery,
     keyless: basemapGalleryKeyless,
@@ -228,6 +148,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     // arcgis-print reports a sceneViewError in a scene: it prints 2D maps only.
     views: ["2d"],
     panel: { heading: "Print", icon: "print" },
+    cornerStyle: "panel",
     expandable: true,
   },
   // Drawing and writing on the map, ported from StewardshipOS (P-61, design D5). Panel only: its
@@ -251,6 +172,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     defaults: { tools: [...MEASURE_TOOLS], unit: "imperial" },
     placements: ["panel", ...CORNER_PLACEMENTS],
     panel: { heading: "Measure", icon: "measure" },
+    cornerStyle: "panel",
     expandable: true,
     expandMode: "floating",
   },
@@ -263,6 +185,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     defaults: { target: "app" },
     placements: [...CORNER_PLACEMENTS, "none"],
     panel: { heading: "Fullscreen", icon: "full-screen" },
+    cornerStyle: "button",
     configure: (element, options, { mapElement }) => {
       element.element = options.target === "map" ? mapElement : (document.querySelector("calcite-shell") ?? undefined);
     },
@@ -285,6 +208,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { bookmarks: "bookmark[]", showAddBookmarkButton: "boolean", showFilter: "boolean" },
     defaults: { showAddBookmarkButton: true },
     panel: { heading: "Bookmarks", icon: "bookmark" },
+    cornerStyle: "panel",
     expandable: true,
     // Loaded with the type, so a config without bookmarks doesn't load their storage code.
     configure: async (element, options, context) => (await import("./bookmarks.ts")).configureBookmarks(element, options, context),
@@ -297,6 +221,7 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { formats: { listOf: COORDINATE_FORMATS }, mode: { oneOf: COORDINATE_MODES } },
     defaults: { mode: "live" },
     panel: { heading: "Coordinates", icon: "coordinate-system" },
+    cornerStyle: "button",
     expandable: true,
     // Capture mode takes taps on the map, which a modal sheet would catch.
     expandMode: "floating",
@@ -317,15 +242,26 @@ export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = {
     options: { layout: { oneOf: ["vertical", "horizontal"] } },
     views: ["3d"],
     panel: { heading: "Navigation", icon: "move-and-rotate" },
-  },
-  // Custom components live in src/components/custom/ (docs/custom-components.md). This one
-  // is the template to copy; it isn't in the default config (P-38, design D7).
-  "hello-world": {
-    tag: "viewer-hello-world",
-    load: () => import("./custom/hello-world/index.ts"),
-    options: { greeting: "string" },
-    defaults: { greeting: "Hello, world" },
-    panel: { heading: "Hello", icon: "code" },
-    expandable: true,
+    cornerStyle: "button",
   },
 };
+
+const extensions = checkExtensions(folders, BUILT_IN_TYPES);
+
+/**
+ * Component types a config can use under `components[].type`: the built-in types, then the
+ * valid extension folders under extensions/ (add-drop-in-extensions D3).
+ */
+export const COMPONENT_TYPES: Readonly<Record<string, ComponentType>> = { ...BUILT_IN_TYPES, ...extensions.types };
+
+/** Extension folders that were skipped, and why, by folder name. */
+export const SKIPPED_EXTENSIONS: ReadonlyMap<string, string> = extensions.skipped;
+
+// builtInTypes.json must list exactly the built-in types: the scaffolder reads it (D6).
+if (import.meta.env.DEV) {
+  const listed = [...builtInTypes.types].sort().join(", ");
+  const actual = Object.keys(BUILT_IN_TYPES).sort().join(", ");
+  if (listed !== actual) {
+    console.error(`[viewer] src/components/builtInTypes.json doesn't match the built-in types in registry.ts. Listed: ${listed}. Registered: ${actual}.`);
+  }
+}
