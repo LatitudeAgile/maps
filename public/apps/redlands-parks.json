@@ -1,0 +1,34 @@
+{
+  "app": {
+    "title": "Redlands Parks",
+    "summary": "Jump between parks with bookmarks",
+    "description": "This app opens a public web map of parks in Redlands, California, with ten bookmarks saved in it. The bookmarks list is open when the app starts: choose a park to go there, or add the current view as a bookmark of your own, kept in this browser for next time.\n\nThe legend opens from the button below it, in the same corner, so opening one closes the other. A scale bar sits at the bottom left, and the button at the top right shows the whole app fullscreen.\n\nThis is a sample app. Point map.item at your own web map with bookmarks, or remove it from apps/index.json.",
+    "icon": "bookmark",
+    "theme": { "color": "#1d6b5f", "opacity": 0.85 }
+  },
+  "map": {
+    "item": { "id": "aa1d3f80270146208328cf66d022e09c" }
+  },
+  "components": [
+    { "id": "fullscreen", "type": "fullscreen", "placement": "top-right" },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "placement": "top-right",
+      "options": { "showFilter": true },
+      "expand": { "expanded": true, "mode": "floating" }
+    },
+    {
+      "id": "legend",
+      "type": "legend",
+      "placement": "top-right",
+      "expand": { "icon": "information", "tooltip": "Map key" }
+    },
+    { "id": "scale-bar", "type": "scale-bar", "placement": "bottom-left" },
+    { "id": "home", "type": "home", "placement": "bottom-right" },
+    { "id": "zoom", "type": "zoom", "placement": "bottom-right" },
+    { "id": "search", "type": "search", "placement": "panel" },
+    { "id": "layers", "type": "layer-list", "placement": "panel" },
+    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" }
+  ]
+}

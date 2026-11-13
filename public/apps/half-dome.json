@@ -1,0 +1,48 @@
+{
+  "app": {
+    "title": "Half Dome",
+    "summary": "Measure Yosemite's granite in 3D",
+    "description": "A 3D scene of Half Dome in Yosemite Valley, on Esri's world terrain. Open Measure (the button under the compass and navigation buttons), start a distance and click the valley floor, then the summit: it shows the straight-line, horizontal and vertical distances between them. Switch to Area to measure a meadow on the terrain. Bookmarks, in the sidebar, fly to El Capitan, Yosemite Falls, Glacier Point and Clouds Rest, each from its own angle; views you add as bookmarks are kept in this browser.\n\nCoordinates, below Measure, shows where the pointer is in decimal degrees and UTM. The two share a corner, so opening one closes the other. The button at the top right shows the whole app fullscreen.\n\nThis is a sample app. Replace it, or remove it from apps/index.json.",
+    "icon": "altitude",
+    "theme": { "color": "#3d5a80", "opacity": 0.85 }
+  },
+  "map": {
+    "view": "3d",
+    "basemap": "satellite",
+    "center": [-119.5332, 37.7459],
+    "scale": 30000,
+    "tilt": 72,
+    "heading": 100
+  },
+  "components": [
+    { "id": "fullscreen", "type": "fullscreen", "placement": "top-right" },
+    { "id": "compass", "type": "compass", "placement": "top-right" },
+    { "id": "navigation", "type": "navigation-toggle", "placement": "top-right" },
+    { "id": "measure", "type": "measure", "placement": "top-right", "expand": true },
+    {
+      "id": "coordinates",
+      "type": "coordinate-conversion",
+      "placement": "top-right",
+      "options": { "formats": ["dd", "utm"] },
+      "expand": true
+    },
+    { "id": "home", "type": "home", "placement": "bottom-right" },
+    { "id": "zoom", "type": "zoom", "placement": "bottom-right" },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "placement": "panel",
+      "options": {
+        "bookmarks": [
+          { "name": "Half Dome", "center": [-119.5332, 37.7459], "scale": 30000, "tilt": 72, "heading": 100 },
+          { "name": "El Capitan", "center": [-119.6377, 37.734], "scale": 25000, "tilt": 70, "heading": 330 },
+          { "name": "Yosemite Falls", "center": [-119.5966, 37.7566], "scale": 20000, "tilt": 65, "heading": 0 },
+          { "name": "Glacier Point", "center": [-119.5732, 37.728], "scale": 30000, "tilt": 70, "heading": 60 },
+          { "name": "Clouds Rest", "center": [-119.484, 37.7676], "scale": 40000, "tilt": 60, "heading": 230 }
+        ]
+      }
+    },
+    { "id": "search", "type": "search", "placement": "panel" },
+    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" }
+  ]
+}

@@ -25,6 +25,7 @@
   "components": [
     { "id": "compass", "type": "compass", "placement": "top-right" },
     { "id": "navigation", "type": "navigation-toggle", "placement": "top-right" },
+    { "id": "measure", "type": "measure", "placement": "top-right", "expand": true },
     { "id": "home", "type": "home", "placement": "bottom-right" },
     { "id": "locate", "type": "locate", "placement": "bottom-right" },
     { "id": "zoom", "type": "zoom", "placement": "bottom-right" },

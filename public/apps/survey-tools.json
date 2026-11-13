@@ -1,0 +1,52 @@
+{
+  "app": {
+    "title": "Survey Tools",
+    "summary": "Measure and read coordinates",
+    "description": "Tools for working out where things are and how big they are. Open Measure to measure a distance or an area in metric units, then press Clear when you're done. Bookmarks jump to places around Denver, and views you add as bookmarks are kept in this browser.\n\nThe coordinates at the bottom left follow the pointer. Expand them to add decimal degrees, degrees-minutes-seconds, UTM, MGRS or USNG, to click a point instead, or to type coordinates in and go there. They are worked out in the browser, with no service and no API key. The scale bar below them shows miles and kilometers together, and the button at the top right shows the map alone, fullscreen.\n\nThis is a sample app. Replace it, or remove it from apps/index.json.",
+    "icon": "measure",
+    "theme": { "color": "#a8551c", "opacity": 0.85 }
+  },
+  "map": {
+    "basemap": "arcgis/topographic",
+    "fallbackBasemap": "osm",
+    "center": [-104.99, 39.74],
+    "scale": 72224
+  },
+  "layers": [
+    {
+      "id": "cities",
+      "type": "feature",
+      "url": "https://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer/0",
+      "title": "US cities (sample layer: replace with your own)"
+    }
+  ],
+  "components": [
+    { "id": "fullscreen", "type": "fullscreen", "placement": "top-right", "options": { "target": "map" } },
+    {
+      "id": "coordinates",
+      "type": "coordinate-conversion",
+      "placement": "bottom-left",
+      "options": { "formats": ["dd", "dms", "utm", "mgrs", "usng"] }
+    },
+    { "id": "scale-bar", "type": "scale-bar", "placement": "bottom-left", "options": { "unit": "dual", "barStyle": "ruler" } },
+    { "id": "home", "type": "home", "placement": "bottom-right" },
+    { "id": "zoom", "type": "zoom", "placement": "bottom-right" },
+    { "id": "measure", "type": "measure", "placement": "panel", "options": { "unit": "metric" } },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "placement": "panel",
+      "options": {
+        "bookmarks": [
+          { "name": "Downtown Denver", "center": [-104.9903, 39.7392], "zoom": 15 },
+          { "name": "Red Rocks Amphitheatre", "center": [-105.2053, 39.6654], "zoom": 16 },
+          { "name": "Cherry Creek State Park", "center": [-104.8317, 39.6385], "zoom": 14 },
+          { "name": "Denver International Airport", "center": [-104.6737, 39.8561], "zoom": 13 }
+        ]
+      }
+    },
+    { "id": "search", "type": "search", "placement": "panel" },
+    { "id": "layers", "type": "layer-list", "placement": "panel" },
+    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" }
+  ]
+}

@@ -18,6 +18,11 @@
     }
   ],
   "components": [
+    { "id": "fullscreen", "type": "fullscreen", "placement": "top-right" },
+    { "id": "print", "type": "print", "placement": "top-right", "expand": true },
+    { "id": "measure", "type": "measure", "placement": "top-right", "expand": true },
+    { "id": "coordinates", "type": "coordinate-conversion", "placement": "top-right", "expand": true },
+    { "id": "scale-bar", "type": "scale-bar", "placement": "bottom-left" },
     { "id": "home", "type": "home", "placement": "bottom-right" },
     { "id": "locate", "type": "locate", "placement": "bottom-right" },
     { "id": "zoom", "type": "zoom", "placement": "bottom-right" },
@@ -26,7 +31,6 @@
     { "id": "layers", "type": "layer-list", "placement": "panel" },
     { "id": "legend", "type": "legend", "placement": "panel" },
     { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" },
-    { "id": "sketch", "type": "sketch", "placement": "panel" },
-    { "id": "print", "type": "print", "placement": "panel" }
+    { "id": "sketch", "type": "sketch", "placement": "panel" }
   ]
 }
