@@ -4,6 +4,23 @@
 import type { ComponentConfig, ExpandMode } from "../config/types.ts";
 import { notifyOpen, PANEL_REQUEST_OPEN } from "../sidebar/panelEvents.ts";
 
+/**
+ * Which side of its button a floating expand opens on, by corner: beside the button, lined up
+ * with its outer edge. The SDK picks these from the expand's own slot, but here the corner's stack
+ * holds the slot, so the SDK would fall back to "auto", which can run the component against the
+ * map's edge.
+ */
+const POPOVER_PLACEMENTS: Partial<Record<ComponentConfig["placement"], HTMLArcgisExpandElement["placement"]>> = {
+  "top-left": "right-start",
+  "top-start": "right-start",
+  "top-right": "left-start",
+  "top-end": "left-start",
+  "bottom-left": "right-end",
+  "bottom-start": "right-end",
+  "bottom-right": "left-end",
+  "bottom-end": "left-end",
+};
+
 export const loadExpand = (): Promise<unknown> => import("@arcgis/map-components/components/arcgis-expand");
 
 /**
@@ -29,6 +46,8 @@ export function wrapInExpand(
   const group = settings.group ?? entry.placement;
   if (group !== false) expand.group = group;
   expand.mode = settings.mode ?? defaultMode;
+  const placement = POPOVER_PLACEMENTS[entry.placement];
+  if (placement) expand.placement = placement;
   expand.expanded = settings.expanded ?? false;
   expand.setAttribute("data-expand-for", entry.id);
   expand.append(element);
