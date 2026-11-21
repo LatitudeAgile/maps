@@ -7,7 +7,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12"
   },
   "scripts": {
     "dev": "vite",
@@ -17,13 +17,13 @@
     "new:component": "node scripts/new-component.mjs"
   },
   "dependencies": {
-    "@arcgis/core": "^5.1.0",
-    "@arcgis/map-components": "^5.1.0",
-    "@esri/calcite-components": "^5.1.1"
+    "@arcgis/core": "^5.2.7",
+    "@arcgis/map-components": "^5.2.7",
+    "@esri/calcite-components": "^5.2.1"
   },
   "devDependencies": {
-    "@types/node": "~24.10.1",
-    "typescript": "~6.0.2",
-    "vite": "^8.0.16"
+    "@types/node": "~24.10.15",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.8"
   }
 }
