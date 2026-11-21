@@ -10,6 +10,7 @@ import { DEFAULT_SKETCH_COLORS } from "./sketch/palette.ts";
 import { MEASURE_TOOLS, MEASURE_UNITS } from "./measure/options.ts";
 import { configureCoordinateConversion, COORDINATE_FORMATS, COORDINATE_MODES } from "./coordinateConversion.ts";
 import { basemapGalleryKeyless, configureBasemapGallery, DEFAULT_GALLERY_BASEMAPS } from "./basemapGallery.ts";
+import { configureLayerList } from "./layerList.ts";
 import { configureDirections, DEFAULT_ROUTE_SERVICE_URL, DIRECTIONS_UNITS, directionsKeyless } from "./directions.ts";
 
 export type {
@@ -120,9 +121,10 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
   "layer-list": {
     tag: "arcgis-layer-list",
     load: () => import("@arcgis/map-components/components/arcgis-layer-list"),
-    options: { visibilityAppearance: { oneOf: ["checkbox", "default"] }, showFilter: "boolean" },
+    options: { visibilityAppearance: { oneOf: ["checkbox", "default"] }, showFilter: "boolean", openGroups: "boolean" },
     // The SDK's own default is an eye icon; the viewer's is a checkbox (design D6).
     defaults: { visibilityAppearance: "checkbox" },
+    configure: configureLayerList,
     panel: { heading: "Layers", icon: "layers" },
     cornerStyle: "panel",
     expandable: true,
