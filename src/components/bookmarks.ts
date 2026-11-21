@@ -1,7 +1,8 @@
 // The bookmarks type (map-components, P-70): the web map's or web scene's bookmarks, then the
 // config's, then the ones the user added, which are kept in the browser per app (`?app=`), as
 // sketches are. Bookmarks from the item or the config can be edited or removed for the session;
-// they come back as configured on the next load.
+// they come back as configured on the next load. In a scene, one the user adds or edits keeps
+// the camera, which the SDK leaves out.
 import Collection from "@arcgis/core/core/Collection.js";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import Point from "@arcgis/core/geometry/Point.js";
@@ -124,6 +125,8 @@ export function configureBookmarks(element: ConfigurableElement, options: Readon
     return view.goTo(view.type === "3d" ? target : flat, params.options);
   };
 
+  keepSceneCamera(element, list);
+
   if (!store) return;
   let warned = false;
   reactiveUtils.watch(
@@ -133,6 +136,35 @@ export function configureBookmarks(element: ConfigurableElement, options: Readon
       if (!saved && !warned) {
         warned = true;
         console.warn("[viewer] Bookmarks couldn't be saved in this browser; they last until the page is closed.");
+      }
+    },
+  );
+}
+
+interface CameraView {
+  type: string;
+  viewpoint?: Viewpoint | null;
+}
+
+/**
+ * In a scene, give a bookmark the view's camera when the user adds it, or edits it to the current
+ * view. The SDK captures only the extent, rotation and scale, so going back to it would lose the
+ * tilt and heading. A viewpoint the list hasn't seen before is one just captured.
+ */
+function keepSceneCamera(element: ConfigurableElement, list: Collection<Bookmark>): void {
+  const seen = new WeakSet<Viewpoint>(list.toArray().flatMap((b) => (b.viewpoint ? [b.viewpoint] : [])));
+  reactiveUtils.watch(
+    () => list.map((b) => b.viewpoint).toArray(),
+    () => {
+      const view = element.view as CameraView | null | undefined;
+      for (const bookmark of list) {
+        const viewpoint = bookmark.viewpoint;
+        if (!viewpoint || seen.has(viewpoint)) continue;
+        seen.add(viewpoint);
+        if (view?.type !== "3d" || viewpoint.camera || !view.viewpoint?.camera) continue;
+        const withCamera = view.viewpoint.clone();
+        seen.add(withCamera);
+        bookmark.viewpoint = withCamera;
       }
     },
   );

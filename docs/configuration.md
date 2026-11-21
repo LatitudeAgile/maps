@@ -359,7 +359,8 @@ a config error. With `map.item`, they apply only if the item turns out to be a w
 
 **Where the user's bookmarks are kept.** Bookmarks the user adds stay in the visitor's browser
 (`localStorage`), per app name like sketches, and come back after the app's other bookmarks the
-next time it is opened. Renaming or deleting one is kept too. Bookmarks from the web map, web
+next time it is opened. Renaming or deleting one is kept too. In a 3D scene, one added or
+edited keeps the camera, so it returns with the same tilt and heading. Bookmarks from the web map, web
 scene or config can be renamed or removed for the visit, but come back as configured on reload.
 Another browser or a private window starts with none of the user's own. If the browser refuses
 to save, they last until the page is closed, and the console says so.
