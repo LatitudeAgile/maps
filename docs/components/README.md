@@ -9,6 +9,7 @@ behind an expand button, or with no UI at all.
 extensions/
   hello-world/            <- the template that ships with the viewer
   buffalo-river/          <- a full example, used by the Buffalo River sample app
+  tracks/                 <- a GPX track library, also in the Buffalo River sample app
   trail-report/           <- one of yours
     component.ts          the manifest: name, options, icon, where it can go
     index.ts              defines the custom element

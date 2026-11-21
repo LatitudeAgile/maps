@@ -352,14 +352,14 @@ removed from the scene, and no pending request or timer SHALL change the scene a
 ### Requirement: The Buffalo River sample app
 The repository SHALL include a Buffalo River app, listed in the apps catalog. It SHALL open a 3D
 scene with OpenStreetMap on world elevation, looking down on the whole river at 1:300,000. It
-SHALL have the `buffalo-river` panel, a layer list with group layers opened, a legend, bookmarks
-for the river's sections, basemaps, Measure in the map's bottom-left corner, Locate with Home and
-Zoom, and Fullscreen at the top right. Its description SHALL credit the
-original app at brokan.xyz/buffalo.
+SHALL have the `buffalo-river` panel, a `tracks` panel after it in imperial units, a layer list
+with group layers opened, a legend, bookmarks for the river's sections, basemaps, Measure in the
+map's bottom-left corner, Locate with Home and Zoom, and Fullscreen at the top right. Its
+description SHALL credit the original app at brokan.xyz/buffalo.
 
 #### Scenario: Open from the catalog
 - **WHEN** the user opens the Apps panel and chooses Buffalo River
-- **THEN** a 3D scene opens with the whole river in view at 1280x800, the sidebar has Buffalo River, Layers, Legend, Bookmarks and Basemaps panels, a Measure button is in the map's bottom-left corner, Locate is between Home and Zoom, and Fullscreen is above the compass
+- **THEN** a 3D scene opens with the whole river in view at 1280x800, the sidebar has Buffalo River, Tracks, Layers, Legend, Bookmarks and Basemaps panels in that order, a Measure button is in the map's bottom-left corner, Locate is between Home and Zoom, and Fullscreen is above the compass
 
 #### Scenario: Go to a section
 - **WHEN** the user opens Bookmarks and chooses "Ponca Bridge to Kyles Landing"
@@ -376,3 +376,8 @@ original app at brokan.xyz/buffalo.
 #### Scenario: Credit
 - **WHEN** the user reads the app's description in the Apps panel
 - **THEN** it names brokan.xyz/buffalo as the original app
+
+#### Scenario: Lay a float over the river
+- **GIVEN** a GPX file recorded on a float from Ponca to Kyles Landing
+- **WHEN** the user opens Tracks in the Buffalo River app and opens the file
+- **THEN** the float is draped along the river in the scene, and its distance shows in miles
