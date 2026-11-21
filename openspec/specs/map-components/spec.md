@@ -285,7 +285,8 @@ created without a key.
 A `layer-list` component SHALL list the map's operational layers by title, each with a control
 that turns the layer on and off. The control SHALL be a checkbox unless its
 `visibilityAppearance` option is `default`. Its `showFilter` option (true or false) SHALL show a
-filter box (P-36).
+filter box (P-36). Its `openGroups` option (true or false, default false) SHALL show each group
+layer opened, with its layers listed, including groups a component adds after the app starts.
 
 #### Scenario: Turn a layer off and on
 - **GIVEN** the config has two titled layers, both visible, and a `layer-list` panel
@@ -299,6 +300,15 @@ filter box (P-36).
 #### Scenario: Invalid appearance
 - **WHEN** a `layer-list` component has `"options": { "visibilityAppearance": "toggle" }`
 - **THEN** validation fails with an error at `components[0].options.visibilityAppearance` that lists `checkbox` and `default`
+
+#### Scenario: Groups opened
+- **GIVEN** a `layer-list` component with `"options": { "openGroups": true }`, in an app where a component adds a group layer after the app starts
+- **WHEN** the user opens the Layers panel
+- **THEN** the group's row is open and its layers are listed under it, and the user can still close it
+
+#### Scenario: Groups closed by default
+- **WHEN** a `layer-list` component has no `openGroups` option
+- **THEN** group layers are listed closed, as before
 
 ### Requirement: The basemap gallery offers basemaps that work
 A `basemap-gallery` component SHALL show a thumbnail and title for each basemap in its
@@ -477,7 +487,9 @@ button does, between panning and rotating. It SHALL work only in 3D scenes.
 A corner entry with `"expand": true` or an `expand` object SHALL show a button in its corner
 instead of the component, in the same position in config order (P-66). Pressing the button SHALL
 open the component over the map, next to the button. Pressing it again, or Escape, SHALL close
-it. `"expand": false` SHALL mean no expand.
+it. `"expand": false` SHALL mean no expand. When it opens over the map beside its button, the
+component SHALL open on the side toward the middle of the map and line up with the button's
+outer edge: a bottom corner's component with the button's bottom, a top corner's with its top.
 
 #### Scenario: Print behind a button at the top right
 - **WHEN** a `print` component has `"placement": "top-right"` and `"expand": true`
@@ -491,6 +503,11 @@ it. `"expand": false` SHALL mean no expand.
 #### Scenario: Expand keeps its place in the corner
 - **WHEN** a `home` component and then a `legend` component with `"expand": true` are both placed `top-right`
 - **THEN** the Home button appears above the legend's button
+
+#### Scenario: Bottom corner component clear of the map's edge
+- **GIVEN** a `measure` component placed `bottom-left` with `"expand": true`
+- **WHEN** the user opens it, and it grows after a measurement
+- **THEN** it opens to the right of its button with its bottom level with the button's, and grows upward, leaving the corner's gutter below it
 
 ### Requirement: An expand button shows its component's icon and heading
 An expand button's icon SHALL default to the icon of the type's sidebar panel, and its tooltip
@@ -686,12 +703,18 @@ user add the current view; `showFilter` SHALL show a filter box. With none, it S
 Bookmarks the user adds, and changes to them, SHALL be kept in the browser for each app (`?app=`)
 and SHALL come back, after the app's other bookmarks, when it is opened again. Bookmarks from the
 web map, web scene or config SHALL come back as configured, even if the user changed or removed
-them. Where the browser can't keep them, they SHALL last until the page is closed.
+them. Where the browser can't keep them, they SHALL last until the page is closed. In a 3D scene,
+a bookmark the user adds or edits SHALL keep the view's camera, with its tilt and heading.
 
 #### Scenario: Add a bookmark
 - **GIVEN** a `bookmarks` component with no options, in an app with no bookmarks
 - **WHEN** the user adds a bookmark named "Trailhead", pans away and chooses "Trailhead"
 - **THEN** the map returns to the view it had when the bookmark was added
+
+#### Scenario: Add a bookmark in a scene
+- **GIVEN** a `bookmarks` component in an app with `"view": "3d"`, and the view tilted to 70 with a heading of 120
+- **WHEN** the user adds a bookmark named "Overlook", looks straight down somewhere else, and chooses "Overlook"
+- **THEN** the scene returns to the same camera position, tilt 70 and heading 120, and does the same after a reload
 
 #### Scenario: Kept after a reload
 - **GIVEN** the user added a bookmark named "Trailhead" and renamed it "Red Rocks lot"

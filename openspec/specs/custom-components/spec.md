@@ -192,3 +192,27 @@ can be skipped.
 #### Scenario: Recommended setup is documented
 - **WHEN** a developer opens `docs/components/README.md` to start their own components
 - **THEN** it points them to forking the viewer, and `docs/components/sharing.md` explains adding components under `extensions/` in the fork and pulling upstream updates
+
+### Requirement: A full example extension ships with the template
+The repository SHALL include `extensions/buffalo-river/`, a complete component built only on the
+viewer API, as a full example next to the `hello-world` template. Like any extension, its files
+SHALL import only from `"viewer"`, from `@arcgis/` or `@esri/` packages, or from files in its own
+folder. `docs/components/` SHALL point to it as the example to read after `hello-world`.
+
+#### Scenario: Uses only the viewer API
+- **WHEN** the files in `extensions/buffalo-river/` are read
+- **THEN** each import is from `"viewer"`, from an `@arcgis/` or `@esri/` package, or from a file in the same folder
+
+#### Scenario: Docs point to it
+- **WHEN** a developer reads `docs/components/README.md`
+- **THEN** it links to `extensions/buffalo-river/` as a full example, after the `hello-world` template
+
+### Requirement: The docs give one rule for extension imports
+Every page in `docs/components/` that says what an extension may import SHALL give the same rule:
+`"viewer"`, `@arcgis/` and `@esri/` packages, and files in the extension's own folder. A package
+outside those SHALL be described as something the developer adds to the viewer's `package.json`,
+which means the folder no longer works when copied into a viewer without it.
+
+#### Scenario: Same rule on each page
+- **WHEN** a developer reads what an extension may import in `docs/components/viewer-api.md` and in `docs/components/sharing.md`
+- **THEN** both pages list the same sources, and both say what happens when a folder imports another package
