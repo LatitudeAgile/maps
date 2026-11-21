@@ -15,7 +15,7 @@ not an in-place upgrade. dojo-sidebar is kept unchanged as a reference.
 
 ## Requirements
 
-- Node.js 20 or later
+- Node.js 22.12 or later
 - Optional: an ArcGIS API key for ArcGIS basemaps (see [API key](#api-key)). The viewer works
   fully without one, on OpenStreetMap and Esri's free imagery hybrid.
 
@@ -95,6 +95,11 @@ never sends it to a geocoder.
 5. Set **Referrer URLs** to the sites that will serve the viewer, for example
    `http://localhost:5173`, `http://localhost:4173`, and your production URL. A key in a
    browser app is visible to anyone who opens it; referrers stop other sites from using it.
+
+   The key then works only from those origins, ports included. If 5173 is already in use,
+   `npm run dev` moves to the next free port (5174, ...), where ArcGIS basemaps and location
+   services fail with 401 errors. Free port 5173, or add the other port's URL to the key's
+   referrers.
 6. Save, then choose **Generate the API key** and copy it. It is shown only once.
 7. Copy `.env.example` to `.env.local` (gitignored) and set the key:
 
