@@ -42,8 +42,10 @@ context: |
 
 rules:
   specs:
-    - Every scenario describes behavior someone can check in the running app. Don't name a
-      test tool; the project has no automated tests.
+    - Every scenario describes behavior someone can check in the running app.
+      Don't name a test tool; the project has no automated tests.
   tasks:
-    - Each task states how it is verified, by a typecheck (`npm run check`) or by checking the
-      behavior in the browser on the dev server; no tasks that write automated tests.
+    - Each task states how it is verified, by a typecheck (`npm run check`) or
+      by checking the behavior in the browser on the dev server; no tasks that
+      write automated tests.
+skillsScope: project
