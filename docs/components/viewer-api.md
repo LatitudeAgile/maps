@@ -10,8 +10,16 @@ import { API_VERSION, appStorageKey, defineComponentType, findViewElement, PANEL
 `vite.config.ts` and `tsconfig.json`. Import from it instead of from other files under `src/`:
 those are the viewer's internals, and they can move or change in any release.
 
-Besides `"viewer"`, an extension imports only `@arcgis/` and `@esri/` packages and files in its
-own folder. Then the folder works when it's copied into another fork of the viewer.
+An extension imports only from these:
+
+- `"viewer"`;
+- `@arcgis/` and `@esri/` packages;
+- files in its own folder.
+
+Then the folder works when it's copied into another copy of the viewer. A package from anywhere
+else has to be added to the viewer's `package.json` (`npm install <package>`). The folder then
+works only in a viewer that has that package too, so its README must say so. See
+[What goes in a folder](sharing.md#what-goes-in-a-folder).
 
 ## What stays stable
 

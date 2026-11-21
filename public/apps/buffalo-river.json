@@ -1,0 +1,42 @@
+{
+  "app": {
+    "title": "Buffalo River",
+    "summary": "Plan a float on Arkansas's Buffalo River",
+    "description": "The Buffalo River in Arkansas, coloured by an estimated floating level from five USGS river gauges, on Esri's world terrain. Open Buffalo River in the sidebar to step through the last 48 hours of readings, and Layers to choose which points of interest, river gauges, wilderness areas and the park boundary to show. Bookmarks jump to each section of the river. To plan a float, click two access points on the map: the panel shows the distance, the paddling time and the level, and Trip details adds sunrise and sunset, directions and what's along the way. Levels are estimates: check conditions yourself before going on the river.\n\nAdapted with the author's permission from Buffalo River at brokan.xyz/buffalo.\n\nThis is a sample app. Replace it, or remove it from apps/index.json.",
+    "icon": "water-drop",
+    "theme": { "color": "#2f6b5a", "opacity": 0.85 }
+  },
+  "map": {
+    "view": "3d",
+    "basemap": "osm",
+    "center": [-92.95, 36.0],
+    "scale": 300000
+  },
+  "components": [
+    { "id": "fullscreen", "type": "fullscreen", "placement": "top-right" },
+    { "id": "compass", "type": "compass", "placement": "top-right" },
+    { "id": "navigation", "type": "navigation-toggle", "placement": "top-right" },
+    { "id": "home", "type": "home", "placement": "bottom-right" },
+    { "id": "locate", "type": "locate", "placement": "bottom-right", "options": { "scale": 24000 } },
+    { "id": "zoom", "type": "zoom", "placement": "bottom-right" },
+    { "id": "measure", "type": "measure", "placement": "bottom-left", "expand": true },
+    { "id": "river", "type": "buffalo-river", "placement": "panel" },
+    { "id": "layers", "type": "layer-list", "placement": "panel", "options": { "openGroups": true } },
+    { "id": "legend", "type": "legend", "placement": "panel" },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "placement": "panel",
+      "options": {
+        "bookmarks": [
+          { "name": "Upper river: Boxley Bridge to Pruitt", "center": [-93.27, 36.02], "scale": 160000 },
+          { "name": "Ponca Bridge to Kyles Landing", "center": [-93.318, 36.042], "scale": 50000 },
+          { "name": "Middle river: Pruitt to Tyler Bend", "center": [-92.949, 36.009], "scale": 220000 },
+          { "name": "Middle river: Tyler Bend to Highway 14", "center": [-92.669, 36.025], "scale": 120000 },
+          { "name": "Lower river: Highway 14 to the White River", "center": [-92.492, 36.117], "scale": 110000 }
+        ]
+      }
+    },
+    { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" }
+  ]
+}

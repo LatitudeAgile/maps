@@ -47,14 +47,18 @@ extensions/trail-report/
   *.ts              any other code it needs
 ```
 
-- **Only folder-local imports, plus `"viewer"`, `@arcgis/` and `@esri/`.** Then the folder works
-  in any copy of the viewer. Never import from `src/` directly: see [The viewer API](viewer-api.md).
+- **Imports only from `"viewer"`, `@arcgis/` and `@esri/` packages, and files in its own
+  folder.** Then the folder works in any copy of the viewer. Never import from `src/` directly:
+  see [The viewer API](viewer-api.md).
 - **A README** that says what the component does, lists its options with their kinds and
   defaults, and shows a config entry. The scaffolder writes one.
 - **No secrets.** Don't put API keys or tokens in a component. It gets the build's key through
   `configure`; see [API keys](guides/api-keys.md).
-- **Other npm packages:** a component can import any package in the viewer's `package.json`.
-  If it needs another, say so in its README; whoever adds the folder runs `npm install <package>`.
+- **Other npm packages:** a package from anywhere else has to be added to the viewer's
+  `package.json` (`npm install <package>`). The folder then works only in a viewer that has that
+  package too. Say so in its README, so whoever adds the folder runs the same install. Code that's
+  small enough can live in the folder instead: `buffalo-river` works out sunrise and sunset in
+  its own `sun.ts` rather than adding a package.
 
 The folder's name is the type's name in configs, so pick one that won't clash: a built-in type's
 name, such as `legend`, is refused. If two people share components with the same name, rename one

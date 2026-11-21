@@ -8,6 +8,7 @@ behind an expand button, or with no UI at all.
 ```
 extensions/
   hello-world/            <- the template that ships with the viewer
+  buffalo-river/          <- a full example, used by the Buffalo River sample app
   trail-report/           <- one of yours
     component.ts          the manifest: name, options, icon, where it can go
     index.ts              defines the custom element
@@ -34,6 +35,11 @@ component, copy its folder into another copy of the viewer.
    by hand instead.
 3. **Read the template.** [`extensions/hello-world/`](../../extensions/hello-world/) finds the
    map in a corner or a panel, in 2D or 3D, follows it as it moves, and cleans up when removed.
+4. **Then read a full example.** [`extensions/buffalo-river/`](../../extensions/buffalo-river/)
+   is a complete component built only on the viewer API. It adds layers to a 3D scene, loads
+   live data from a service with Retry when it fails, takes clicks on one layer, opens its own
+   panel, shows a second page in the panel, and keeps settings per app. Its README says where in
+   the code to find each one. The Buffalo River sample app (`?app=buffalo-river`) uses it.
 
 ## How a component works
 
