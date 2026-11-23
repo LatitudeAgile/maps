@@ -135,6 +135,26 @@ OpenStreetMap's public tile servers have a
 heavy use. For a busy keyless deployment, set `map.fallbackBasemap` to `hybrid`, or configure
 a key.
 
+## Releasing
+
+Pushing a `v*` tag builds the viewer and deploys it to <https://maps.latitudeagile.com>
+([workflow](.github/workflows/deploy.yml)). Each release needs its own commit: GitHub Pages
+skips a deploy whose commit is already live, even when the run reports success.
+
+1. In [CHANGELOG.md](CHANGELOG.md), rename `[Unreleased]` to the new version and date, add a fresh
+   empty `[Unreleased]` section above it, and update the compare links at the bottom.
+2. Bump the version: `npm version 0.1.2 --no-git-tag-version`.
+3. Commit both as `Release 0.1.2`, then tag and push:
+
+   ```bash
+   git tag -a v0.1.2 -m "v0.1.2"
+   git push origin main v0.1.2
+   ```
+
+The workflow stops before deploying if the tag doesn't match `package.json`'s version or the
+changelog has no section for it. The build reads the API key from the `VITE_ARCGIS_API_KEY`
+repository secret; after changing the key, cut a release to deploy it.
+
 ## Spec-driven workflow
 
 Requirements live in `openspec/specs/`. Each unit of work is proposed as a change in
