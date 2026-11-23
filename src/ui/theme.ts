@@ -1,5 +1,5 @@
 /**
- * Theme colors for the sidebar's icon bar and the title box (branding, P-28, design D4, D5).
+ * Theme colors for the sidebar's icon bar and the title box (branding, design D4, D5).
  * The color helpers are pure, so validation uses them without a DOM.
  */
 import { COLOR_MODES, type ColorMode } from "../config/types.ts";

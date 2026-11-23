@@ -7,7 +7,7 @@ items to: identify, get the address here, Street View, what3words, and a Directi
 (directions from here, to here, add a stop). People used it as the quickest way to act on a spot
 on the map. The new viewer has nothing like it: every action starts from a panel. The viewer API
 and the config engine are now stable enough for components, extensions and app config to add to
-a shared menu. This isn't a dojo-sidebar parity item: dojo-sidebar never had a map menu.
+a shared menu.
 
 ## What Changes
 

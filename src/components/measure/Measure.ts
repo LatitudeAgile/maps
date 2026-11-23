@@ -1,4 +1,4 @@
-// The measure component (map-measurements, P-67; add-map-expand-and-components D5, D6). It wraps
+// The measure component (map-measurements; add-map-expand-and-components D5, D6). It wraps
 // the SDK's measuring components, one per tool, picked for the map element it works on: 2D
 // distance and area in arcgis-map, direct-line and area in arcgis-scene. It adds what they lack:
 // a switch between the tools, a Clear button for both, and stopping a measurement in progress

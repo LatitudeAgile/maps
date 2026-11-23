@@ -71,7 +71,7 @@ NOT start, as for any other invalid config.
 
 ### Requirement: First layer listed draws on top
 The viewer SHALL add layers so that the first entry in `layers` draws above all the others,
-and each later entry draws below the one before it (P-11). When the map comes from an item, the
+and each later entry draws below the one before it. When the map comes from an item, the
 config layers SHALL all draw above the item's layers.
 
 #### Scenario: Two overlapping layers
@@ -85,7 +85,7 @@ config layers SHALL all draw above the item's layers.
 ### Requirement: A failed layer does not stop the viewer
 When a layer fails to load, the viewer SHALL keep the map and the other layers working. It
 SHALL show a closable warning notice that names the failed layer's `id`, or its title for a
-layer that comes from the map's item, and SHALL report the failure on the error channel (P-13).
+layer that comes from the map's item, and SHALL report the failure on the error channel.
 
 #### Scenario: Layer service returns 404
 - **WHEN** one of two configured layers points to a URL that returns HTTP 404
@@ -98,7 +98,7 @@ layer that comes from the map's item, and SHALL report the failure on the error 
 
 ### Requirement: Layers settle before components are created
 The viewer SHALL create configured components only after every layer, from the config and from
-the map's item, has loaded or failed (P-13). It SHALL stop waiting after 15 seconds, so that a
+the map's item, has loaded or failed. It SHALL stop waiting after 15 seconds, so that a
 layer that never responds does not keep components from appearing.
 
 #### Scenario: Slow layer
@@ -117,7 +117,7 @@ layer that never responds does not keep components from appearing.
 A layer entry MAY name a `preLoad` and an `onLoad` hook under `hooks`. Each name SHALL refer to
 a hook built into the viewer. `preLoad` SHALL run after the layer is created and before it is
 added to the map. `onLoad` SHALL run once, after the layer loads. A name that matches no hook
-SHALL fail validation (P-12).
+SHALL fail validation.
 
 #### Scenario: Hooks run in order
 - **WHEN** a layer entry names a `preLoad` hook and an `onLoad` hook
@@ -134,7 +134,7 @@ SHALL fail validation (P-12).
 ### Requirement: Clicking a feature opens a popup
 For `feature`, `geojson`, `imagery` and `scene` layers, clicking a feature SHALL open the map's
 built-in popup listing that feature's attributes, unless the layer entry sets `popupEnabled`
-to `false` (P-06).
+to `false`.
 
 #### Scenario: Default popup
 - **WHEN** the user clicks a point of a configured `geojson` layer

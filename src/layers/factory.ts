@@ -20,7 +20,7 @@ export const LAYER_LOADERS: LayerLoaders = {
   elevation: async () => (await import("@arcgis/core/layers/ElevationLayer.js")).default as unknown as LayerClass,
 };
 
-/** Types that get a default popup listing all attributes (map-layers, P-06; `scene`: map-scenes). */
+/** Types that get a default popup listing all attributes (map-layers; `scene`: map-scenes). */
 const DEFAULT_POPUP_TYPES: ReadonlySet<LayerType> = new Set(["feature", "geojson", "imagery", "scene"]);
 
 /**

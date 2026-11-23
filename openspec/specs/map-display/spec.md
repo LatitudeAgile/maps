@@ -13,7 +13,7 @@ and `map.zoom` or `map.scale` from the config, in 2D unless `map.view` is `"3d"`
 `map.item`, it SHALL open from that item, with any of these settings that are set overriding the
 item's (web-maps).
 
-#### Scenario: Default configuration (P-01)
+#### Scenario: Default configuration
 - **WHEN** the app starts with the shipped default config
 - **THEN** the map is ready with its center within 0.01° of longitude -98.579404, latitude 39.828127, and its scale within 1% of 1:18,489,298, whichever basemap is shown
 
@@ -34,7 +34,7 @@ from 320 px up.
 - **THEN** in both cases the map's bounding box equals the viewport and the document does not scroll
 
 ### Requirement: Zoom buttons replace the zoom slider
-A `zoom` component SHALL show zoom-in and zoom-out buttons where it is placed (P-02). Each press
+A `zoom` component SHALL show zoom-in and zoom-out buttons where it is placed. Each press
 SHALL change the zoom level by one. The map SHALL NOT add zoom buttons of its own: a config with
 no `zoom` component SHALL show none, and pinch, scroll-wheel and keyboard zoom SHALL keep
 working. The shipped default config SHALL place its `zoom` component last in the bottom-right
@@ -79,7 +79,7 @@ basemaps named by components.
 - **THEN** the OpenStreetMap basemap is shown and no notice appears
 
 ### Requirement: Map keeps its center on resize
-When the viewport is resized, the map SHALL keep the same geographic center (P-03).
+When the viewport is resized, the map SHALL keep the same geographic center.
 
 #### Scenario: Window narrowed
 - **WHEN** the map is ready at its default view and the viewport width changes from 1280 to 800 px

@@ -59,7 +59,7 @@ design goes in `notes.md` in this change.
   - a "What printing sends" note, which is nothing;
   - its place in "2D and 3D" and in the expand types list.
 
-  Add a line under P-60 in `docs/migration/dojo-sidebar-parity.md`. Verify the documented config examples pass validation in a scratch app.
+  Verify the documented config examples pass validation in a scratch app.
 
 ## 6. Loading only what's used (design D2, D3)
 

@@ -1,12 +1,6 @@
 schema: spec-driven
 
 context: |
-  This project is a rewrite of dojo-sidebar (ArcGIS API for JavaScript 3.12 + Dojo 1.10),
-  github.com/DavidSpriggs/dojo-sidebar, local copy D:\git\dojo-sidebar. Treat that repo as
-  read-only reference: never modify it. Behavior to preserve is listed with stable IDs
-  (P-xx) in docs/migration/dojo-sidebar-parity.md; a change that delivers a parity item
-  cites its ID in the proposal and covers it with a spec scenario.
-
   Target: ArcGIS Maps SDK for JavaScript 5.x via npm + Vite, vanilla TypeScript (no UI
   framework). Use map components (arcgis-*) for all map UI. Never import widget UI classes
   from @arcgis/core/widgets/* (Search, Legend, Expand and the like) and never use
@@ -21,8 +15,7 @@ context: |
   Awesome, no other component libraries.
 
   Terminology: call UI pieces "components" (the 5.x term), not "widgets" (the 3.x term),
-  in code, config, specs and docs. Keep "widget" only when naming SDK widget classes or
-  describing dojo-sidebar's 3.x behavior.
+  in code, config, specs and docs. Keep "widget" only when naming SDK widget classes.
 
   The viewer is config-driven: map, layers, and components (including sidebar panels)
   come from config, not hard-coded markup. It must work against ArcGIS Location Platform, ArcGIS Online and

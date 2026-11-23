@@ -4,11 +4,7 @@ A config-driven web map viewer with a tabbed sidebar, built on the
 [ArcGIS Maps SDK for JavaScript](https://developers.arcgis.com/javascript/latest/) 5.x
 web components and [Calcite](https://developers.arcgis.com/calcite-design-system/).
 
-This project replaces [dojo-sidebar](https://github.com/DavidSpriggs/dojo-sidebar),
-which was built on the retired ArcGIS API for JavaScript 3.x and Dojo. It is a rewrite,
-not an in-place upgrade. dojo-sidebar is kept unchanged as a reference.
-
-> **Status:** early migration. The viewer shows a config-driven map with layers, Home, Locate
+> **Status:** early development. The viewer shows a config-driven map with layers, Home, Locate
 > and zoom buttons at the bottom right, and a collapsible sidebar with Search, Directions,
 > Layers, Legend, Basemaps, Sketch, and Print panels. Optional organization sign-in is still to come. Planned work is tracked as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in
 > [`openspec/`](openspec/).

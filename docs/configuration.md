@@ -697,7 +697,7 @@ but about 1:9.2M on `arcgis/streets` (512 px vector tiles). If the viewer falls 
 another basemap when no API key is configured, the two can open at different scales.
 
 `map.scale` gives the same view on every basemap, which is why the shipped config uses it.
-`18489298` matches dojo-sidebar's zoom-5 view of the continental US. Scales that match a
+`18489298` shows the continental US. Scales that match a
 basemap zoom level display exactly; other scales snap to the nearest level.
 
 Setting both is an error, and so is setting neither unless `map.item` is set. With an item,

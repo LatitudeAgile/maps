@@ -15,7 +15,7 @@ body {
 }
 
 /*
- * Page background (add-background-grid, P-07): Calcite's background color with a faint grid,
+ * Page background (add-background-grid): Calcite's background color with a faint grid,
  * thin lines every 16 px and stronger ones every 80 px. It shows wherever the map draws
  * nothing. light-dark() follows the color-scheme the calcite-mode-* class sets (design D1).
  * Only html paints it: body stays transparent so it doesn't cover the grid (design D2).
@@ -108,7 +108,7 @@ arcgis-map {
 }
 
 /*
- * Title box (src/ui/titleBox.ts, P-27): first in the top-left stack, one line, cut off with an
+ * Title box (src/ui/titleBox.ts): first in the top-left stack, one line, cut off with an
  * ellipsis when it doesn't fit beside the sidebar. Colors come from the theme when one is set
  * (src/ui/theme.ts), else Calcite's foreground and text colors.
  */
@@ -134,7 +134,7 @@ arcgis-map {
 }
 
 /*
- * Theme (src/ui/theme.ts, P-28): the icon bar, wide or along the bottom on phones, takes the
+ * Theme (src/ui/theme.ts): the icon bar, wide or along the bottom on phones, takes the
  * theme color; its icons are transparent over it, in the text color. The open panel's icon is
  * a darker, opaque shade. Open panels keep Calcite's colors. The title box reads the same
  * --viewer-theme-* properties (above).
@@ -281,7 +281,7 @@ calcite-shell.themed calcite-shell-panel.sidebar > calcite-action-bar calcite-ac
 }
 
 /*
- * Sidebar widths (P-25): icons plus open panel are 305, 390, and 460 px wide at dojo-sidebar's
+ * Sidebar widths: icons plus open panel are 305, 390, and 460 px wide at the
  * 768 / 992 / 1200 px breakpoints. The custom properties size the panel, so each value is the
  * total minus the icon bar (45 px, see the bar padding above).
  */

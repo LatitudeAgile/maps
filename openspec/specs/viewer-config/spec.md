@@ -139,7 +139,7 @@ SHALL fail validation.
 
 ### Requirement: An alternate config can be chosen by URL
 When the page URL has an `app` query parameter, the viewer SHALL load `apps/<name>.json`,
-resolved against the app's base URL, instead of `apps/default.json` (P-18). The name SHALL be
+resolved against the app's base URL, instead of `apps/default.json`. The name SHALL be
 1 to 64 letters, digits, hyphens, or underscores. For any other value, the viewer SHALL show an
 error naming the parameter, SHALL NOT request any config, and SHALL NOT create the map. The
 viewer SHALL ignore a `config` query parameter.
@@ -166,7 +166,7 @@ viewer SHALL ignore a `config` query parameter.
 
 ### Requirement: Requests can be routed through a proxy
 The `request` setting SHALL accept a `proxyUrl` and a `proxyRules` list of `urlPrefix` and
-`proxyUrl` pairs (P-40). The viewer SHALL apply them to the map's requests: a request whose URL
+`proxyUrl` pairs. The viewer SHALL apply them to the map's requests: a request whose URL
 starts with a rule's `urlPrefix` SHALL go through that rule's proxy. Each proxy URL SHALL be an
 absolute https URL or a path on the viewer's own site.
 

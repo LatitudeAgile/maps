@@ -1,8 +1,8 @@
 import { cornerStack } from "../map/cornerStack.ts";
 
 /**
- * Show the app title in a floating box at the top of the map's top-left corner stack (P-27,
- * design D3). Created right after the map, before layers settle, so it is first in the stack:
+ * Show the app title in a floating box at the top of the map's top-left corner stack (design
+ * D3). Created right after the map, before layers settle, so it is first in the stack:
  * top-left components created later sit below it. Being in a map slot, it moves with the
  * sidebar through the map's overlay space, like any corner control.
  *

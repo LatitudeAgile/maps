@@ -36,7 +36,7 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
     cornerStyle: "button",
   },
   // Zoom-in and zoom-out buttons. A config without a zoom entry shows none; wheel, pinch and
-  // keyboard zoom still work (P-02, design D2).
+  // keyboard zoom still work (design D2).
   zoom: {
     tag: "arcgis-zoom",
     load: () => import("@arcgis/map-components/components/arcgis-zoom"),
@@ -75,7 +75,7 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
     tag: "arcgis-basemap-toggle",
     load: () => import("@arcgis/map-components/components/arcgis-basemap-toggle"),
     options: { nextBasemap: "basemap", showTitle: "boolean" },
-    // The built-in imagery hybrid, which needs no key (P-32).
+    // The built-in imagery hybrid, which needs no key.
     defaults: { nextBasemap: "hybrid" },
     // Its startup thumbnail load would open a sign-in dialog without a key.
     keyless: (options) =>
@@ -84,7 +84,7 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
         : { keep: { ...options } },
     panel: { heading: "Basemap", icon: "layer-basemap" },
   },
-  // Addresses and places through a keyless geocoder; the key is never sent to it (P-34, D3).
+  // Addresses and places through a keyless geocoder; the key is never sent to it (D3).
   search: {
     tag: "arcgis-search",
     load: () => import("@arcgis/map-components/components/arcgis-search"),
@@ -105,19 +105,19 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
       if (options.popupDisabled !== undefined) element.popupDisabled = options.popupDisabled;
     },
   },
-  // Routing through a route service from config; the key goes only to ArcGIS routing (P-35, D4).
+  // Routing through a route service from config; the key goes only to ArcGIS routing (D4).
   directions: {
     tag: "arcgis-directions",
     load: () => import("@arcgis/map-components/components/arcgis-directions"),
     options: { routeServiceUrl: "url", unit: { oneOf: DIRECTIONS_UNITS } },
     defaults: { routeServiceUrl: DEFAULT_ROUTE_SERVICE_URL, unit: "miles" },
-    // dojo-sidebar showed a car; the component's own default, "right", is a plain arrow.
+    // A car reads as directions; the component's own default, "right", is a plain arrow.
     panel: { heading: "Directions", icon: "car" },
     cornerStyle: "panel",
     configure: configureDirections,
     keyless: directionsKeyless,
   },
-  // Operational layers with visibility checkboxes (P-36).
+  // Operational layers with visibility checkboxes.
   "layer-list": {
     tag: "arcgis-layer-list",
     load: () => import("@arcgis/map-components/components/arcgis-layer-list"),
@@ -129,7 +129,7 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
     cornerStyle: "panel",
     expandable: true,
   },
-  // Basemap thumbnails to choose from; without a key, only those that need none (P-37, D5).
+  // Basemap thumbnails to choose from; without a key, only those that need none (D5).
   "basemap-gallery": {
     tag: "arcgis-basemap-gallery",
     load: () => import("@arcgis/map-components/components/arcgis-basemap-gallery"),
@@ -141,7 +141,7 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
     configure: configureBasemapGallery,
     keyless: basemapGalleryKeyless,
   },
-  // Esri's print component as it ships (P-60, design D1). Without printServiceUrl nothing is
+  // Esri's print component as it ships (design D1). Without printServiceUrl nothing is
   // set, so the component keeps its own default, the ArcGIS Online print service.
   print: {
     tag: "arcgis-print",
@@ -153,7 +153,7 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
     cornerStyle: "panel",
     expandable: true,
   },
-  // Drawing and writing on the map, ported from StewardshipOS (P-61, design D5). Panel only: its
+  // Drawing and writing on the map, ported from StewardshipOS (design D5). Panel only: its
   // toolbar, colors and fill need panel room, and drawing turns on and off with the panel.
   sketch: {
     tag: "viewer-sketch",
@@ -166,7 +166,7 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
     panel: { heading: "Sketch", icon: "pencil" },
   },
   // Distances and areas, in 2D and 3D, with a Clear button; closing stops a measurement in
-  // progress and keeps a finished one (P-67, add-map-expand-and-components D5).
+  // progress and keeps a finished one (add-map-expand-and-components D5).
   measure: {
     tag: "viewer-measure",
     load: () => import("./measure/index.ts"),
@@ -178,7 +178,7 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
     expandable: true,
     expandMode: "floating",
   },
-  // Shows the whole viewer, or only the map, fullscreen (P-68, add-map-expand-and-components D7).
+  // Shows the whole viewer, or only the map, fullscreen (add-map-expand-and-components D7).
   // The element is always set: the SDK's default, the view container's parent, isn't the viewer.
   fullscreen: {
     tag: "arcgis-fullscreen",
@@ -192,7 +192,7 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
       element.element = options.target === "map" ? mapElement : (document.querySelector("calcite-shell") ?? undefined);
     },
   },
-  // The map's scale as a bar, updated as it zooms (P-69). The SDK's scale bar takes a MapView only.
+  // The map's scale as a bar, updated as it zooms. The SDK's scale bar takes a MapView only.
   "scale-bar": {
     tag: "arcgis-scale-bar",
     load: () => import("@arcgis/map-components/components/arcgis-scale-bar"),
@@ -203,7 +203,7 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
     panel: { heading: "Scale bar", icon: "actual-size" },
   },
   // Bookmarks from the web map or web scene, then from the config, then the user's own, kept in
-  // the browser per app (P-70, src/components/bookmarks.ts).
+  // the browser per app (src/components/bookmarks.ts).
   bookmarks: {
     tag: "arcgis-bookmarks",
     load: () => import("@arcgis/map-components/components/arcgis-bookmarks"),
@@ -216,7 +216,7 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
     configure: async (element, options, context) => (await import("./bookmarks.ts")).configureBookmarks(element, options, context),
   },
   // Coordinates of the pointer or a clicked point, in chosen formats, and going to typed
-  // coordinates; converted in the browser (P-71).
+  // coordinates; converted in the browser.
   "coordinate-conversion": {
     tag: "arcgis-coordinate-conversion",
     load: () => import("@arcgis/map-components/components/arcgis-coordinate-conversion"),

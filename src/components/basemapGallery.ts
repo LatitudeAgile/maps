@@ -3,7 +3,7 @@ import { isBasemapStyleId, LEGACY_BASEMAP_IDS } from "../map/basemapIds.ts";
 import { freeBasemap } from "../map/freeBasemaps.ts";
 import type { ConfigurableElement, KeylessResult } from "./registry.ts";
 
-/** The free basemaps, then five ArcGIS styles that are offered only with a key (P-37). */
+/** The free basemaps, then five ArcGIS styles that are offered only with a key. */
 export const DEFAULT_GALLERY_BASEMAPS = [
   "osm",
   "hybrid",

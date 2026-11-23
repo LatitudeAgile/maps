@@ -8,8 +8,8 @@ maps built in Map Viewer or Scene Viewer, with the config overriding or adding t
 ## Requirements
 
 ### Requirement: An app's map can come from a web map or web scene item
-When `map.item.id` is set, the viewer SHALL open the map from that portal item on `portal.url`
-(P-64). A web map SHALL open as a 2D map and a web scene as a 3D scene, with the item's
+When `map.item.id` is set, the viewer SHALL open the map from that portal item on `portal.url`.
+A web map SHALL open as a 2D map and a web scene as a 3D scene, with the item's
 basemap, layers, starting view and popups, plus the item's ground for a web scene.
 
 #### Scenario: Public web map

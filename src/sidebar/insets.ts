@@ -1,7 +1,7 @@
 import type { ViewElement } from "../map/viewElement.ts";
 import type { Sidebar } from "./createSidebar.ts";
 
-/** Viewport width from which the sidebar sits at the start side; below it, a bottom bar (P-25). */
+/** Viewport width from which the sidebar sits at the start side; below it, a bottom bar. */
 export const WIDE_QUERY = "(min-width: 768px)";
 
 export interface SidebarInsets {

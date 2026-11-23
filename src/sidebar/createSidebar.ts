@@ -59,7 +59,7 @@ export function createSidebar({ shell, slots, end }: CreateSidebarOptions): Side
   shell.contentBehind = true;
 
   const shellPanel = document.createElement("calcite-shell-panel");
-  shellPanel.collapsed = true; // starts collapsed (P-20)
+  shellPanel.collapsed = true; // starts collapsed
   shellPanel.classList.add("sidebar");
 
   const actionBar = document.createElement("calcite-action-bar");
@@ -92,7 +92,7 @@ export function createSidebar({ shell, slots, end }: CreateSidebarOptions): Side
     panel.setAttribute("data-panel-for", id);
     panel.addEventListener("calcitePanelClose", () => {
       // Don't leave focus inside the now-hidden panel: return it to the panel's icon (Calcite
-      // accessibility guidance; P-26). A no-op if Escape already closed it.
+      // accessibility guidance). A no-op if Escape already closed it.
       const wasOpen = state.openId === id;
       state.close();
       if (wasOpen) void action.setFocus();
@@ -147,7 +147,7 @@ export function createSidebar({ shell, slots, end }: CreateSidebarOptions): Side
   state.onChange((openId) => {
     for (const [id, action] of actions) {
       action.active = id === openId;
-      // Screen readers: the icon controls its panel and says whether it is open (P-26, D5).
+      // Screen readers: the icon controls its panel and says whether it is open (D5).
       action.aria = { expanded: id === openId, controlsElements: [calcitePanels.get(id)!] };
     }
     for (const [id, panel] of calcitePanels) {
@@ -166,7 +166,7 @@ export function createSidebar({ shell, slots, end }: CreateSidebarOptions): Side
   state.onChange((openId, previousId) => notifyPanels(components, openId, previousId));
 
   // Wide: a vertical bar on the starting side. Narrow: a horizontal bar along the bottom, with
-  // the panel rising above it (P-25, design D2). Moving one element keeps the open panel and
+  // the panel rising above it (design D2). Moving one element keeps the open panel and
   // its component alive across the switch.
   const wide = window.matchMedia(WIDE_QUERY);
   const applyLayout = () => {
@@ -207,7 +207,7 @@ export function createSidebar({ shell, slots, end }: CreateSidebarOptions): Side
 
   for (const [id, action] of actions) action.aria = { expanded: false, controlsElements: [calcitePanels.get(id)!] };
 
-  // Escape closes the open panel and returns focus to its icon (P-26). Capture phase: a closable
+  // Escape closes the open panel and returns focus to its icon. Capture phase: a closable
   // calcite-panel handles Escape itself and closes first, which would hide which panel was open.
   // A dialog or popover open inside the panel gets Escape first, and the panel stays (D4).
   shellPanel.addEventListener(

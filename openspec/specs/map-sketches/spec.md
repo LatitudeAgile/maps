@@ -11,7 +11,7 @@ for each config.
 ### Requirement: Opening the Sketch panel turns drawing on
 A `sketch` component SHALL show, in its sidebar panel, a docked sketch toolbar, a color strip,
 and an Area fill control. While its panel is open, the user SHALL be able to draw new sketches
-and select existing ones (P-61).
+and select existing ones.
 
 #### Scenario: Open the panel
 - **GIVEN** the config has a `sketch` component in `panel`

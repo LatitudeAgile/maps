@@ -32,8 +32,7 @@ twenty: `home`, `zoom`, `legend`, `locate`, `track`, `basemap-toggle`, `search`,
 A component entry's `placement` SHALL be a map corner (`top-left`, `top-right`, `bottom-left`,
 `bottom-right`, `top-start`, `top-end`, `bottom-start`, `bottom-end`), `panel`, or `none`, and
 SHALL default to `panel` when absent. Corner components SHALL appear in that corner of the map,
-stacked vertically in config order, the first entry at the top, in top and bottom corners alike
-(P-14).
+stacked vertically in config order, the first entry at the top, in top and bottom corners alike.
 
 #### Scenario: Corner placement
 - **WHEN** a `home` component has `"placement": "bottom-right"`
@@ -78,7 +77,7 @@ that names it.
 ### Requirement: Layer references in component options resolve to layers
 When a component type declares an option as a layer reference, the viewer SHALL accept layer
 `id`s from the `layers` config in that option, and SHALL give the component the matching layers.
-A reference to an unknown `id` SHALL fail validation (P-15).
+A reference to an unknown `id` SHALL fail validation.
 
 #### Scenario: Reference resolved
 - **GIVEN** a component type whose `layers` option is a layer reference, and a config layer with `id` `parcels`
@@ -93,7 +92,7 @@ A reference to an unknown `id` SHALL fail validation (P-15).
 A `legend` component SHALL show the symbols of the map's operational layers. Its `layerInfos`
 option MAY limit and title the layers it shows, as a list of `{ "layer": <layer id>, "title":
 <text> }` entries, where `title` is optional. A `layer` that is not a configured layer `id`
-SHALL fail validation (P-33).
+SHALL fail validation.
 
 #### Scenario: All layers by default
 - **WHEN** a `legend` panel has no `layerInfos`, and two layers are configured
@@ -109,7 +108,7 @@ SHALL fail validation (P-33).
 
 ### Requirement: The locate button zooms to the device's location
 A `locate` component SHALL, when pressed, get the device's position from the browser, center
-the map on it, and mark it on the map (P-31). Its `scale` option, a number greater than 0, SHALL
+the map on it, and mark it on the map. Its `scale` option, a number greater than 0, SHALL
 set the scale the map zooms to. Its `icon` option SHALL set the button's icon. Its
 `popupDisabled` option SHALL stop the location's popup from opening.
 
@@ -171,7 +170,7 @@ determined. A later failure SHALL replace the notice rather than add a second on
 ### Requirement: The basemap toggle switches between two basemaps
 A `basemap-toggle` component SHALL switch the map between its current basemap and the one
 named by its `nextBasemap` option. Pressing it again SHALL switch back. `nextBasemap` SHALL
-default to `hybrid`, the built-in basemap that needs no key (P-32). A legacy basemap ID SHALL
+default to `hybrid`, the built-in basemap that needs no key. A legacy basemap ID SHALL
 be accepted with the same warning as in `map.basemap`. Its `showTitle` option (true or false)
 SHALL show the next basemap's name. The shipped default config SHALL NOT include one.
 
@@ -209,7 +208,7 @@ appears.
 
 ### Requirement: Search finds addresses and places without a key
 A `search` component SHALL find addresses and places as the user types, offer suggestions, and
-zoom the map to the chosen result (P-34). It SHALL use the geocoding service at its
+zoom the map to the chosen result. It SHALL use the geocoding service at its
 `geocoderUrl` option, which SHALL default to Esri's public World Geocoding Service at
 `geocode.arcgis.com`, and SHALL work with or without an API key. The API key SHALL NOT be sent
 to its geocoder. `maxSuggestions` (a whole number from 1 to 10) and `popupDisabled` (true or
@@ -231,7 +230,7 @@ false) SHALL be applied.
 
 ### Requirement: Directions routes between stops
 A `directions` component SHALL let the user add stops, solve a route, and read turn-by-turn
-directions, with a button that clears the route (P-35). The route service SHALL come from its
+directions, with a button that clears the route. The route service SHALL come from its
 `routeServiceUrl` option, which SHALL default to Esri's world route service. Distances SHALL be
 shown in miles unless its `unit` option names another length unit. Stops SHALL be found with the
 same sources as Search, never with the portal's default geocoder.
@@ -285,7 +284,7 @@ created without a key.
 A `layer-list` component SHALL list the map's operational layers by title, each with a control
 that turns the layer on and off. The control SHALL be a checkbox unless its
 `visibilityAppearance` option is `default`. Its `showFilter` option (true or false) SHALL show a
-filter box (P-36). Its `openGroups` option (true or false, default false) SHALL show each group
+filter box. Its `openGroups` option (true or false, default false) SHALL show each group
 layer opened, with its layers listed, including groups a component adds after the app starts.
 
 #### Scenario: Turn a layer off and on
@@ -312,8 +311,8 @@ layer opened, with its layers listed, including groups a component adds after th
 
 ### Requirement: The basemap gallery offers basemaps that work
 A `basemap-gallery` component SHALL show a thumbnail and title for each basemap in its
-`basemaps` option and SHALL switch the map's basemap when one is chosen, marking the current one
-(P-37). `basemaps` SHALL accept the same IDs as `map.basemap`, and legacy IDs with the same
+`basemaps` option and SHALL switch the map's basemap when one is chosen, marking the current one.
+`basemaps` SHALL accept the same IDs as `map.basemap`, and legacy IDs with the same
 warning. It SHALL default to `osm`, `hybrid`, `satellite`, `light`, and `dark`, followed by
 `arcgis/streets`, `arcgis/topographic`, `arcgis/imagery`, `arcgis/light-gray`, and
 `arcgis/dark-gray`.
@@ -347,10 +346,9 @@ no ID is left, the component SHALL be left out, with a console warning naming it
 - **WHEN** a `basemap-gallery` component has `"options": { "basemaps": ["arcgis/streets"] }`
 - **THEN** no Basemaps panel is created, and a console warning names the component
 
-### Requirement: The default sidebar matches dojo-sidebar and adds the new panels
+### Requirement: The default sidebar panels
 The shipped default config SHALL have these sidebar panels, in this order: Search, Directions,
-Layers, Legend, Basemaps, Sketch, Print. dojo-sidebar's order (Search, Directions, Legend) is
-kept, with the new panels around it, and Sketch comes just before Print so marking up a map
+Layers, Legend, Basemaps, Sketch, Print. Sketch comes just before Print so marking up a map
 leads to printing it. Each of these entries SHALL state `"placement": "panel"` explicitly, so
 the shipped config shows where every component goes.
 
@@ -385,7 +383,7 @@ errors. Pressing the Locate button again SHALL put a new marker on the map.
 
 ### Requirement: Print exports the map through a print service
 A `print` component SHALL be Esri's print component as it ships: the user chooses a layout or
-map only, a title and a format, and exports the map to a file listed for download (P-60). Its
+map only, a title and a format, and exports the map to a file listed for download. Its
 `printServiceUrl` option, an https URL, SHALL set the print service. Without it, the viewer
 SHALL leave the component's own default service in place.
 
@@ -485,7 +483,7 @@ button does, between panning and rotating. It SHALL work only in 3D scenes.
 
 ### Requirement: A corner component can open from an expand button
 A corner entry with `"expand": true` or an `expand` object SHALL show a button in its corner
-instead of the component, in the same position in config order (P-66). Pressing the button SHALL
+instead of the component, in the same position in config order. Pressing the button SHALL
 open the component over the map, next to the button. Pressing it again, or Escape, SHALL close
 it. `"expand": false` SHALL mean no expand. When it opens over the map beside its button, the
 component SHALL open on the side toward the middle of the map and line up with the button's
@@ -622,8 +620,8 @@ expand.
 - **THEN** its expand is open, and any other open expand in its group is closed
 
 ### Requirement: Fullscreen shows the viewer on the whole screen
-A `fullscreen` button SHALL show the whole viewer, sidebar included, fullscreen when pressed
-(P-68), and SHALL return to the normal page when pressed again or on Escape. Its `target` option
+A `fullscreen` button SHALL show the whole viewer, sidebar included, fullscreen when pressed,
+and SHALL return to the normal page when pressed again or on Escape. Its `target` option
 SHALL be `app` (the default) or `map`, which shows only the map. Where the browser has no
 fullscreen support, pressing it SHALL do nothing and report no error.
 
@@ -647,8 +645,8 @@ fullscreen support, pressing it SHALL do nothing and report no error.
 - **THEN** validation fails with an error at `components[0].options.target` that lists `app` and `map`
 
 ### Requirement: The scale bar shows the map scale
-A `scale-bar` component SHALL show a bar for the map's current scale, updated as the map zooms
-(P-69). Its `unit` option SHALL be `imperial` (the default), `metric`, or `dual` for both. Its
+A `scale-bar` component SHALL show a bar for the map's current scale, updated as the map zooms.
+Its `unit` option SHALL be `imperial` (the default), `metric`, or `dual` for both. Its
 `barStyle` option SHALL be `line` (the default) or `ruler`.
 
 #### Scenario: Imperial by default
@@ -667,7 +665,7 @@ A `scale-bar` component SHALL show a bar for the map's current scale, updated as
 
 ### Requirement: Bookmarks go to saved places
 A `bookmarks` component SHALL list the bookmarks of the app's web map or web scene, then those of
-its `bookmarks` option, and SHALL go to a bookmark when it is chosen (P-70). Each configured
+its `bookmarks` option, and SHALL go to a bookmark when it is chosen. Each configured
 bookmark SHALL have a `name`, a `center`, and a `zoom` or a `scale`, and in a 3D scene MAY have a
 `tilt` and a `heading`, checked as in `map`. `showAddBookmarkButton` (default true) SHALL let the
 user add the current view; `showFilter` SHALL show a filter box. With none, it SHALL say so.
@@ -733,7 +731,7 @@ a bookmark the user adds or edits SHALL keep the view's camera, with its tilt an
 
 ### Requirement: Coordinate conversion shows and finds coordinates
 A `coordinate-conversion` component SHALL show the coordinates of the pointer, or of a clicked
-point, in the user's chosen formats, and SHALL go to coordinates the user types in (P-71). Its
+point, in the user's chosen formats, and SHALL go to coordinates the user types in. Its
 `formats` option SHALL limit the formats offered to a list from `xy`, `dd`, `ddm`, `dms`, `mgrs`,
 `usng`, `utm` and `basemap`. Its `mode` option SHALL be `live` (the default) or `capture`. It SHALL
 convert in the browser, with no service request.

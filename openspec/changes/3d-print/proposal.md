@@ -15,7 +15,7 @@ already built into its own file and fetched only when an app uses that type. No 
 though, and a new type with a heavy dependency is the easiest way to lose it. This change makes
 it a requirement for every type.
 
-This isn't a dojo-sidebar parity item. It adds to P-60 (`print`) without changing it.
+It adds to `print` without changing it.
 
 ## What Changes
 
@@ -60,7 +60,6 @@ This isn't a dojo-sidebar parity item. It adds to P-60 (`print`) without changin
 - **Changed:**
   - `src/components/registry.ts` (the `print-map` entry);
   - `docs/configuration.md` (the type, its options, and "2D and 3D");
-  - `docs/migration/dojo-sidebar-parity.md` (a note under P-60);
   - `public/apps/buffalo-river.json` (adds `print-map`, 3D);
   - `public/apps/default.json` (adds `print-map` next to `print`, 2D).
 - **Dependency:** `pdf-lib` (MIT), loaded only when a PDF is made.

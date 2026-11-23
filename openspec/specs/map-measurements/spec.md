@@ -10,7 +10,7 @@ that holds it closes.
 
 ### Requirement: The measure component measures distances and areas
 A `measure` component SHALL let the user draw a line and read its length, or draw an area and
-read its area and perimeter, on the map (P-67). Its `tools` option SHALL list the tools it offers,
+read its area and perimeter, on the map. Its `tools` option SHALL list the tools it offers,
 `distance` and `area`, in the order shown. It SHALL default to both. With two tools, a switch
 SHALL choose between them. With one, no switch SHALL be shown. Its sidebar heading SHALL be
 "Measure".

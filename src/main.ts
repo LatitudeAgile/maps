@@ -243,7 +243,7 @@ async function openItem(portalUrl: string, id: string, checkBasemap: boolean): P
 }
 
 /**
- * Debug mode (app-model, P-17): expose the model as `window.app` and log every error-channel
+ * Debug mode (app-model): expose the model as `window.app` and log every error-channel
  * report. Reports are already redacted, so the API key never reaches the console this way.
  */
 function enableDebug(app: AppModel): void {

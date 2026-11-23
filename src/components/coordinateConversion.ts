@@ -1,4 +1,4 @@
-// The coordinate-conversion type's formats (map-components, P-71; add-map-expand-and-components
+// The coordinate-conversion type's formats (map-components; add-map-expand-and-components
 // D7). Conversion runs in the browser through the SDK's coordinate formatter: no service.
 import type Collection from "@arcgis/core/core/Collection.js";
 import type { ConfigurableElement } from "./registry.ts";

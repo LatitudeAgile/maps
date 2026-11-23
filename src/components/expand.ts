@@ -1,4 +1,4 @@
-// Corner components behind an expand button (map-components, P-66; add-map-expand-and-components
+// Corner components behind an expand button (map-components; add-map-expand-and-components
 // D3, D4). The expand only wraps the component: options, configure hooks and view limits apply
 // to the component as they do without one.
 import type { ComponentConfig, ExpandMode } from "../config/types.ts";

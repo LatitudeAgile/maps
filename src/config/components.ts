@@ -87,7 +87,7 @@ export function validateComponents(
       errors.push({ path: `${at}.type`, message: `The "${type}" component works only in ${viewsText(schema.views)}.` });
     }
 
-    // Omitted placement means a sidebar panel, as `tab` did in dojo-sidebar (P-14).
+    // Omitted placement means a sidebar panel.
     const placement = entry.placement ?? DEFAULT_PLACEMENT;
     if (typeof placement !== "string" || !(COMPONENT_PLACEMENTS as readonly string[]).includes(placement)) {
       errors.push({ path: `${at}.placement`, message: `Expected one of: ${COMPONENT_PLACEMENTS.join(", ")}.` });
@@ -138,7 +138,7 @@ export function validateComponents(
 }
 
 /**
- * A component's `panel` setting: sidebar heading and icon (sidebar, P-21). Only meaningful
+ * A component's `panel` setting: sidebar heading and icon (sidebar). Only meaningful
  * for `panel` placement; elsewhere it is ignored with one warning.
  */
 function validatePanel(

@@ -11,7 +11,7 @@ them for troubleshooting.
 ### Requirement: The model tracks the map's view state
 The app model SHALL expose the map's current extent, center, zoom, and scale. These SHALL stay
 equal to the map's values as the map moves. Code holding the model SHALL be able to watch any
-of them and be notified when it changes (P-04).
+of them and be notified when it changes.
 
 #### Scenario: Values follow the map
 - **WHEN** the map has settled after the zoom-in button is pressed
@@ -23,7 +23,7 @@ of them and be notified when it changes (P-04).
 
 ### Requirement: Layers and components can be looked up by ID
 The app model SHALL return a configured layer or component by its config `id`, with both its
-config entry and the created layer or component. An unknown `id` SHALL return nothing (P-16).
+config entry and the created layer or component. An unknown `id` SHALL return nothing.
 
 #### Scenario: Layer lookup
 - **WHEN** code asks the model for the layer `parcels`, and that layer is configured
@@ -45,7 +45,7 @@ subscribe to the channel.
 ### Requirement: Debug mode exposes the model and logs errors
 When the config sets `debug` to `true`, the viewer SHALL expose the app model as `window.app`,
 and SHALL log every error-channel report to the console with its source. When `debug` is
-absent or `false`, the viewer SHALL do neither (P-17).
+absent or `false`, the viewer SHALL do neither.
 
 #### Scenario: Debug on
 - **WHEN** `debug` is `true` and a configured layer fails to load

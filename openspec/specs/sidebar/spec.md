@@ -10,7 +10,7 @@ narrow screens, and its keyboard and screen-reader access.
 
 ### Requirement: The sidebar lists panel components
 When at least one component is placed in `panel`, the viewer SHALL show a sidebar with one icon
-per panel component, in config order (P-20, P-21). Each icon SHALL show the entry's
+per panel component, in config order. Each icon SHALL show the entry's
 `panel.icon` and be labelled with its `panel.heading`, or the component type's defaults when
 those are absent. With no panel components, the sidebar SHALL hold only the Apps and settings
 button (or the Settings button), and SHALL NOT be shown when that button isn't.
@@ -47,7 +47,7 @@ On an entry not placed in `panel`, it SHALL ignore `panel` with one console warn
 - **THEN** the viewer starts, and one warning names `components[0].panel` as ignored
 
 ### Requirement: The sidebar starts collapsed
-When the viewer starts, the sidebar SHALL show its icons with no panel open (P-20).
+When the viewer starts, the sidebar SHALL show its icons with no panel open.
 
 #### Scenario: Initial state
 - **WHEN** the viewer starts with two panel components
@@ -56,7 +56,7 @@ When the viewer starts, the sidebar SHALL show its icons with no panel open (P-2
 ### Requirement: Icons open, switch, and collapse panels
 Activating a panel's icon SHALL open that panel, showing its heading and the component. While a
 panel is open, activating a different icon SHALL switch to that panel, and activating the open
-panel's icon SHALL collapse the sidebar (P-22).
+panel's icon SHALL collapse the sidebar.
 
 #### Scenario: Open
 - **WHEN** the user clicks the Legend icon
@@ -73,7 +73,7 @@ panel's icon SHALL collapse the sidebar (P-22).
 - **THEN** no panel is open
 
 ### Requirement: The close button collapses the sidebar
-Each open panel SHALL have a close button that collapses the sidebar (P-23).
+Each open panel SHALL have a close button that collapses the sidebar.
 
 #### Scenario: Close
 - **GIVEN** the Legend panel is open
@@ -83,7 +83,7 @@ Each open panel SHALL have a close button that collapses the sidebar (P-23).
 ### Requirement: Map navigation targets the visible area
 The sidebar SHALL float over the map, and the map SHALL keep filling the window. The viewer
 SHALL pad the map view by the area the sidebar covers, open or collapsed, so that the map's
-center and zoom-to operations refer to the uncovered part of the map (P-05).
+center and zoom-to operations refer to the uncovered part of the map.
 
 #### Scenario: Home with a panel open
 - **GIVEN** a 1280×800 viewport, a `home` component in `top-right`, and the Legend panel open
@@ -96,7 +96,7 @@ center and zoom-to operations refer to the uncovered part of the map (P-05).
 
 ### Requirement: Map controls and notices stay clear of the sidebar
 Components in map corners on the sidebar's side, the title box, the attribution, and in-page
-notices SHALL NOT be covered by the sidebar, whether it is open or collapsed (P-24).
+notices SHALL NOT be covered by the sidebar, whether it is open or collapsed.
 
 #### Scenario: Title box moves with the sidebar
 - **WHEN** the Legend panel is opened and then closed at 1280×800
@@ -115,7 +115,7 @@ notices SHALL NOT be covered by the sidebar, whether it is open or collapsed (P-
 ### Requirement: Sidebar width follows the screen width
 From a viewport width of 768 px, the sidebar SHALL be on the starting side of the map. With a
 panel open, it SHALL be 305 px wide from 768 px, 390 px from 992 px, and 460 px from 1200 px,
-icons included (P-25).
+icons included.
 
 #### Scenario: Widths at each breakpoint
 - **WHEN** the Legend panel is open at viewport widths 800, 1000, and 1280 px
@@ -124,7 +124,7 @@ icons included (P-25).
 ### Requirement: Narrow screens use a bottom bar
 Below a viewport width of 768 px, the sidebar's icons SHALL form a bar along the bottom of the
 window. An open panel SHALL appear above the bar, spanning the window's width and leaving at
-least the top 40% of the map uncovered. The document SHALL NOT scroll (P-25).
+least the top 40% of the map uncovered. The document SHALL NOT scroll.
 
 #### Scenario: Phone layout
 - **WHEN** the viewport is 375×667 and the Legend panel is opened
@@ -139,7 +139,7 @@ The icon bar SHALL be one Tab stop: Tab SHALL move focus into the bar and, from 
 it. Inside the bar, the arrow keys SHALL move focus from icon to icon, and Enter or Space SHALL
 activate the focused icon. Each icon SHALL have its panel heading as its accessible name and
 SHALL expose whether its panel is open. Pressing Escape while a panel is open SHALL collapse the
-sidebar and return focus to that panel's icon (P-26).
+sidebar and return focus to that panel's icon.
 
 #### Scenario: Keyboard only
 - **GIVEN** a wide screen and two panel components, Home first and then Legend

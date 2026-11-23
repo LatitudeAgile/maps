@@ -1,4 +1,4 @@
-// The Sketch panel (map-sketches, P-61): Esri's arcgis-sketch docked in a sidebar panel, with the
+// The Sketch panel (map-sketches): Esri's arcgis-sketch docked in a sidebar panel, with the
 // color strip, area fill, notes and saving ported from StewardshipOS (src/mapSketches.ts and
 // HouseholdMap.vue there). See add-print-and-sketch-panels design D5 to D10.
 import "@arcgis/map-components/components/arcgis-sketch";

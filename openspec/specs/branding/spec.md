@@ -10,7 +10,7 @@ system by default and can be forced per app.
 
 ### Requirement: The title box shows the app title
 The viewer SHALL show `app.title` in a floating box in the top-left corner of the map, at every
-viewport width, as soon as the map is created (P-27). The box SHALL have the same corner radius
+viewport width, as soon as the map is created. The box SHALL have the same corner radius
 as the sidebar's icon bar. Its accessible name SHALL be the full title. Map components placed
 `top-left` SHALL appear below it, lined up with it.
 
@@ -74,7 +74,7 @@ other value SHALL fail validation.
 
 ### Requirement: Theme settings are validated
 `app.theme` SHALL be an object with a required `color`, and an optional `opacity` and
-`textColor` (P-28). `color` and `textColor` SHALL be hex colors (`#rgb` or `#rrggbb`).
+`textColor`. `color` and `textColor` SHALL be hex colors (`#rgb` or `#rrggbb`).
 `opacity` SHALL be a number from 0 to 1, and SHALL default to 1. The viewer SHALL report
 invalid theme settings by path. It SHALL ignore any other key in `app.theme`, with one console
 warning naming it.

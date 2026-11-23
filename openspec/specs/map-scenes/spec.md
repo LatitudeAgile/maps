@@ -10,7 +10,7 @@ in 3D.
 
 ### Requirement: A config can build a 3D scene
 When `map.view` is `"3d"`, the viewer SHALL show the configured basemap and layers as a global
-3D scene, at the configured `center` with `zoom` or `scale` (P-65). `map.view` SHALL be `"2d"`
+3D scene, at the configured `center` with `zoom` or `scale`. `map.view` SHALL be `"2d"`
 or `"3d"`, SHALL default to `"2d"`, and any other value SHALL fail validation.
 
 #### Scenario: Config-built scene

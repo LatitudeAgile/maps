@@ -163,7 +163,7 @@ export const EXPAND_MODES = ["auto", "floating", "drawer"] as const;
 export type ExpandMode = (typeof EXPAND_MODES)[number];
 
 /**
- * A corner component's `expand` setting (map-components, P-66). `"expand": true` is `{}`.
+ * A corner component's `expand` setting (map-components). `"expand": true` is `{}`.
  * Gaps are filled at creation from the type's panel icon and heading and the corner (design D3).
  */
 export interface ExpandSettings {
@@ -185,7 +185,7 @@ export interface ComponentConfig {
   options: Record<string, unknown>;
   /** Only on `panel` components. */
   panel?: PanelSettings;
-  /** Only on corner components: show a button that opens the component (P-66). */
+  /** Only on corner components: show a button that opens the component. */
   expand?: ExpandSettings;
 }
 

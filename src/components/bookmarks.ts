@@ -1,4 +1,4 @@
-// The bookmarks type (map-components, P-70): the web map's or web scene's bookmarks, then the
+// The bookmarks type (map-components): the web map's or web scene's bookmarks, then the
 // config's, then the ones the user added, which are kept in the browser per app (`?app=`), as
 // sketches are. Bookmarks from the item or the config can be edited or removed for the session;
 // they come back as configured on the next load. In a scene, one the user adds or edits keeps

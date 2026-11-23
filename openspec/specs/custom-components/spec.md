@@ -12,7 +12,7 @@ a working template, and the guide that explains how to write a component.
 A developer SHALL be able to add a component type by adding a folder under `extensions/` that
 holds the type's source and its manifest, with no change to any file outside that folder. A
 custom type SHALL be configured like a built-in one, by `type`, `placement`, `options`, `panel`
-and `expand`, with the same validation and placements (P-38). A type whose manifest says it
+and `expand`, with the same validation and placements. A type whose manifest says it
 accepts `expand` SHALL be told when its expand opens and closes, as in a sidebar panel.
 
 #### Scenario: Custom type in a corner and in a panel
