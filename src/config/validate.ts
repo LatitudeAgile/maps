@@ -5,6 +5,7 @@ import { validateRequest } from "./request.ts";
 import { validateComponents } from "./components.ts";
 import { validateTheme } from "./theme.ts";
 import { validateGeocoding } from "./geocoding.ts";
+import { validateMapMenu } from "./mapMenu.ts";
 import { COMPONENT_TYPES, SKIPPED_EXTENSIONS, type ComponentTypeSchema } from "../components/registry.ts";
 import {
   isCredentialKey,
@@ -192,6 +193,13 @@ export function validateConfig(raw: unknown, context: ValidationContext = {}): V
   }
 
   const geocoding = validateGeocoding(raw.geocoding, errors, warnings);
+  // After components, so a component's id can stand for its items (map-menu).
+  const mapMenu = validateMapMenu(
+    raw.mapMenu,
+    components.map((c) => c.id),
+    errors,
+    warnings,
+  );
   const request = validateRequest(raw.request, errors, warnings);
 
   if (errors.length > 0 || !map) return { config: undefined, errors, warnings };
@@ -215,6 +223,7 @@ export function validateConfig(raw: unknown, context: ValidationContext = {}): V
       layers,
       components,
       geocoding,
+      mapMenu,
       debug,
       request,
     },

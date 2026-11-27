@@ -1,4 +1,4 @@
-# Spec Delta
+# map-menu Specification
 
 ## Purpose
 
@@ -6,7 +6,7 @@ Defines the map menu: a menu of actions for one spot on the map, opened by right
 press or keyboard. Covers how it opens and closes, the built-in, Directions and link items, the
 `mapMenu` setting, and how components and extensions add items to it.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Right-clicking the map opens the menu at that spot
 A right-click on the map SHALL open the map menu next to the pointer, in 2D and 3D, with the
@@ -111,7 +111,7 @@ component that adds items SHALL follow, in component order, as a group headed by
 component's heading.
 
 #### Scenario: Default groups with Directions
-- **GIVEN** the default app, built with a key that has the Routing privilege
+- **GIVEN** the default app, built with a key that has the Routing privilege, with a route from A to B in the Directions panel
 - **WHEN** the user right-clicks the map
 - **THEN** the menu shows the built-in group, then a group headed "Directions" with Directions from here, Directions to here and Add stop here
 
@@ -126,7 +126,8 @@ closable notice SHALL say so.
 - **THEN** a popup opens at the spot, showing the nearest address in Redlands, CA
 
 #### Scenario: Nothing found
-- **WHEN** the user right-clicks the middle of the Pacific Ocean and picks What's here?
+- **GIVEN** a geocoding service that has no address or place near the spot (the World Geocoding Service names even oceans and Antarctica, so this is another service, such as one with street addresses only)
+- **WHEN** the user picks What's here?
 - **THEN** a popup opens at the spot, saying no address was found here
 
 #### Scenario: Service fails
@@ -294,14 +295,14 @@ that adds no items, SHALL be skipped without a warning. The same id twice SHALL 
 
 ### Requirement: The menu can be turned off
 `"mapMenu": false` SHALL turn the menu off: right-click, long press and the keyboard shortcut
-SHALL NOT open it, and the browser's own context menu SHALL appear on right-click. `mapMenu`
-SHALL be `false` or a non-empty list; anything else, including `true` and `[]`, SHALL fail
+SHALL NOT open it, and a right-click on the map SHALL do what it does without the menu (the map
+itself keeps the browser's context menu off its surface). `mapMenu` SHALL be `false` or a non-empty list; anything else, including `true` and `[]`, SHALL fail
 validation.
 
 #### Scenario: Turned off
 - **GIVEN** `"mapMenu": false`
 - **WHEN** the user right-clicks the map
-- **THEN** the browser's context menu appears and no map menu opens
+- **THEN** no map menu opens
 
 #### Scenario: Empty list
 - **WHEN** `mapMenu` is `[]`

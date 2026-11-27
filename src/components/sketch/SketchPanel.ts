@@ -17,6 +17,7 @@ import "@esri/calcite-components/components/calcite-action";
 import type Graphic from "@arcgis/core/Graphic.js";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer.js";
 import { appStorageKey, PANEL_CLOSE, PANEL_OPEN, requestPanelOpen } from "viewer";
+import { holdMapMenu, releaseMapMenu } from "../../map/menu/hold.ts";
 import {
   addColorProblem,
   addCustomColor,
@@ -442,12 +443,15 @@ export class SketchPanel extends HTMLElement {
     return typeof tool === "string" && DRAWING_TOOLS.has(tool);
   }
 
-  /** Popups wait while a drawing tool is active (D7). */
+  /** Popups wait while a drawing tool is active (D7), and so does the map menu (map-menu). */
   #updateDrawing(): void {
     this.#setPopupsWaiting(this.#open && this.#creating());
   }
 
   #setPopupsWaiting(waiting: boolean): void {
+    // A right-click while drawing is the drawing tool's, not the map menu's (add-map-menu D9).
+    if (waiting) holdMapMenu(this);
+    else releaseMapMenu(this);
     const map = this.#map;
     if (!map || map.popupDisabled === waiting) return;
     if (waiting) void map.closePopup();

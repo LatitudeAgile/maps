@@ -3,7 +3,7 @@
 Code in an extension folder imports viewer features from one module, `"viewer"`:
 
 ```ts
-import { API_VERSION, appStorageKey, defineComponentType, findViewElement, PANEL_CLOSE, PANEL_OPEN } from "viewer";
+import { addMapMenuItems, API_VERSION, appStorageKey, defineComponentType, findViewElement, PANEL_CLOSE, PANEL_OPEN } from "viewer";
 ```
 
 `"viewer"` is an alias for [`src/components/api.ts`](../../src/components/api.ts), set up in
@@ -147,6 +147,91 @@ const key = appStorageKey("trail-report"); // "viewer:trail-report:survey-tools"
 
 See [Saving state](guides/saving-state.md).
 
+## `addMapMenuItems(element, items)`
+
+Adds items to the map menu, the menu that opens when the user right-clicks the map, long-presses
+it on a touch screen, or presses Shift+F10 or the ContextMenu key on it. Your items appear as one
+group, headed with your component's heading (its `panel.heading`, or your manifest's default).
+The menu lists the groups in component order, after the built-in items, unless the app's
+`mapMenu` setting chooses otherwise (see [configuration.md](../configuration.md)).
+
+- `element` is your component's element. Calling `addMapMenuItems` again for the same element
+  replaces its items.
+- It returns a function that removes them. Call it when your element leaves the page. If you
+  forget, items of an element that is no longer on the page are dropped anyway the next time the
+  menu opens.
+- Each item is a `MapMenuItem` (below). Its `run` gets a `MapMenuContext`: the spot the menu was
+  opened for. Every item of one opening gets the same spot.
+- If `run` throws or rejects, the menu shows a notice naming the item, and keeps working.
+
+```ts
+import { addMapMenuItems, requestPanelOpen, type MapMenuContext } from "viewer";
+
+class TrailReport extends HTMLElement {
+  #removeItems?: () => void;
+
+  connectedCallback(): void {
+    this.#removeItems = addMapMenuItems(this, [
+      {
+        id: "report-here",
+        label: "Report a problem here",
+        icon: "exclamation-mark-triangle",
+        run: (context: MapMenuContext) => {
+          requestPanelOpen(this);
+          this.startReport(context.latitude, context.longitude);
+        },
+      },
+    ]);
+  }
+
+  disconnectedCallback(): void {
+    this.#removeItems?.();
+  }
+
+  startReport(latitude: number, longitude: number): void {
+    // ...
+  }
+}
+```
+
+See [Adding map menu items](guides/map-menu.md).
+
+### `MapMenuItem`
+
+| Field | Required | What it is |
+|---|---|---|
+| `id` | yes | Unique within your component. |
+| `label` | yes | The text the menu shows. |
+| `icon` | no | A [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/) name. |
+| `appliesTo(context)` | no | Return `false` to leave the item out for this spot. Without it, the item is always listed. If it throws, the item is left out and the error is logged. |
+| `run(context)` | yes | What picking the item does. May return a promise. |
+
+```ts
+const addStop: MapMenuItem = {
+  id: "add-stop",
+  label: "Add stop here",
+  icon: "add-in-new",
+  appliesTo: () => this.stops.length >= 2,
+  run: (context) => this.insertStop(context.mapPoint),
+};
+```
+
+### `MapMenuContext`
+
+| Field | What it is |
+|---|---|
+| `mapPoint` | The spot, as an ArcGIS `Point` in the view's spatial reference. In a scene, it's on the ground or a 3D object under the pointer. |
+| `latitude`, `longitude` | The spot in WGS84 degrees. |
+| `screenPoint` | `{ x, y }`: where the menu was opened, in pixels from the view's top left. From the keyboard, the center of the map beside the sidebar. |
+| `view` | The `MapView` or `SceneView`. |
+| `element` | The map element, `arcgis-map` or `arcgis-scene`. |
+
+```ts
+run: ({ latitude, longitude, view }) => {
+  console.log(`Clicked ${latitude.toFixed(5)}, ${longitude.toFixed(5)} at scale ${Math.round(view.scale)}`);
+},
+```
+
 ## Types
 
 | Type | What it is |
@@ -161,3 +246,5 @@ See [Saving state](guides/saving-state.md).
 | `MapViewKind` | `"2d"` or `"3d"`. |
 | `ExpandMode` | `"auto"`, `"floating"` or `"drawer"`. |
 | `ViewElement` | The map element: `arcgis-map` or `arcgis-scene`. |
+| `MapMenuItem` | One map menu item. See [`addMapMenuItems`](#addmapmenuitemselement-items). |
+| `MapMenuContext` | The spot a map menu item runs for. See [`addMapMenuItems`](#addmapmenuitemselement-items). |

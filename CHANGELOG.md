@@ -16,12 +16,25 @@ Notable changes to the viewer, newest first. The format follows
   credits (a GeoPDF when the map is to scale) or as a JPEG of the map alone. The Buffalo River
   app has it.
 - Each component type's code, and the PDF library, is fetched only by apps that use it.
+- A map menu, in every app: right-click the map, press and hold it on a touch screen, or press
+  Shift+F10 on it, for What's here? (the nearest address), Copy coordinates and Center here.
+  Directions adds Directions from here, Directions to here and Add stop here. A `mapMenu` setting
+  chooses the entries and their order, adds link items such as Street View, and
+  `"mapMenu": false` turns the menu off. Extensions add their own items with the viewer API's
+  `addMapMenuItems`, as hello-world's "Say hello here" shows. The Field Notes app adds Street
+  View.
 
 ### Changed
 
 - The deploy workflow uses the Node 24 releases of its GitHub Actions.
 - Tag pushes fail before deploying unless the tag matches `package.json`'s version and this
   changelog has a section for it.
+
+### Fixed
+
+- In the dev server, an extension's `"viewer"` import could load a second copy of the viewer
+  API, depending on the drive letter's case on Windows.
+- In the Buffalo River app, a right-click on an access point no longer changes the trip.
 
 ## [0.1.1] - 2026-11-22
 

@@ -6,6 +6,11 @@ export function formatCenter(longitude: number, latitude: number): string {
   return `${longitude.toFixed(2)}, ${latitude.toFixed(2)}`;
 }
 
+/** "Hello, world from 39.74, -104.99": the greeting with a spot's latitude and longitude, to two places. */
+export function formatHello(greeting: string, latitude: number, longitude: number): string {
+  return `${greeting} from ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`;
+}
+
 /** "1:18,489,298": the scale, rounded, with thousands separators. */
 export function formatScale(scale: number): string {
   return `1:${Math.round(scale).toLocaleString("en-US")}`;

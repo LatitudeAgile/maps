@@ -7,6 +7,7 @@ import "@esri/calcite-components/components/calcite-button";
 import "@esri/calcite-components/components/calcite-segmented-control";
 import "@esri/calcite-components/components/calcite-segmented-control-item";
 import { findViewElement, PANEL_CLOSE, type ViewElement } from "viewer";
+import { holdMapMenu, releaseMapMenu } from "../../map/menu/hold.ts";
 
 import { MEASURE_TOOLS, type MeasureTool, type MeasureUnit } from "./options.ts";
 
@@ -146,6 +147,9 @@ export class Measure extends HTMLElement {
   /** Clear is enabled while any tool has something on the map. */
   #updateClear(): void {
     this.#clear.disabled = ![...this.#elements.values()].some((e) => e.state === "measuring" || e.state === "measured");
+    // A right-click while measuring is the tool's, not the map menu's (map-menu; add-map-menu D9).
+    if ([...this.#elements.values()].some((e) => e.state === "measuring")) holdMapMenu(this);
+    else releaseMapMenu(this);
   }
 }
 

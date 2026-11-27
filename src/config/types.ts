@@ -1,5 +1,6 @@
 import type { Theme } from "../ui/theme.ts";
 import type { GeocodingConfig } from "./geocoding.ts";
+import type { MapMenuConfig } from "./mapMenu.ts";
 
 /** The viewer's runtime configuration, after defaults are applied. */
 export interface ViewerConfig {
@@ -66,6 +67,8 @@ export interface ViewerConfig {
   components: ComponentConfig[];
   /** Search sources shared by Search and Directions (geocoding). */
   geocoding: GeocodingConfig;
+  /** The map menu's entries in order, or `false` for no menu (map-menu). */
+  mapMenu: MapMenuConfig;
   /** Exposes the app model as `window.app` and logs error-channel reports. Default false. */
   debug: boolean;
   /** SDK request settings (proxy). */
@@ -206,7 +209,7 @@ export const DEFAULTS = {
 } as const;
 
 /** Top-level sections the viewer recognizes. */
-export const KNOWN_SECTIONS = ["app", "portal", "map", "services", "layers", "components", "geocoding", "debug", "request"] as const;
+export const KNOWN_SECTIONS = ["app", "portal", "map", "services", "layers", "components", "geocoding", "mapMenu", "debug", "request"] as const;
 
 /** Keys that look like credentials and are never allowed in the config, at any depth. */
 export const CREDENTIAL_KEYS = ["apiKey", "token", "clientSecret"] as const;

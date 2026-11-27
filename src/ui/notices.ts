@@ -1,5 +1,8 @@
 import "@esri/calcite-components/components/calcite-notice";
 
+/** How long a success notice stays, like a Calcite alert's medium auto-close. */
+const SUCCESS_CLOSE_MS = 10_000;
+
 /** All text goes in through textContent, so config values can't inject markup. */
 function region(): HTMLElement {
   const el = document.getElementById("notices");
@@ -8,7 +11,7 @@ function region(): HTMLElement {
 }
 
 interface NoticeOptions {
-  kind: "danger" | "warning";
+  kind: "danger" | "warning" | "success";
   title: string;
   message?: string;
   items?: string[];
@@ -58,6 +61,9 @@ function showNotice({ kind, title, message, items, id }: NoticeOptions): HTMLEle
   notice.append(body);
 
   notice.addEventListener("calciteNoticeClose", () => notice.remove());
+  // A success only confirms what the user did: it closes itself, as an alert's medium auto-close
+  // would (calcite-notice has no auto-close of its own).
+  if (kind === "success") setTimeout(() => notice.remove(), SUCCESS_CLOSE_MS);
 
   region().append(notice);
   return notice;
@@ -114,5 +120,40 @@ export function showLocationError(code: number): HTMLElement {
     kind: "warning",
     title: "Your location isn't available",
     message: LOCATION_MESSAGES[code] ?? LOCATION_MESSAGES[2],
+  });
+}
+
+/** A map menu item's action failed (map-menu). The map and the menu keep working. */
+export function showMapMenuItemError(label: string): HTMLElement {
+  return showNotice({
+    id: "map-menu-error",
+    kind: "danger",
+    title: `"${label}" didn't work`,
+    message: "Something went wrong running this map menu item. The map keeps working; try again, or pick another item.",
+  });
+}
+
+/** Copy coordinates wrote `text` to the clipboard (map-menu). */
+export function showCoordinatesCopied(text: string): HTMLElement {
+  return showNotice({ id: "map-menu-copy", kind: "success", title: "Coordinates copied", message: text });
+}
+
+/** The clipboard refused Copy coordinates: the text is shown to copy by hand (map-menu). */
+export function showCoordinatesNotCopied(text: string): HTMLElement {
+  return showNotice({
+    id: "map-menu-copy",
+    kind: "warning",
+    title: "The coordinates couldn't be copied",
+    message: `The browser didn't allow copying. Here they are to copy by hand: ${text}`,
+  });
+}
+
+/** What's here? couldn't get an answer from the geocoding service (map-menu). */
+export function showWhatsHereError(): HTMLElement {
+  return showNotice({
+    id: "map-menu-whats-here",
+    kind: "danger",
+    title: "The address couldn't be found",
+    message: "The geocoding service didn't answer. Check your connection and try again; the map keeps working.",
   });
 }

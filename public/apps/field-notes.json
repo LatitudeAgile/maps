@@ -2,7 +2,7 @@
   "app": {
     "title": "Field Notes",
     "summary": "Find a place and mark it up",
-    "description": "A smaller app for marking up the map: search for a place, then draw shapes and write notes on it. Sketches are kept in this browser, separately from the other apps.\n\nThis is a sample app. Replace it, or remove it from apps/index.json.",
+    "description": "A smaller app for marking up the map: search for a place, then draw shapes and write notes on it. Sketches are kept in this browser, separately from the other apps. Right-click the map, or press and hold on a phone, for what's here, its coordinates, centering the map there, and Street View.\n\nThis is a sample app. Replace it, or remove it from apps/index.json.",
     "icon": "pencil",
     "theme": { "color": "#7b3fa0", "opacity": 0.85 }
   },
@@ -28,5 +28,21 @@
     { "id": "search", "type": "search", "placement": "panel" },
     { "id": "sketch", "type": "sketch", "placement": "panel" },
     { "id": "layers", "type": "layer-list", "placement": "panel" }
+  ],
+  "mapMenu": [
+    "whats-here",
+    "copy-coordinates",
+    "center-here",
+    {
+      "id": "street-view",
+      "label": "Street View",
+      "icon": "camera",
+      "url": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint={lat},{lon}"
+    },
+    "home",
+    "zoom",
+    "search",
+    "sketch",
+    "layers"
   ]
 }

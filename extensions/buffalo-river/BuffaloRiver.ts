@@ -209,8 +209,12 @@ export class BuffaloRiver extends HTMLElement {
     await this.#load();
   }
 
-  /** A click on an access point adds it to the trip (design D6); any other click is ignored. */
+  /**
+   * A click on an access point adds it to the trip (design D6); any other click is ignored. Only
+   * the left button (or a tap): a right-click is the map menu's, and must not change the trip.
+   */
   async #onMapClick(view: SceneView, layers: RiverLayers, event: ClickEvent): Promise<void> {
+    if (event.button !== 0) return;
     const hit = await view.hitTest(event, { include: [layers.access] });
     if (layers !== this.#layers) return;
     const result = hit.results.find((r) => r.type === "graphic");

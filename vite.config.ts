@@ -1,4 +1,3 @@
-import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { extensionsPlugin } from "./vite/extensionsPlugin.ts";
 
@@ -9,7 +8,10 @@ export default defineConfig({
   resolve: {
     // Extensions import viewer features from "viewer" (add-drop-in-extensions D4). The pattern
     // matches that exact specifier only, so a package named "viewer-something" isn't caught.
-    alias: [{ find: /^viewer$/, replacement: fileURLToPath(new URL("./src/components/api.ts", import.meta.url)) }],
+    // Root-relative, so it is the same module as the viewer's own imports of api.ts: an absolute
+    // path can differ from the root in its drive letter's case on Windows, and Vite then serves
+    // it as /@fs/..., a second copy of the API and of the map menu's registry (map-menu).
+    alias: [{ find: /^viewer$/, replacement: "/src/components/api.ts" }],
   },
   server: {
     open: true,

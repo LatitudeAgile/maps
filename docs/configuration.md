@@ -216,6 +216,7 @@ The smallest valid config sets only `map.basemap`, `map.center`, and one of `map
 | `geocoding.places.radius` | number | `5000` | Whole meters, 1 to 10000. How far from the map's center to look. |
 | `geocoding.places.categories` | array | `[]` | Up to 10 Places category ids to limit results to, such as `"4bf58dd8d48988d1e0931735"` (coffee shops). Empty means any category. |
 | `geocoding.places.name` | string | `"Places"` | Non-empty. Its name in the search source menu. |
+| `mapMenu` | `false` or array | the default menu | The map menu: what right-clicking the map shows. `false` turns it off; a non-empty list chooses the entries and their order. See [Map menu](#map-menu). |
 | `request` | object | `{}` | Optional section. Routes ArcGIS requests through a proxy. |
 | `request.proxyUrl` | string | none | Proxy used when a request can't be made directly, for example to a server without CORS support. An absolute `https` URL, or a path on the viewer's own site such as `proxy/forward` (resolved against the app's base URL). |
 | `request.proxyRules` | array | `[]` | Requests whose URL starts with a rule's prefix always go through that rule's proxy. Each entry is `{ "urlPrefix": ..., "proxyUrl": ... }`. |
@@ -540,6 +541,74 @@ When at least one component is placed in `panel`, the viewer shows a sidebar:
   - Category ids come from the Places service's `places/categories` request, described in
     Esri's [Places REST API reference](https://developers.arcgis.com/rest/places/near-point-get/)
     under `categoryIds`.
+
+### Map menu
+
+Right-clicking the map opens a menu of actions for that spot. On a touch screen, press and hold
+the map; with the map focused, press Shift+F10 or the ContextMenu key, which opens it for the
+map's center. A right-drag that rotates or tilts the map doesn't open it, and neither does a
+right-click on the sky in a scene. While Sketch or Measure is drawing, a right-click is theirs.
+
+**The default menu**, with no `mapMenu` setting:
+
+- **What's here?** finds the address or place nearest the spot and shows it in a popup there.
+- **Copy coordinates** copies the spot's latitude and longitude, such as `39.828127,
+  -98.579404`, and a notice shows what was copied.
+- **Center here** moves the map so the spot is in the middle, at the same scale (in a scene,
+  with the same tilt and heading).
+- Then each component that adds items, in the order of `components`, under its heading. Today
+  that's `directions` (Directions from here, Directions to here, and Add stop here once there's a
+  route) and components from `extensions/` that add items, such as `hello-world`.
+
+**Choosing the entries.** A `mapMenu` list replaces the default. The menu shows its entries in
+list order. Each entry is one of:
+
+- a built-in item's id: `"whats-here"`, `"copy-coordinates"` or `"center-here"`, as a string or
+  as an object with options;
+- a component's `id` from `components`, standing for all that component's items, shown as its
+  own group under its heading;
+- a link item: an object with `id`, `label` and `url`.
+
+Built-in and link entries next to each other form one group. A component that was left out (for
+example Directions without an API key), or that adds no items, is skipped without a warning.
+
+```json
+"mapMenu": [
+  "whats-here",
+  { "id": "copy-coordinates", "format": "mgrs" },
+  "center-here",
+  { "id": "street-view", "label": "Street View", "icon": "camera",
+    "url": "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint={lat},{lon}" },
+  "directions"
+]
+```
+
+`"mapMenu": false` turns the menu off. A right-click on the map then does nothing, as before
+the menu existed: the map itself keeps the browser's menu off it.
+
+| Entry | Option | Rule |
+|---|---|---|
+| `whats-here` | `url` | An absolute `https` URL of a GeocodeServer, used instead of Esri's keyless World Geocoding Service (`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer`). It must allow anonymous use: no key is sent to it. |
+| `copy-coordinates` | `format` | `dd` (decimal degrees, the default), `ddm` (degrees and decimal minutes), `dms` (degrees, minutes and seconds, such as `39 49 41.3N 098 34 45.9W`), `mgrs`, `usng` or `utm`. |
+| `center-here` | none | |
+| link item | `id` | **Required.** Not a built-in item's id or a component's. |
+| link item | `label` | **Required.** Non-empty: the text the menu shows. |
+| link item | `url` | **Required.** An absolute `https` URL once `{lat}` and `{lon}` are filled in. They become the spot's latitude and longitude in decimal degrees, six places. |
+| link item | `icon` | A [Calcite icon](https://developers.arcgis.com/calcite-design-system/icons/) name. Default `launch`. |
+
+**What the menu sends.** Nothing until the user picks an item. What's here? sends the spot to
+its geocoding service. A link item opens its page in a new tab, sending the spot in the URL.
+Copy coordinates and Center here work in the browser.
+
+**Checks.** `mapMenu` must be `false` or a non-empty list: anything else, including `true` and
+`[]`, is a config error. So is the same id twice, a `whats-here` `url` that isn't https, an
+unknown `format`, and a link item without a `label` or with a `url` that isn't https. An id that
+is none of the above is skipped with a console warning naming it, such as
+`mapMenu[0]: "copy-cordinates" is not a built-in item, a component in this config or a link
+item; it is skipped.` Unknown options on an entry are ignored with a warning.
+
+Components from `extensions/` add their own items through the viewer API; see
+[Adding map menu items](components/guides/map-menu.md).
 
 ### Title box
 

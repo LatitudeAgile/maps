@@ -22,6 +22,8 @@ export function appStorageKey(name: string): string {
 
 export { findViewElement, type ViewElement } from "../map/viewElement.ts";
 export { PANEL_CLOSE, PANEL_OPEN, PANEL_REQUEST_OPEN, requestPanelOpen } from "../sidebar/panelEvents.ts";
+// The map menu (map-menu). Its registry has no runtime imports, so this adds no cycle.
+export { addMapMenuItems, type MapMenuContext, type MapMenuItem } from "../map/menu/registry.ts";
 export { defineComponentType } from "./componentType.ts";
 export type { ComponentContext, ConfigurableElement, CornerStyle, ExtensionManifest, KeylessResult, OptionKind } from "./componentType.ts";
 export type { ComponentPlacement, ExpandMode, MapViewKind } from "../config/types.ts";

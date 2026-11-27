@@ -43,7 +43,8 @@ The repository SHALL include a `hello-world` component type in `extensions/hello
 template to copy, that uses only the viewer API for viewer features. It SHALL show its
 `greeting` option (default "Hello, world") and the map's current center and scale, updating as
 the map moves. It SHALL find the map in a corner or the sidebar, in 2D or 3D, and SHALL stop
-following the map when removed from the page.
+following the map when removed from the page. It SHALL add a "Say hello here" map menu item that
+shows its greeting with the spot's latitude and longitude.
 
 #### Scenario: Greeting from config
 - **WHEN** a `hello-world` component has `"options": { "greeting": "Hi from the team" }`
@@ -67,6 +68,11 @@ following the map when removed from the page.
 - **GIVEN** a `hello-world` component is showing the map's center
 - **WHEN** the element is removed from the page and the map is then panned
 - **THEN** no error is reported and the removed element's text doesn't change
+
+#### Scenario: Says hello from the map menu
+- **GIVEN** a `hello-world` component in a sidebar panel
+- **WHEN** the user right-clicks the map and picks Say hello here
+- **THEN** its panel opens and shows its greeting with the spot's latitude and longitude to two decimal places
 
 #### Scenario: Uses only the viewer API
 - **WHEN** the files in `extensions/hello-world/` are read
@@ -161,8 +167,9 @@ states and which the viewer supports.
 ### Requirement: Extensions use viewer features through the viewer API
 The viewer SHALL offer extension code one import, `"viewer"`, that provides: finding the map
 element from a component in a corner or a panel, in 2D or 3D; the container open, close and
-request-open events; a browser-storage key per app; the manifest's definition and types; and
-the API version. An incompatible change to it SHALL come with a new API version.
+request-open events; a browser-storage key per app; adding items to the map menu; the manifest's
+definition and types; and the API version. An incompatible change to it SHALL come with a new
+API version.
 
 #### Scenario: Map found from a panel and a corner
 - **GIVEN** a component in `extensions/` that finds the map element through the viewer API
@@ -174,12 +181,21 @@ the API version. An incompatible change to it SHALL come with a new API version.
 - **WHEN** the user saves a note in `?app=default` and then opens `?app=survey-tools`
 - **THEN** the note isn't shown in `survey-tools`, and it is shown again on returning to `?app=default`
 
+#### Scenario: Map menu item from an extension
+- **GIVEN** a component in `extensions/` that adds a map menu item through the viewer API, in an app with no `mapMenu` setting
+- **WHEN** the user right-clicks the map, in a 2D app and then in a 3D app
+- **THEN** the item is listed in a group headed with the component's heading, and picking it runs its action for the spot clicked
+
+#### Scenario: API version unchanged
+- **WHEN** an extension written for API version 1 before the map menu existed is loaded
+- **THEN** it is not skipped, and works as before
+
 ### Requirement: The developer documentation covers the whole extension contract
 `docs/components/` SHALL describe every manifest field, every option kind, and every export of
 the viewer API, with an example of each. It SHALL include guides to finding the map, container
-events, saving state, using the API key, and look and feel, and a sharing guide covering
-the recommended setup (a fork of the viewer), folder contents, the API version, and why a folder
-can be skipped.
+events, saving state, using the API key, adding map menu items, and look and feel, and a sharing
+guide covering the recommended setup (a fork of the viewer), folder contents, the API version,
+and why a folder can be skipped.
 
 #### Scenario: Every manifest field is documented
 - **WHEN** a developer looks up any field the manifest accepts
@@ -192,6 +208,10 @@ can be skipped.
 #### Scenario: Recommended setup is documented
 - **WHEN** a developer opens `docs/components/README.md` to start their own components
 - **THEN** it points them to forking the viewer, and `docs/components/sharing.md` explains adding components under `extensions/` in the fork and pulling upstream updates
+
+#### Scenario: Map menu guide
+- **WHEN** a developer reads the map menu guide in `docs/components/guides/`
+- **THEN** it shows adding an item, hiding it where it doesn't apply, and how an app's `mapMenu` setting orders or leaves out the component's items
 
 ### Requirement: A full example extension ships with the template
 The repository SHALL include `extensions/buffalo-river/`, a complete component built only on the

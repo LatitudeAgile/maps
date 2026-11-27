@@ -75,6 +75,8 @@ public/apps/<app>.json                 extensions/trail-report/component.ts
   closes, and asking to be opened.
 - [Saving state](guides/saving-state.md): keeping the user's data per app in the browser.
 - [API keys](guides/api-keys.md): using the build's key only where it's needed.
+- [Adding map menu items](guides/map-menu.md): your component's actions in the map's right-click
+  menu, hiding them where they don't apply, and how an app's `mapMenu` orders them.
 - [Look and feel](guides/look-and-feel.md): Calcite components and tokens, light and dark mode,
   and how a component looks in a map corner.
 

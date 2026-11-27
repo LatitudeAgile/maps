@@ -26,7 +26,9 @@ import { applyStartingView, ignoredForWebMap } from "./map/startingView.ts";
 import { followPopupDocking } from "./map/popupDock.ts";
 import { addLayers } from "./layers/addLayers.ts";
 import { createComponents, panelSlot, type CreateComponentsOptions } from "./components/createComponents.ts";
-import { SKIPPED_EXTENSIONS } from "./components/registry.ts";
+import { COMPONENT_TYPES, SKIPPED_EXTENSIONS } from "./components/registry.ts";
+import { startMapMenu } from "./map/menu/openMenu.ts";
+import { menuItemFor } from "./map/menu/builtInItems.ts";
 import { skippedMessage } from "./components/extensions.ts";
 import { createSidebar } from "./sidebar/createSidebar.ts";
 import { trackAttribution } from "./map/attribution.ts";
@@ -189,6 +191,20 @@ async function start(): Promise<void> {
       app.view = mapEl.view;
       // Full-width attribution, with the sidebar stopping above it (src/map/attribution.ts).
       trackAttribution(mapEl, shell);
+      // The map menu, unless `"mapMenu": false` (map-menu). Components' items join it as they
+      // register; a component's group is headed with its panel heading.
+      if (config.mapMenu !== false && mapEl.view) {
+        startMapMenu({
+          element: mapEl,
+          view: mapEl.view,
+          entries: config.mapMenu,
+          itemFor: menuItemFor,
+          headingFor: (id) => {
+            const entry = components.find((c) => c.id === id);
+            return entry?.panel?.heading ?? (entry ? COMPONENT_TYPES[entry.type]?.panel.heading : undefined) ?? id;
+          },
+        });
+      }
     },
     () => undefined, // reported by createView's failure detection
   );

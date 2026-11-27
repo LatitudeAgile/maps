@@ -2,7 +2,9 @@
 
 A template for your own component types. It shows a greeting from config and the map's center
 and scale, updating as the map moves, in a map corner, behind an expand button, or in a sidebar
-panel, in 2D and 3D. No app uses it until you add it to one.
+panel, in 2D and 3D. It adds "Say hello here" to the map menu, which opens it and greets the spot
+that was right-clicked (see [Adding map menu items](../../docs/components/guides/map-menu.md)).
+No app uses it until you add it to one.
 
 To make your own, run `npm run new:component`, or copy this folder. See
 [Getting started](../../docs/components/getting-started.md).
@@ -31,5 +33,5 @@ In a map corner, behind a button:
 |---|---|
 | `component.ts` | The manifest: tag, options, defaults, panel heading and icon, expand support, corner look. |
 | `index.ts` | Defines the element once; the manifest's `load` imports it. |
-| `HelloWorld.ts` | The custom element: options as properties, finding the map, following it, cleanup. |
+| `HelloWorld.ts` | The custom element: options as properties, finding the map, following it, its map menu item, cleanup. |
 | `format.ts` | Pure logic, kept apart from the element. |
