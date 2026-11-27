@@ -1,4 +1,4 @@
-# Spec Delta
+# map-printing Specification
 
 ## Purpose
 
@@ -6,27 +6,27 @@ Lets users print what they see in a 2D map or a 3D scene in the browser, with no
 a framed print area, a Letter page with a title, legend, scale and credits (a GeoPDF), or the map
 alone as an image.
 
-## ADDED Requirements
+## Requirements
 
-### Requirement: Print map works in maps and scenes without a print service
-A `print-map` component SHALL work in 2D maps and 3D scenes. It SHALL make its files in the
-browser, sending nothing to a print service. It SHALL go in a sidebar panel (heading "Print map",
+### Requirement: Local print works in maps and scenes without a print service
+A `local-print` component SHALL work in 2D maps and 3D scenes. It SHALL make its files in the
+browser, sending nothing to a print service. It SHALL go in a sidebar panel (heading "Local print",
 `print` icon) or in a map corner behind an expand button. Without an API key it SHALL be offered.
 
 #### Scenario: Print from a scene
-- **GIVEN** an app with `"view": "3d"` and a `print-map` panel
-- **WHEN** the user opens the Print map panel and presses Export
+- **GIVEN** an app with `"view": "3d"` and a `local-print` panel
+- **WHEN** the user opens the Local print panel and presses Export
 - **THEN** a PDF downloads, and the app made no request to a print service
 
 #### Scenario: Print from a map
-- **GIVEN** a 2D app with a `print-map` panel
-- **WHEN** the user opens the Print map panel and presses Export
+- **GIVEN** a 2D app with a `local-print` panel
+- **WHEN** the user opens the Local print panel and presses Export
 - **THEN** a PDF downloads
 
 #### Scenario: In a corner
-- **GIVEN** a `print-map` component placed `bottom-left` with `"expand": true`
+- **GIVEN** a `local-print` component placed `bottom-left` with `"expand": true`
 - **WHEN** the user presses its button
-- **THEN** the Print map controls open over the map beside the button
+- **THEN** the Local print controls open over the map beside the button
 
 ### Requirement: The print area shows what will print
 While the component is open, the map SHALL show the print area: a frame in the shape of the
@@ -35,16 +35,16 @@ still pan, zoom and rotate the map under it. Changing the orientation SHALL chan
 shape. When the component closes, the frame and dimming SHALL go away.
 
 #### Scenario: Frame while open
-- **GIVEN** a `print-map` panel with Landscape chosen
+- **GIVEN** a `local-print` panel with Landscape chosen
 - **WHEN** the user opens the panel
-- **THEN** a frame wider than it is tall (10 by 6.25) shows on the map, beside the sidebar, with the map outside it dimmed, and the map still pans when dragged inside it
+- **THEN** a frame wider than it is tall (the shape of 10 by 6.25) shows on the map, beside the sidebar, with the map outside it dimmed, and the map still pans when dragged inside it
 
 #### Scenario: Portrait frame
 - **WHEN** the user chooses Portrait in the open panel
-- **THEN** the frame becomes taller than it is wide (7.5 by 8)
+- **THEN** the frame becomes taller than it is wide (the shape of 7.5 by 8)
 
 #### Scenario: Frame gone when closed
-- **WHEN** the user closes the Print map panel, or its expand
+- **WHEN** the user closes the Local print panel, or its expand
 - **THEN** the frame and dimming are gone
 
 ### Requirement: The print captures the print area
@@ -60,7 +60,7 @@ size on the page. A JPEG SHALL be that picture on its own.
 #### Scenario: Map image
 - **GIVEN** Landscape and "Map image" chosen
 - **WHEN** the user presses Export
-- **THEN** a JPEG downloads that is 3000 by 1875 pixels and shows the frame's contents and no page layout
+- **THEN** a JPEG downloads that is 2808 by 1755 pixels and shows the frame's contents and no page layout
 
 ### Requirement: The PDF is a Letter page with a title, legend, scale and credits
 A PDF SHALL be one Letter page in the chosen orientation with 0.4 inch margins. It SHALL have
@@ -109,12 +109,19 @@ drawable symbol SHALL have their title alone. Hidden layers SHALL be left out.
 ### Requirement: The PDF records where the map is
 A PDF of a map that is to scale SHALL record the map's location (GeoPDF), so that map apps that
 read it place each point of the printed map at its place on the ground. Other PDF viewers SHALL
-show the page the same as without it.
+show the page the same as without it. A scene looking straight down is still a perspective view:
+hills and valleys shift away from the map's center in proportion to their height, so in a scene
+the location record is approximate, and its error grows with the terrain's relief.
 
 #### Scenario: Located in a map app
-- **GIVEN** a PDF exported from a 2D map, or from a scene looking straight down
+- **GIVEN** a PDF exported from a 2D map
 - **WHEN** it is opened in Avenza Maps or Adobe Acrobat's geospatial tools
 - **THEN** a point picked on the printed map reads within 50 m of its coordinates in the viewer
+
+#### Scenario: Located from a scene
+- **GIVEN** a PDF exported from a scene looking straight down
+- **WHEN** it is opened in Avenza Maps or Adobe Acrobat's geospatial tools
+- **THEN** a point picked on the printed map reads near its coordinates in the viewer, off by an amount that grows with the terrain's relief (up to about 100 m at 1:50,000 over the Buffalo River)
 
 ### Requirement: A tilted scene prints without a scale
 In a 3D scene whose view is tilted more than 2 degrees from straight down, the PDF SHALL leave
@@ -124,7 +131,7 @@ not be to scale.
 
 #### Scenario: Tilted
 - **GIVEN** a scene tilted to 60 degrees
-- **WHEN** the user opens the Print map panel and exports a PDF
+- **WHEN** the user opens the Local print panel and exports a PDF
 - **THEN** the panel says the print won't be to scale, and the page says "Not to scale" with no ratio or scale bar, and has no location record
 
 #### Scenario: Straight down
@@ -132,22 +139,22 @@ not be to scale.
 - **WHEN** the user exports a PDF
 - **THEN** the page has the ratio and the scale bar, and the PDF has the location record
 
-### Requirement: Print map options set the starting choices
-A `print-map` component's `title` option (text) SHALL set the starting title, or the app's title
+### Requirement: Local print options set the starting choices
+A `local-print` component's `title` option (text) SHALL set the starting title, or the app's title
 when omitted. `orientation` (`landscape` or `portrait`, default `landscape`) and `format` (`pdf`
 or `jpg`, default `pdf`) SHALL set the starting choices. The user SHALL be able to change all
 three in the component.
 
 #### Scenario: Defaults
-- **WHEN** a `print-map` component has no options in an app titled "Buffalo River"
+- **WHEN** a `local-print` component has no options in an app titled "Buffalo River"
 - **THEN** the panel shows the title "Buffalo River", Landscape and PDF
 
 #### Scenario: Configured
-- **WHEN** a `print-map` component has `"options": { "title": "Field map", "orientation": "portrait", "format": "jpg" }`
+- **WHEN** a `local-print` component has `"options": { "title": "Field map", "orientation": "portrait", "format": "jpg" }`
 - **THEN** the panel shows the title "Field map", Portrait and Map image
 
 #### Scenario: Invalid orientation
-- **WHEN** a `print-map` component has `"options": { "orientation": "square" }`
+- **WHEN** a `local-print` component has `"options": { "orientation": "square" }`
 - **THEN** validation fails with an error at `components[0].options.orientation` that lists `landscape` and `portrait`
 
 ### Requirement: A failed print is explained

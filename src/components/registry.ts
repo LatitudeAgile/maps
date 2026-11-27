@@ -24,6 +24,16 @@ export type {
   OptionKind,
 } from "./componentType.ts";
 
+/*
+ * Each type's code loads only when an app uses it (map-components; 3d-print D3). This module is
+ * in the viewer's entry, so anything it imports statically is downloaded by every app. From a
+ * type's folder it may import only small option modules that import nothing else, as
+ * sketch/palette.ts and measure/options.ts are. A type's element, its other code and its
+ * libraries load only through its `load` or `configure` dynamic imports. The same holds for the
+ * sidebar, the viewer API and extension manifests. After adding a type, build and check that it
+ * has its own file in dist/assets/ and that the entry doesn't hold its code.
+ */
+
 /** The built-in component types. Their names are also listed in builtInTypes.json (D6). */
 export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
   home: {
@@ -152,6 +162,26 @@ export const BUILT_IN_TYPES: Readonly<Record<string, ComponentType>> = {
     panel: { heading: "Print", icon: "print" },
     cornerStyle: "panel",
     expandable: true,
+  },
+  // Prints the map in the browser, 2D and 3D, with no print service: a framed print area, as a
+  // Letter PDF (a GeoPDF) or the map alone as a JPEG (3d-print D1). `title` isn't assigned as
+  // a property: it would set the element's HTML title, a tooltip over the whole panel.
+  "local-print": {
+    tag: "viewer-local-print",
+    load: () => import("./localPrint/index.ts"),
+    options: { title: "string", orientation: { oneOf: ["landscape", "portrait"] }, format: { oneOf: ["pdf", "jpg"] } },
+    defaults: { orientation: "landscape", format: "pdf" },
+    placements: ["panel", ...CORNER_PLACEMENTS],
+    panel: { heading: "Local print", icon: "print" },
+    cornerStyle: "panel",
+    expandable: true,
+    // Used on the map while open (framing the print), like measure.
+    expandMode: "floating",
+    configure: (element, options) => {
+      if (options.title !== undefined) element.printTitle = options.title;
+      element.orientation = options.orientation;
+      element.format = options.format;
+    },
   },
   // Drawing and writing on the map, ported from StewardshipOS (design D5). Panel only: its
   // toolbar, colors and fill need panel room, and drawing turns on and off with the panel.

@@ -25,6 +25,9 @@ used in a config as `"type": "trail-report"`.
 
 The manifest is loaded when the viewer starts, for every app. Keep it small, and don't import
 your element from it. `load` imports the element when an app first uses the type.
+Import only `"viewer"` in the manifest: the manifest is built into the viewer's own code, so
+anything it imports statically, such as your element or a library, is downloaded by every app,
+including apps that never use your type.
 
 The viewer checks the manifest at startup. If something is wrong, it skips the folder and logs
 why. See [sharing.md](sharing.md#troubleshooting) for each reason and its fix.

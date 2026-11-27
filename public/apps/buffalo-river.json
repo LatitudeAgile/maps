@@ -2,7 +2,7 @@
   "app": {
     "title": "Buffalo River",
     "summary": "Plan a float on Arkansas's Buffalo River",
-    "description": "The Buffalo River in Arkansas, coloured by an estimated floating level from five USGS river gauges, on Esri's world terrain. Open Buffalo River in the sidebar to step through the last 48 hours of readings, and Layers to choose which points of interest, river gauges, wilderness areas and the park boundary to show. Bookmarks jump to each section of the river. To plan a float, click two access points on the map: the panel shows the distance, the paddling time and the level, and Trip details adds sunrise and sunset, directions and what's along the way. To lay a float or hike you recorded over the river, open its GPX file in Tracks. Levels are estimates: check conditions yourself before going on the river.\n\nAdapted with the author's permission from Buffalo River at brokan.xyz/buffalo.\n\nThis is a sample app. Replace it, or remove it from apps/index.json.",
+    "description": "The Buffalo River in Arkansas, coloured by an estimated floating level from five USGS river gauges, on Esri's world terrain. Open Buffalo River in the sidebar to step through the last 48 hours of readings, and Layers to choose which points of interest, river gauges, wilderness areas and the park boundary to show. Bookmarks jump to each section of the river, and Local print saves what you frame as a Letter PDF with a legend and scale, or as a picture. To plan a float, click two access points on the map: the panel shows the distance, the paddling time and the level, and Trip details adds sunrise and sunset, directions and what's along the way. To lay a float or hike you recorded over the river, open its GPX file in Tracks. Levels are estimates: check conditions yourself before going on the river.\n\nAdapted with the author's permission from Buffalo River at brokan.xyz/buffalo.\n\nThis is a sample app. Replace it, or remove it from apps/index.json.",
     "icon": "water-drop",
     "theme": { "color": "#2f6b5a", "opacity": 0.85 }
   },
@@ -38,6 +38,7 @@
         ]
       }
     },
+    { "id": "print", "type": "local-print", "placement": "panel" },
     { "id": "basemaps", "type": "basemap-gallery", "placement": "panel" }
   ]
 }
