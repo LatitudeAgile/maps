@@ -28,7 +28,9 @@ export interface MapPage {
 
 // The map's shape (width / height), the same as the map frames of Esri's Letter ANSI A layouts
 // (10 x 6.25 in landscape, 7.5 x 8 in portrait), so the print area matches the Esri print
-// component's. The map is as large as fits on the page in that shape, centered.
+// component's. The map is as large as fits on the page in that shape, centered. Only the shape is
+// Esri's, not the size: 10 x 6.25 in doesn't fit on landscape Letter with the title and legend,
+// so the map is 9.36 x 5.85 in (7.69 x 8.2 in portrait), a 2808 x 1755 px image at 300 DPI.
 const MAP_RATIO = { landscape: 10 / 6.25, portrait: 7.5 / 8 };
 
 export function mapPage(landscape: boolean): MapPage {

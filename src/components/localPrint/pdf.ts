@@ -271,6 +271,11 @@ function coordinateSystem(sr: Placement["spatialReference"]): { type: "PROJCS" |
 /**
  * The page's geospatial viewport over the map image (the ISO 32000 / Adobe "GEO" measure
  * dictionary), so map apps such as Avenza Maps and Acrobat know where each point of the map is.
+ *
+ * Exact in 2D. From a scene looking straight down it's approximate: the view is still a
+ * perspective one, so hills and valleys shift away from the center in proportion to their height,
+ * and four corners can't place them. Over the Buffalo River, picked points were 11 to 96 m off at
+ * 1:50,000. A narrow field of view at capture would cut that, and was set aside.
  */
 function addGeoViewport(doc: PDFDocument, page: PDFPage, box: { x: number; y: number; width: number; height: number }, placement: Placement): void {
   const gcs = coordinateSystem(placement.spatialReference);
