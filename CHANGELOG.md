@@ -7,6 +7,8 @@ Notable changes to the viewer, newest first. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-26
+
 ### Added
 
 - A key to the river's level colours in the Buffalo River panel, with what each band means and a
@@ -21,8 +23,8 @@ Notable changes to the viewer, newest first. The format follows
   Directions adds Directions from here, Directions to here and Add stop here. A `mapMenu` setting
   chooses the entries and their order, adds link items such as Street View, and
   `"mapMenu": false` turns the menu off. Extensions add their own items with the viewer API's
-  `addMapMenuItems`, as hello-world's "Say hello here" shows. The Field Notes app adds Street
-  View.
+  `addMapMenuItems`, as hello-world's "Say hello here" shows. The Field Notes app adds a Street
+  View link, and the Buffalo River app a what3words link.
 
 ### Changed
 
@@ -66,6 +68,7 @@ First release, deployed to <https://maps.latitudeagile.com> by GitHub Pages.
 - Sample apps: Field Notes, Web Map, City Scene, Redlands Parks, Survey Tools, Half Dome, and
   Buffalo River.
 
-[Unreleased]: https://github.com/LatitudeAgile/maps/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/LatitudeAgile/maps/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/LatitudeAgile/maps/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/LatitudeAgile/maps/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/LatitudeAgile/maps/releases/tag/v0.1.0

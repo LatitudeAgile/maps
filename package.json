@@ -1,6 +1,6 @@
 {
   "name": "arcgis-sidebar-viewer",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Config-driven ArcGIS Maps SDK for JavaScript viewer with a tabbed Calcite sidebar",
   "license": "MIT",
   "author": "David Spriggs",
