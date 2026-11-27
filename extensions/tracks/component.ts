@@ -9,6 +9,6 @@ export default defineComponentType({
   load: () => import("./index.ts"),
   options: { units: { oneOf: ["imperial", "metric"] } },
   defaults: { units: "imperial" },
-  panel: { heading: "Tracks", icon: "walking-distance" },
+  panel: { heading: "Tracks", icon: "tour-pin-tear" },
   placements: ["panel"],
 });
