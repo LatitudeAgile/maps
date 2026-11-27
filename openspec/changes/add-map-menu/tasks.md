@@ -45,15 +45,21 @@ in `notes.md` in this change.
 
 - [ ] 8.1 Add the sketch and measure modules to the hold while they draw. Verify with `npm run check`, and in the browser: the scenario "Right-click while sketching"; the menu opens again once the polygon is finished or cancelled; and the same while measuring a distance in half-dome (3D) and survey-tools (2D).
 
-## 9. Sample app (design D12)
+## 9. Sample apps (design D12)
 
 - [ ] 9.1 Give `public/apps/field-notes.json` a `mapMenu`: the three built-ins, a Street View link item, then its components' ids in their order. Verify in the browser: the menu shows the built-ins, Street View, then any component groups; Street View opens the panorama URL for the spot; and the app logs no config warning.
+- [ ] 9.2 In `extensions/buffalo-river/BuffaloRiver.ts`, make the map click handler act on the left button only (`event.button === 0`), so a right-click on an access point opens the map menu without changing the trip. Verify with `npm run check`, and in the browser in the Buffalo River app: a left click on an access point still starts and completes a trip; a right-click on an access point opens the map menu, and the trip and the open panel stay as they were.
 
-## 10. Integration checks
+## 10. User docs and changelog
 
-- [ ] 10.1 Run `npm run check` and `npm run build`, and open the built app with `npm run preview`. Verify in the built app: every sample app in the catalog opens with no config warning or console error, the menu opens in each, and Copy coordinates and What's here? work in one 2D and one 3D app.
-- [ ] 10.2 At 390x844 under touch emulation, in light and dark mode, with the sidebar's bar showing: open the menu by long press near each edge of the map. Verify that it never sits under the bar or off screen, that picking an item works, and that a pan with one finger never opens the menu.
-- [ ] 10.3 Keyboard pass in the default app: Tab to the map, open the menu with the ContextMenu key and with Shift+F10, run each built-in item from the keyboard, and close with Escape. Verify that focus returns to the map each time and that the scenario "Open and pick from the keyboard" holds.
+- [ ] 10.1 Document `mapMenu` in `docs/configuration.md`: the default menu, `false`, a list's ids (built-ins, component ids, link items) and their order, the built-in items' options (`whats-here.url`, `copy-coordinates.format` and its six formats), link items and their `{lat}` and `{lon}` placeholders, what What's here? and link items send and where, and the validation errors and warnings. Add `mapMenu` to the list of top-level settings. Verify that each documented example passes validation in a scratch app.
+- [ ] 10.2 Add an "Added" entry under `[Unreleased]` in `CHANGELOG.md` for the map menu, its built-in, Directions and link items, the `mapMenu` setting, and the viewer API's `addMapMenuItems`, noting that every app's right-click changes and that `"mapMenu": false` turns it off. Verify by reading it.
+
+## 11. Integration checks
+
+- [ ] 11.1 Run `npm run check` and `npm run build`, and open the built app with `npm run preview`. Verify in the built app: every sample app in the catalog opens with no config warning or console error, the menu opens in each, and Copy coordinates and What's here? work in one 2D and one 3D app.
+- [ ] 11.2 At 390x844 under touch emulation, in light and dark mode, with the sidebar's bar showing: open the menu by long press near each edge of the map. Verify that it never sits under the bar or off screen, that picking an item works, and that a pan with one finger never opens the menu.
+- [ ] 11.3 Keyboard pass in the default app: Tab to the map, open the menu with the ContextMenu key and with Shift+F10, run each built-in item from the keyboard, and close with Escape. Verify that focus returns to the map each time and that the scenario "Open and pick from the keyboard" holds.
 
 ## Workflow follow-up
 

@@ -57,8 +57,10 @@ a shared menu.
 - **New:** a map menu module under `src/map/` (opening, context, rendering), the built-in items,
   and `mapMenu` validation under `src/config/`.
 - **Changed:** `src/components/api.ts` (new export), `src/components/directions.ts` (registers its
-  items), the config types and validation, `extensions/hello-world/`, and `docs/components/`
-  (viewer API page and a short guide to adding menu items).
+  items), the config types and validation, `extensions/hello-world/`, `extensions/buffalo-river/`
+  (its map click acts on the left button only, so a right-click doesn't also change the trip),
+  `docs/components/` (viewer API page and a short guide to adding menu items),
+  `docs/configuration.md` (the `mapMenu` setting) and `CHANGELOG.md`.
 - **Sample apps:** one sample app gets a `mapMenu` with a Street View link item, to show link items
   and ordering. The others keep the default menu.
 - **SDK modules:** `rest/locator` for What's here?, and `geometry/coordinateFormatter` for the

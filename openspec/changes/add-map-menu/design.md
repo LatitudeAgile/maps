@@ -27,6 +27,11 @@ What the viewer and the SDK already give this change:
   `toLatitudeLongitude` (`dd`, `ddm`, `dms`), `toMgrs`, `toUsng` and `toUtm`. It loads
   WebAssembly through `load()` and expects a point in a geographic coordinate system.
 - **Notices** (`src/ui/notices.ts`) have the kinds `danger` and `warning` only.
+- **Other map clicks:** the `buffalo-river` extension listens to the view's `click` to add an
+  access point to the trip, and doesn't check the button. A right-click on an access point would
+  change the trip and open the menu at once, so its handler takes the left button only (tasks
+  9.2). Nothing else in the viewer or the extensions listens to map clicks or holds, and Local
+  print's frame takes no pointer events.
 
 ## Goals / Non-Goals
 
