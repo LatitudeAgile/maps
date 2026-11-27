@@ -381,3 +381,67 @@ description SHALL credit the original app at brokan.xyz/buffalo.
 - **GIVEN** a GPX file recorded on a float from Ponca to Kyles Landing
 - **WHEN** the user opens Tracks in the Buffalo River app and opens the file
 - **THEN** the float is draped along the river in the scene, and its distance shows in miles
+
+### Requirement: The panel has a key to the level colours
+The River levels block SHALL show a bar coloured from Very Low at one end to Flood at the other,
+blending between the five band colours as the river does, with each band's name under its colour.
+The key SHALL be shown only while the river is coloured by level, and SHALL look the same in light
+and dark mode.
+
+#### Scenario: Key after the readings load
+- **GIVEN** the Buffalo River sample app
+- **WHEN** the readings have loaded
+- **THEN** the River levels block shows the bar with Very Low, Low, Moderate, High and Flood under it in that order, and each name sits under the colour the river uses for that band
+
+#### Scenario: Key matches the river
+- **GIVEN** the readings have loaded
+- **WHEN** the user compares a stretch of river that's between two bands with the bar
+- **THEN** the stretch's colour appears on the bar between those two bands' names
+
+#### Scenario: No key without levels
+- **GIVEN** requests to `api.waterdata.usgs.gov` fail
+- **WHEN** the Buffalo River sample app is opened
+- **THEN** the panel shows no key while the readings load or after they fail, and shows it once Retry succeeds
+
+#### Scenario: Dark mode
+- **WHEN** the user switches the viewer to dark mode with the readings loaded
+- **THEN** the bar's colours are unchanged and its band names are readable
+
+### Requirement: The key explains each band
+Under the bar, the panel SHALL have a "What the colours mean" section, closed at first, that lists
+the five bands from Very Low to Flood, each with its colour, its name and its guidance. The
+guidance SHALL be the same text the Trip block shows for that band.
+
+#### Scenario: Open the explanation
+- **GIVEN** the readings have loaded
+- **WHEN** the user opens "What the colours mean"
+- **THEN** the five bands are listed in order, each with a colour swatch, its name and a sentence of guidance
+
+#### Scenario: Closed at first
+- **WHEN** the Buffalo River sample app is opened and the readings load
+- **THEN** "What the colours mean" is closed
+
+#### Scenario: Same guidance as the trip
+- **GIVEN** "What the colours mean" is open
+- **WHEN** the user selects a trip
+- **THEN** the guidance under the trip's level in the Trip block is word for word the guidance listed for that band
+
+### Requirement: The key marks the trip's level
+While a selected trip has a level, the bar SHALL show a marker at that level, the level the Trip
+block shows, at the newest reading. With no complete trip, or a trip with no level, the bar SHALL
+show no marker.
+
+#### Scenario: Marker for a trip
+- **GIVEN** the readings have loaded
+- **WHEN** a trip from Ponca Bridge to Kyles Landing is selected
+- **THEN** a marker appears on the bar within the stretch of colour for the band the Trip block shows
+
+#### Scenario: Marker cleared with the trip
+- **GIVEN** a trip is selected and the bar shows its marker
+- **WHEN** the user clears the trip, or clicks one access point to start a new one
+- **THEN** the marker goes away
+
+#### Scenario: Marker doesn't follow the slider
+- **GIVEN** a trip is selected and the bar shows its marker
+- **WHEN** the user drags the slider to its left end
+- **THEN** the marker stays where it was, matching the Trip block's level at the newest reading

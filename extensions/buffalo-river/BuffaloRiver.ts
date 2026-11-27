@@ -15,6 +15,7 @@ import type SceneView from "@arcgis/core/views/SceneView.js";
 import type { ClickEvent } from "@arcgis/core/views/input/types.js";
 import { findViewElement, PANEL_CLOSE, requestPanelOpen, type ViewElement } from "viewer";
 import { RiverLayers } from "./layers.ts";
+import { LevelKey, STYLE as KEY_STYLE } from "./levelKey.ts";
 import { loadReadings, type Reading } from "./levels.ts";
 import * as storage from "./storage.ts";
 import { orderDownstream, tripDistanceMiles, tripLevelScore, tripStretch } from "./trip.ts";
@@ -34,6 +35,7 @@ const STYLE = `
   .note { margin: var(--calcite-spacing-sm) 0 0; color: var(--calcite-color-text-3); font-size: var(--calcite-font-size--1); }
   calcite-notice { margin-block-end: var(--calcite-spacing-md); }
   [hidden] { display: none !important; }
+  ${KEY_STYLE}
   ${TRIP_STYLE}
   ${DETAILS_STYLE}
 `;
@@ -76,6 +78,7 @@ export class BuffaloRiver extends HTMLElement {
   /** Bumped on every trip change, so a late distance can tell it's stale. */
   #tripRequest = 0;
   #tripBlock: TripBlock;
+  #levelKey = new LevelKey();
   #clickHandle: ResourceHandle | undefined;
   #flow: HTMLCalciteFlowElement;
   #home: HTMLCalciteFlowItemElement;
@@ -147,7 +150,7 @@ export class BuffaloRiver extends HTMLElement {
     note.className = "note";
     note.textContent =
       "Levels are estimates from gauge readings and may differ from the river. Check conditions yourself before going on the water.";
-    this.#levelsBlock.append(reading, player, note);
+    this.#levelsBlock.append(reading, player, this.#levelKey.element, note);
 
     this.#tripBlock = new TripBlock(
       () => this.#setTrip([]),
@@ -251,6 +254,7 @@ export class BuffaloRiver extends HTMLElement {
   #renderTrip(): void {
     const levelScore = this.#tripLevel();
     this.#tripBlock.render({ points: this.#trip, miles: this.#tripMiles, levelScore });
+    this.#levelKey.render({ tripScore: levelScore });
     if (this.#details && this.#trip.length === 2) {
       this.#details.render({
         putIn: this.#trip[0],
@@ -391,6 +395,7 @@ export class BuffaloRiver extends HTMLElement {
     this.#failure.open = this.#state === "failed";
     this.#failure.hidden = this.#state !== "failed";
     this.#levelsBlock.loading = this.#state === "loading";
+    this.#levelKey.render({ visible: ready });
     this.#refresh.disabled = this.#state === "loading";
     this.#readingTime.textContent = ready ? formatReadingTime(this.#readings[this.#readingIndex].time) : this.#state === "loading" ? "Loading..." : "Unavailable";
     this.#readingLoader.hidden = !(ready && (this.#redrawing || this.#readingIndex !== this.#drawnIndex));

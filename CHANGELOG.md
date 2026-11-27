@@ -9,6 +9,8 @@ Notable changes to the viewer, newest first. The format follows
 
 ### Added
 
+- A key to the river's level colours in the Buffalo River panel, with what each band means and a
+  marker at the selected trip's level.
 - A `local-print` component, Local print, that prints 2D maps and 3D scenes in the browser with
   no print service: a framed print area, saved as a Letter PDF with a title, legend, scale and
   credits (a GeoPDF when the map is to scale) or as a JPEG of the map alone. The Buffalo River

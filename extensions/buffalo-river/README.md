@@ -29,8 +29,10 @@ station's page. Carver's gauge is listed there but hasn't reported for months.
 Its sidebar panel has:
 
 - **River levels:** the time of the reading the river is drawn for, a slider and Play button for
-  the last 48 hours, and Refresh. If the readings can't be loaded, a notice offers Retry, the
-  river is drawn in grey, and the rest keeps working.
+  the last 48 hours, and Refresh. Under them, a key to the colours: a bar that blends the five
+  bands as the river does, with a marker at the selected trip's level, and **What the colours
+  mean** with each band's guidance. If the readings can't be loaded, a notice offers Retry, the
+  river is drawn in grey, the key is hidden, and the rest keeps working.
 - **Trip:** click two access points on the map (the panel opens if it's closed). It shows the put-in and take-out in
   downstream order, the distance, the paddling time at 2.5 mph, and the level at the newest
   reading. **Trip details** adds a date to plan for, daylight and the latest launch, maps of the
@@ -121,6 +123,7 @@ on the viewer API, with real data, a service and map interaction.
 | `component.ts` | The manifest: panel only, 3D only, no options. |
 | `index.ts` | Defines the element once. The manifest's `load` imports it. |
 | `BuffaloRiver.ts` | The element: finds the scene, holds the state, builds the panel. |
+| `levelKey.ts` | The River levels block's key to the level colours. |
 | `tripBlock.ts`, `tripDetails.ts` | The panel's Trip block and its Trip details page. |
 | `warning.ts` | The one-time safety warning. |
 | `layers.ts`, `poiPopup.ts` | The scene's layers, their symbols and the points-of-interest popup. |
